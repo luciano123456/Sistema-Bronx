@@ -20,6 +20,6 @@ public partial class PagosPedidosCliente
     public decimal TotalArs { get; set; }
 
     public string? Observacion { get; set; }
-
+    
     public virtual Pedido? IdPedidoNavigation { get; set; }
 }
