@@ -15,5 +15,5 @@ public partial class Proveedor
 
     public string? Telefono { get; set; }
 
-    public virtual ICollection<Pedido> Pedidos { get; set; } = new List<Pedido>();
+    public virtual ICollection<Insumo> Insumos { get; set; } = new List<Insumo>();
 }

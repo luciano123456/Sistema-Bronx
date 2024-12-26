@@ -11,7 +11,7 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace SistemaBronx.DAL.Repository
 {
-    public class UnidadDeMedidaRepository : IGenericRepository<ProductosUnidadesDeMedida>
+    public class UnidadDeMedidaRepository : IGenericRepository<UnidadesDeMedida>
     {
 
         private readonly SistemaBronxContext _dbcontext;
@@ -20,31 +20,31 @@ namespace SistemaBronx.DAL.Repository
         {
             _dbcontext = context;
         }
-        public async Task<bool> Actualizar(ProductosUnidadesDeMedida model)
+        public async Task<bool> Actualizar(UnidadesDeMedida model)
         {
-            _dbcontext.ProductosUnidadesDeMedida.Update(model);
+            _dbcontext.UnidadesDeMedida.Update(model);
             await _dbcontext.SaveChangesAsync();
             return true;
         }
 
         public async Task<bool> Eliminar(int id)
         {
-            ProductosUnidadesDeMedida model = _dbcontext.ProductosUnidadesDeMedida.First(c => c.Id == id);
-            _dbcontext.ProductosUnidadesDeMedida.Remove(model);
+            UnidadesDeMedida model = _dbcontext.UnidadesDeMedida.First(c => c.Id == id);
+            _dbcontext.UnidadesDeMedida.Remove(model);
             await _dbcontext.SaveChangesAsync();
             return true;
         }
 
-        public async Task<bool> Insertar(ProductosUnidadesDeMedida model)
+        public async Task<bool> Insertar(UnidadesDeMedida model)
         {
-            _dbcontext.ProductosUnidadesDeMedida.Add(model);
+            _dbcontext.UnidadesDeMedida.Add(model);
             await _dbcontext.SaveChangesAsync();
             return true;
         }
 
-        public async Task<ProductosUnidadesDeMedida> Obtener(int id)
+        public async Task<UnidadesDeMedida> Obtener(int id)
         {
-            ProductosUnidadesDeMedida model = await _dbcontext.ProductosUnidadesDeMedida.FindAsync(id);
+            UnidadesDeMedida model = await _dbcontext.UnidadesDeMedida.FindAsync(id);
             return model;
         }
 
@@ -52,9 +52,9 @@ namespace SistemaBronx.DAL.Repository
 
 
 
-        public async Task<IQueryable<ProductosUnidadesDeMedida>> ObtenerTodos()
+        public async Task<IQueryable<UnidadesDeMedida>> ObtenerTodos()
         {
-            IQueryable<ProductosUnidadesDeMedida> query = _dbcontext.ProductosUnidadesDeMedida;
+            IQueryable<UnidadesDeMedida> query = _dbcontext.UnidadesDeMedida;
             return await Task.FromResult(query);
         }
 

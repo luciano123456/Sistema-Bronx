@@ -16,32 +16,41 @@ public partial class SistemaBronxContext : DbContext
     {
     }
 
-    public virtual DbSet<Chofer> Choferes { get; set; }
-
     public virtual DbSet<Cliente> Clientes { get; set; }
+
+    public virtual DbSet<Color> Colores { get; set; }
+
+    public virtual DbSet<Estado> Estados { get; set; }
 
     public virtual DbSet<EstadosUsuario> EstadosUsuarios { get; set; }
 
-    public virtual DbSet<ProductosMarca> ProductosMarcas { get; set; }
+    public virtual DbSet<FormasdePago> FormasdePagos { get; set; }
 
-    public virtual DbSet<PagosPedidosCliente> PagosPedidosClientes { get; set; }
+    public virtual DbSet<Gasto> Gastos { get; set; }
 
-    public virtual DbSet<PagosPedidosProveedor> PagosPedidosProveedores { get; set; }
+    public virtual DbSet<GastosCategoria> GastosCategorias { get; set; }
 
-    public virtual DbSet<Pedido> Pedidos { get; set; }
+    public virtual DbSet<Insumo> Insumos { get; set; }
 
-    public virtual DbSet<PedidosProducto> PedidosProductos { get; set; }
+    public virtual DbSet<InsumosCategoria> InsumosCategorias { get; set; }
 
+    public virtual DbSet<InsumosTipo> InsumosTipos { get; set; }
+
+    public virtual DbSet<Producto> Productos { get; set; }
 
     public virtual DbSet<ProductosCategoria> ProductosCategorias { get; set; }
 
-    public virtual DbSet<ProductosUnidadesDeMedida> ProductosUnidadesDeMedida { get; set; }
+    public virtual DbSet<ProductosInsumo> ProductosInsumos { get; set; }
+
+    public virtual DbSet<ProductosMarca> ProductosMarcas { get; set; }
 
     public virtual DbSet<Proveedor> Proveedores { get; set; }
 
     public virtual DbSet<Provincia> Provincias { get; set; }
 
     public virtual DbSet<Rol> Roles { get; set; }
+
+    public virtual DbSet<UnidadesDeMedida> UnidadesDeMedida { get; set; }
 
     public virtual DbSet<User> Usuarios { get; set; }
 
@@ -51,19 +60,6 @@ public partial class SistemaBronxContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Chofer>(entity =>
-        {
-            entity.Property(e => e.Direccion)
-                .HasMaxLength(255)
-                .IsUnicode(false);
-            entity.Property(e => e.Nombre)
-                .HasMaxLength(100)
-                .IsUnicode(false);
-            entity.Property(e => e.Telefono)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-        });
-
         modelBuilder.Entity<Cliente>(entity =>
         {
             entity.Property(e => e.Direccion)
@@ -92,6 +88,20 @@ public partial class SistemaBronxContext : DbContext
                 .HasConstraintName("FK_Clientes_Provincias");
         });
 
+        modelBuilder.Entity<Color>(entity =>
+        {
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<Estado>(entity =>
+        {
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+        });
+
         modelBuilder.Entity<EstadosUsuario>(entity =>
         {
             entity.Property(e => e.Nombre)
@@ -99,79 +109,111 @@ public partial class SistemaBronxContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<PagosPedidosCliente>(entity =>
+        modelBuilder.Entity<FormasdePago>(entity =>
         {
-            entity.Property(e => e.Cotizacion).HasColumnType("decimal(20, 2)");
-            entity.Property(e => e.Fecha).HasColumnType("datetime");
-            entity.Property(e => e.Observacion)
-                .HasMaxLength(500)
-                .IsUnicode(false);
-            entity.Property(e => e.Total).HasColumnType("decimal(20, 2)");
-            entity.Property(e => e.TotalArs)
-                .HasColumnType("decimal(20, 2)")
-                .HasColumnName("TotalARS");
+            entity.ToTable("FormasdePago");
 
-            entity.HasOne(d => d.IdPedidoNavigation).WithMany(p => p.PagosPedidosClientes)
-                .HasForeignKey(d => d.IdPedido)
-                .HasConstraintName("FK_PagosPedidosClientes_Pedidos");
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(255)
+                .IsUnicode(false);
         });
 
-        modelBuilder.Entity<PagosPedidosProveedor>(entity =>
+        modelBuilder.Entity<Gasto>(entity =>
         {
-            entity.Property(e => e.Cotizacion).HasColumnType("decimal(20, 2)");
-            entity.Property(e => e.Fecha).HasColumnType("datetime");
-            entity.Property(e => e.Observacion)
-                .HasMaxLength(500)
+            entity.Property(e => e.Comentarios)
+                .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.Total).HasColumnType("decimal(20, 2)");
-            entity.Property(e => e.TotalArs)
-                .HasColumnType("decimal(20, 2)")
-                .HasColumnName("TotalARS");
+            entity.Property(e => e.DiaBlue).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.DiaOficial).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.Fecha).HasColumnType("datetime");
+            entity.Property(e => e.ImporteAbonado).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.ImporteTotal).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.Iva).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.Saldo).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.SubTotalBlue).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.SubTotalNeto).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.SubTotalOficial).HasColumnType("decimal(20, 2)");
 
-            entity.HasOne(d => d.IdPedidoNavigation).WithMany(p => p.PagosPedidosProveedores)
-                .HasForeignKey(d => d.IdPedido)
-                .HasConstraintName("FK_PagosPedidosProveedores_Pedidos");
+            entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.Gastos)
+                .HasForeignKey(d => d.IdCategoria)
+                .HasConstraintName("FK_Gastos_GastosCategorias");
+
+            entity.HasOne(d => d.IdFormadePagoNavigation).WithMany(p => p.Gastos)
+                .HasForeignKey(d => d.IdFormadePago)
+                .HasConstraintName("FK_Gastos_FormasdePago");
         });
 
-        modelBuilder.Entity<Pedido>(entity =>
+        modelBuilder.Entity<GastosCategoria>(entity =>
         {
-            entity.Property(e => e.CostoFlete).HasColumnType("decimal(20, 2)");
-            entity.Property(e => e.Estado)
-                .HasMaxLength(100)
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.Fecha).HasColumnType("datetime");
-            entity.Property(e => e.FechaEntrega).HasColumnType("datetime");
-            entity.Property(e => e.NroRemito)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.Observacion)
-                .HasMaxLength(500)
-                .IsUnicode(false);
-            entity.Property(e => e.RestanteCliente).HasColumnType("decimal(20, 2)");
-            entity.Property(e => e.RestanteProveedor).HasColumnType("decimal(20, 2)");
-            entity.Property(e => e.TotalCliente).HasColumnType("decimal(20, 2)");
-            entity.Property(e => e.TotalProveedor).HasColumnType("decimal(20, 2)");
+        });
 
-            entity.HasOne(d => d.IdClienteNavigation).WithMany(p => p.Pedidos)
-                .HasForeignKey(d => d.IdCliente)
-                .HasConstraintName("FK_Pedidos_Clientes");
+        modelBuilder.Entity<Insumo>(entity =>
+        {
+            entity.Property(e => e.Descripcion)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.Especificacion)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.PrecioCosto).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.PrecioVenta).HasColumnType("decimal(20, 2)");
 
-            entity.HasOne(d => d.IdProveedorNavigation).WithMany(p => p.Pedidos)
+            entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.Insumos)
+                .HasForeignKey(d => d.IdCategoria)
+                .HasConstraintName("FK_Insumos_InsumosCategorias");
+
+            entity.HasOne(d => d.IdColorNavigation).WithMany(p => p.Insumos)
+                .HasForeignKey(d => d.IdColor)
+                .HasConstraintName("FK_Insumos_Colores");
+
+            entity.HasOne(d => d.IdProveedorNavigation).WithMany(p => p.Insumos)
                 .HasForeignKey(d => d.IdProveedor)
-                .HasConstraintName("FK_Pedidos_Proveedores");
+                .HasConstraintName("FK_Insumos_Proveedores");
+
+            entity.HasOne(d => d.IdTipoNavigation).WithMany(p => p.Insumos)
+                .HasForeignKey(d => d.IdTipo)
+                .HasConstraintName("FK_Insumos_InsumosTipos");
+
+            entity.HasOne(d => d.IdUnidadMedidaNavigation).WithMany(p => p.Insumos)
+                .HasForeignKey(d => d.IdUnidadMedida)
+                .HasConstraintName("FK_Insumos_UnidadesDeMedida");
         });
 
-        modelBuilder.Entity<PedidosProducto>(entity =>
+        modelBuilder.Entity<InsumosCategoria>(entity =>
         {
-            entity.Property(e => e.Precio).HasColumnType("decimal(20, 2)");
-
-            entity.HasOne(d => d.IdPedidoNavigation).WithMany(p => p.PedidosProductos)
-                .HasForeignKey(d => d.IdPedido)
-                .HasConstraintName("FK_PedidosProductos_PedidosProductos");
-
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(255)
+                .IsUnicode(false);
         });
 
-      
+        modelBuilder.Entity<InsumosTipo>(entity =>
+        {
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<Producto>(entity =>
+        {
+            entity.Property(e => e.Codigo)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.Descripcion)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.PorcIibbmpml).HasColumnName("PorcIIBBMPML");
+
+            entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.Productos)
+                .HasForeignKey(d => d.IdCategoria)
+                .HasConstraintName("FK_Productos_ProductosCategorias");
+
+            entity.HasOne(d => d.IdColorNavigation).WithMany(p => p.Productos)
+                .HasForeignKey(d => d.IdColor)
+                .HasConstraintName("FK_Productos_Productos");
+        });
 
         modelBuilder.Entity<ProductosCategoria>(entity =>
         {
@@ -180,14 +222,29 @@ public partial class SistemaBronxContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<ProductosMarca>(entity =>
+        modelBuilder.Entity<ProductosInsumo>(entity =>
         {
-            entity.Property(e => e.Nombre)
+            entity.Property(e => e.Especificacion)
                 .HasMaxLength(255)
                 .IsUnicode(false);
+
+            entity.HasOne(d => d.IdColorNavigation).WithMany(p => p.ProductosInsumos)
+                .HasForeignKey(d => d.IdColor)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ProductosInsumos_Colores");
+
+            entity.HasOne(d => d.IdInsumoNavigation).WithMany(p => p.ProductosInsumos)
+                .HasForeignKey(d => d.IdInsumo)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ProductosInsumos_Insumos");
+
+            entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.ProductosInsumos)
+                .HasForeignKey(d => d.IdProducto)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ProductosInsumos_ProductosInsumos");
         });
 
-        modelBuilder.Entity<ProductosUnidadesDeMedida>(entity =>
+        modelBuilder.Entity<ProductosMarca>(entity =>
         {
             entity.Property(e => e.Nombre)
                 .HasMaxLength(255)
@@ -221,6 +278,15 @@ public partial class SistemaBronxContext : DbContext
         {
             entity.Property(e => e.Nombre)
                 .HasMaxLength(100)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<UnidadesDeMedida>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK_UnidadesDeMedida");
+
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(255)
                 .IsUnicode(false);
         });
 
