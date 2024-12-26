@@ -26,17 +26,15 @@ builder.Services.AddScoped<IGenericRepository<Cliente>, ClienteRepository>();
 builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddScoped<IProvinciaRepository<Provincia>, ProvinciaRepository>();
 builder.Services.AddScoped<IProvinciaService, ProvinciaService>();
-builder.Services.AddScoped<IGenericRepository<SistemaBronx.Models.Proveedor>, ProveedorRepository>();
+builder.Services.AddScoped<IGenericRepository<Proveedor>, ProveedorRepository>();
 builder.Services.AddScoped<IProveedorService, ProveedorService>();
 builder.Services.AddScoped<IGenericRepository<ProductosMarca>, MarcaRepository>();
 builder.Services.AddScoped<IMarcaService, MarcaService>();
 builder.Services.AddScoped<IGenericRepository<ProductosCategoria>, CategoriaRepository>();
 builder.Services.AddScoped<ICategoriaService, CategoriaService>();
-builder.Services.AddScoped<IGenericRepository<ProductosUnidadesDeMedida>, UnidadDeMedidaRepository>();
-builder.Services.AddScoped<IUnidadDeMedidaService, UnidadDeMedidaService>();
 
-builder.Services.AddScoped<IPedidosRepository<Pedido>, PedidosRepository>();
-builder.Services.AddScoped<IPedidoService, PedidoService>();
+builder.Services.AddScoped<IGenericRepository<UnidadesDeMedida>, UnidadDeMedidaRepository>();
+builder.Services.AddScoped<IUnidadDeMedidaService, UnidadDeMedidaService>();
 
 builder.Services.AddScoped<IUsuariosRepository<User>, UsuariosRepository>();
 builder.Services.AddScoped<IUsuariosService, UsuariosService>();

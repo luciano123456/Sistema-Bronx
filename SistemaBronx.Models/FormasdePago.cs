@@ -3,13 +3,11 @@ using System.Collections.Generic;
 
 namespace SistemaBronx.Models;
 
-public partial class Chofer
+public partial class FormasdePago
 {
     public int Id { get; set; }
 
     public string Nombre { get; set; } = null!;
 
-    public string? Telefono { get; set; }
-
-    public string? Direccion { get; set; }
+    public virtual ICollection<Gasto> Gastos { get; set; } = new List<Gasto>();
 }

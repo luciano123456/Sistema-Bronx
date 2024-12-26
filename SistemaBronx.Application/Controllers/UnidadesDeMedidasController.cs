@@ -42,7 +42,7 @@ namespace SistemaBronx.Application.Controllers
         [HttpPost]
         public async Task<IActionResult> Insertar([FromBody] VMProductoUnidadDeMedida model)
         {
-            var UnidadDeMedida = new ProductosUnidadesDeMedida
+            var UnidadDeMedida = new UnidadesDeMedida
             {
                 Id = model.Id,
                 Nombre = model.Nombre,
@@ -56,7 +56,7 @@ namespace SistemaBronx.Application.Controllers
         [HttpPut]
         public async Task<IActionResult> Actualizar([FromBody] VMProductoUnidadDeMedida model)
         {
-            var UnidadDeMedida = new ProductosUnidadesDeMedida
+            var UnidadDeMedida = new UnidadesDeMedida
             {
                 Id = model.Id,
                 Nombre = model.Nombre,

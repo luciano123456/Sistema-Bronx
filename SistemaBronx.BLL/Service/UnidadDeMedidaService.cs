@@ -6,13 +6,13 @@ namespace SistemaBronx.BLL.Service
     public class UnidadDeMedidaService : IUnidadDeMedidaService
     {
 
-        private readonly IGenericRepository<ProductosUnidadesDeMedida> _contactRepo;
+        private readonly IGenericRepository<UnidadesDeMedida> _contactRepo;
 
-        public UnidadDeMedidaService(IGenericRepository<ProductosUnidadesDeMedida> contactRepo)
+        public UnidadDeMedidaService(IGenericRepository<UnidadesDeMedida> contactRepo)
         {
             _contactRepo = contactRepo;
         }
-        public async Task<bool> Actualizar(ProductosUnidadesDeMedida model)
+        public async Task<bool> Actualizar(UnidadesDeMedida model)
         {
             return await _contactRepo.Actualizar(model);
         }
@@ -22,18 +22,18 @@ namespace SistemaBronx.BLL.Service
             return await _contactRepo.Eliminar(id);
         }
 
-        public async Task<bool> Insertar(ProductosUnidadesDeMedida model)
+        public async Task<bool> Insertar(UnidadesDeMedida model)
         {
             return await _contactRepo.Insertar(model);
         }
 
-        public async Task<ProductosUnidadesDeMedida> Obtener(int id)
+        public async Task<UnidadesDeMedida> Obtener(int id)
         {
             return await _contactRepo.Obtener(id);
         }
 
 
-        public async Task<IQueryable<ProductosUnidadesDeMedida>> ObtenerTodos()
+        public async Task<IQueryable<UnidadesDeMedida>> ObtenerTodos()
         {
             return await _contactRepo.ObtenerTodos();
         }

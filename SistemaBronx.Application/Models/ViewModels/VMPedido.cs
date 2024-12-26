@@ -39,11 +39,6 @@ namespace SistemaBronx.Application.Models.ViewModels
 
         public virtual Proveedor IdProveedorNavigation { get; set; } = null!;
 
-        public virtual ICollection<PagosPedidosCliente> PagosPedidosClientes { get; set; } = new List<PagosPedidosCliente>();
-
-        public virtual ICollection<PagosPedidosProveedor> PagosPedidosProveedores { get; set; } = new List<PagosPedidosProveedor>();
-
-        public virtual ICollection<PedidosProducto> PedidosProductos { get; set; } = new List<PedidosProducto>();
 
     }
 }

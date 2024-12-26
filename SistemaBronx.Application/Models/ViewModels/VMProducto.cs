@@ -39,7 +39,7 @@ namespace SistemaBronx.Application.Models.ViewModels
 
         public virtual Proveedor? IdProveedorNavigation { get; set; }
 
-        public virtual ProductosUnidadesDeMedida? IdUnidadDeMedidaNavigation { get; set; }
+        public virtual UnidadesDeMedida? IdUnidadDeMedidaNavigation { get; set; }
 
     }
 }
