@@ -6,7 +6,7 @@ namespace SistemaBronx.Application.Middleware
     public class SessionMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly List<string> _allowedPaths = new() { "/Login", "/Home/AccessDenied" };
+        private readonly List<string> _allowedPaths = new() { "/Login", "/Clientes/AccessDenied" };
 
         public SessionMiddleware(RequestDelegate next)
         {
@@ -19,7 +19,7 @@ namespace SistemaBronx.Application.Middleware
             var userId = context.Session.GetString("UserId");
 
             // Si el usuario no está logueado y está intentando acceder a algo diferente de /Login, redirige al login
-            if (string.IsNullOrEmpty(userId) && !context.Request.Path.StartsWithSegments("/Login") && !context.Request.Path.StartsWithSegments("/Home/AccessDenied"))
+            if (string.IsNullOrEmpty(userId) && !context.Request.Path.StartsWithSegments("/Login") && !context.Request.Path.StartsWithSegments("/Clientes/AccessDenied"))
             {
                 context.Response.Redirect("/Login/Index");
                 return;
@@ -27,7 +27,7 @@ namespace SistemaBronx.Application.Middleware
             // Si el usuario está logueado y está intentando acceder a la página de Login, redirige al Home
             else if (!string.IsNullOrEmpty(userId) && context.Request.Path.StartsWithSegments("/Login"))
             {
-                context.Response.Redirect("/Home/Index");
+                context.Response.Redirect("/Clientes/Index");
                 return;
             }
 
