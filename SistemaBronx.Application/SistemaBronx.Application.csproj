@@ -28,7 +28,6 @@
     <None Include="wwwroot\js\Usuarios.js" />
     <None Include="wwwroot\js\Zonas.js" />
     <None Include="wwwroot\js\PedidosNuevoModif.js" />
-    <None Include="wwwroot\js\Home.js" />
     <None Include="wwwroot\js\Choferes.js" />
     <None Include="wwwroot\js\Monedas.js" />
     <None Include="wwwroot\js\Proveedores.js" />

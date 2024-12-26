@@ -71,7 +71,7 @@ var app = builder.Build();
 // Configurar el pipeline de middleware
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
+    app.UseExceptionHandler("/Clientes/Error");
     app.UseHsts();
 }
 
@@ -85,7 +85,7 @@ app.UseAuthorization();  // Habilitar la autorización
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Clientes}/{action=Index}/{id?}");
 
 // Asegúrate de que las rutas de login estén excluidas del middleware de autenticación
 app.MapControllerRoute(
