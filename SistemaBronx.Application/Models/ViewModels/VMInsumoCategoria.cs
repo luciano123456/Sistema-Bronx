@@ -3,7 +3,7 @@ using SistemaBronx.Models;
 
 namespace SistemaBronx.Application.Models.ViewModels
 {
-    public class VMProductoCategoria
+    public class VMInsumoCategoria
     {
         public int Id { get; set; }
 

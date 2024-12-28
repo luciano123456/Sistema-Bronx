@@ -18,6 +18,24 @@ html {
     color: black !important;
 }
 
+/* Cambiar el color del texto en los elementos select2 */
+.select2-container .select2-selection__rendered {
+    color: black !important; /* Asegura que el color del texto sea negro */
+}
+
+/* Cambiar el color del texto cuando el elemento select2 está abierto */
+.select2-dropdown {
+    color: black !important; /* Asegura que el color del texto sea negro en el dropdown */
+}
+
+/* Cambiar el color del texto en el desplegable de opciones */
+.select2-container--default .select2-results__option {
+    color: black !important; /* Asegura que el color del texto sea negro en las opciones */
+}
+
+
+
+
 body {
     padding-top: 10px;
     padding-bottom: 10px;
@@ -31,22 +49,19 @@ body {
     margin-left: 5px;
 }
 
-
 .input-nuevo {
     border: none;
     border-bottom: 0px;
-    border-bottom: solid rgb(134,134,14);
+    border-bottom: solid blue;
     width: 70%;
     margin-bottom: 20px;
     color: black;
     text-align: center !important;
     font-size: 0.8vw;
     max-width: 200px !important;
-    background: black !important;
+    background: #1B2631 !important;
     color: white !important;
 }
-
-
 .divFiltros {
     padding: 5px 5px 5px 5px;
     border: 3px solid;
@@ -95,6 +110,8 @@ tbody tr:nth-child(odd) {
     display: flex;
     justify-content: center;
     align-items: center;
+    max-height: 200px;
+    
 }
 
 tbody tr {

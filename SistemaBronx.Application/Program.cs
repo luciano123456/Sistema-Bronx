@@ -30,8 +30,8 @@ builder.Services.AddScoped<IGenericRepository<Proveedor>, ProveedorRepository>()
 builder.Services.AddScoped<IProveedorService, ProveedorService>();
 builder.Services.AddScoped<IGenericRepository<ProductosMarca>, MarcaRepository>();
 builder.Services.AddScoped<IMarcaService, MarcaService>();
-builder.Services.AddScoped<IGenericRepository<ProductosCategoria>, CategoriaRepository>();
-builder.Services.AddScoped<ICategoriaService, CategoriaService>();
+builder.Services.AddScoped<IGenericRepository<InsumosCategoria>, InsumoCategoriaRepository>();
+builder.Services.AddScoped<IInsumoCategoriaService, InsumoCategoriaService>();
 
 builder.Services.AddScoped<IGenericRepository<UnidadesDeMedida>, UnidadDeMedidaRepository>();
 builder.Services.AddScoped<IUnidadDeMedidaService, UnidadDeMedidaService>();
@@ -47,6 +47,16 @@ builder.Services.AddScoped<IEstadosUsuariosService, EstadosUsuariosService>();
 
 builder.Services.AddScoped<ILoginRepository<User>, LoginRepository>();
 builder.Services.AddScoped<ILoginService, LoginService>();
+
+builder.Services.AddScoped<IGenericRepository<Insumo>, InsumoRepository>();
+builder.Services.AddScoped<IInsumoService, Insumoservice>();
+
+builder.Services.AddScoped<IGenericRepository<Color>, ColorRepository>();
+builder.Services.AddScoped<IColorService, ColorService>();
+
+builder.Services.AddScoped<IGenericRepository<InsumosTipo>, InsumosTipoRepository>();
+builder.Services.AddScoped<IInsumosTipoService, InsumosTipoService>();
+
 
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>

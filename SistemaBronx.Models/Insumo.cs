@@ -15,21 +15,17 @@ public partial class Insumo
 
     public int IdUnidadMedida { get; set; }
 
-    public int IdColor { get; set; }
-
     public int IdProveedor { get; set; }
 
     public string? Especificacion { get; set; }
 
     public decimal? PrecioCosto { get; set; }
 
-    public int? PorcGanancia { get; set; }
+    public decimal? PorcGanancia { get; set; }
 
     public decimal? PrecioVenta { get; set; }
 
     public virtual InsumosCategoria IdCategoriaNavigation { get; set; } = null!;
-
-    public virtual Color IdColorNavigation { get; set; } = null!;
 
     public virtual Proveedor IdProveedorNavigation { get; set; } = null!;
 

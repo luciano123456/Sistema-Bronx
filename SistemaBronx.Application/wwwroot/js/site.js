@@ -76,3 +76,16 @@ function formatoNumero(valor) {
 function parseDecimal(value) {
     return parseFloat(value.replace(',', '.'));
 }
+
+
+function formatMoneda(valor) {
+    // Convertir a string, cambiar el punto decimal a coma y agregar separadores de miles
+    let formateado = valor
+        .toString()
+        .replace('.', ',') // Cambiar punto decimal a coma
+        .replace(/\B(?=(\d{3})+(?!\d))/g, "."); // Agregar separadores de miles
+
+    // Agregar el símbolo $ al inicio
+    return `$${formateado}`;
+}
+

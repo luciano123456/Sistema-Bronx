@@ -1,0 +1,83 @@
+
+#tablaProveedores_wrapper label
+{
+    color: black !important;
+}
+
+
+#tablaProveedores_wrapper thead
+{
+    margin-top: 30px;
+}
+
+#tablaProveedores_wrapper .table-striped > tbody > tr:nth-child(even) > td, .table-striped > tbody > tr:nth-child(even) > th
+{
+    background-color: #aeaeae;
+    color: white;
+}
+
+/* Cambia el color de fondo de todas las celdas, incluida la primera columna, en filas impares */
+#tablaProveedores_wrapper .table-striped > tbody > tr:nth-child(odd) > td, .table-striped > tbody > tr:nth-child(odd) > th
+{
+    background-color: white;
+    color: black;
+}
+
+#tablaProveedores_wrapper .table-striped > thead > tr > th 
+{
+    background-color: #1fabca;
+    color: white;
+}
+
+#tablaProveedores tbody tr:hover {
+    cursor: pointer;
+}
+
+
+
+
+.selected {
+    background-color: #1fabca !important;
+}
+
+select option:disabled {
+    color: red; /* Cambiar el color de la letra a rojo */
+}
+
+
+.custom-modal-width {
+    min-width: 40%; /* Ajusta el porcentaje según sea necesario */
+}
+
+
+
+
+.input-nuevomodif {
+    display: flex;
+    border: none;
+    border-bottom: 10px;
+    border-bottom: solid blue;
+    width: 100% !important;
+    display: block;
+    position: relative;
+    left: 0%;
+    font-size: 30px;
+    margin-bottom: 10px;
+    color: black;
+    text-align: center;
+    font-size: 1.5vw;
+    max-width: 500px !important;
+    color: black !important;
+}
+
+
+@media (max-width: 576px) {
+    .modal-dialog {
+        max-width: 90%;
+        margin: 0 auto;
+    }
+
+    .modalEdicion .modal-content {
+        padding: 10px;
+    }
+}

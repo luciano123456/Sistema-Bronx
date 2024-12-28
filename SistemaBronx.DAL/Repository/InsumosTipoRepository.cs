@@ -11,50 +11,45 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace SistemaBronx.DAL.Repository
 {
-    public class CategoriaRepository : IGenericRepository<ProductosCategoria>
+    public class InsumosTipoRepository : IGenericRepository<InsumosTipo>
     {
 
         private readonly SistemaBronxContext _dbcontext;
 
-        public CategoriaRepository(SistemaBronxContext context)
+        public InsumosTipoRepository(SistemaBronxContext context)
         {
             _dbcontext = context;
         }
-        public async Task<bool> Actualizar(ProductosCategoria model)
+        public async Task<bool> Actualizar(InsumosTipo model)
         {
-            _dbcontext.ProductosCategorias.Update(model);
+            _dbcontext.InsumosTipos.Update(model);
             await _dbcontext.SaveChangesAsync();
             return true;
         }
 
         public async Task<bool> Eliminar(int id)
         {
-            ProductosCategoria model = _dbcontext.ProductosCategorias.First(c => c.Id == id);
-            _dbcontext.ProductosCategorias.Remove(model);
+            InsumosTipo model = _dbcontext.InsumosTipos.First(c => c.Id == id);
+            _dbcontext.InsumosTipos.Remove(model);
             await _dbcontext.SaveChangesAsync();
             return true;
         }
 
-        public async Task<bool> Insertar(ProductosCategoria model)
+        public async Task<bool> Insertar(InsumosTipo model)
         {
-            _dbcontext.ProductosCategorias.Add(model);
+            _dbcontext.InsumosTipos.Add(model);
             await _dbcontext.SaveChangesAsync();
             return true;
         }
 
-        public async Task<ProductosCategoria> Obtener(int id)
+        public async Task<InsumosTipo> Obtener(int id)
         {
-            ProductosCategoria model = await _dbcontext.ProductosCategorias.FindAsync(id);
+            InsumosTipo model = await _dbcontext.InsumosTipos.FindAsync(id);
             return model;
         }
-
-
-
-
-
-        public async Task<IQueryable<ProductosCategoria>> ObtenerTodos()
+        public async Task<IQueryable<InsumosTipo>> ObtenerTodos()
         {
-            IQueryable<ProductosCategoria> query = _dbcontext.ProductosCategorias;
+            IQueryable<InsumosTipo> query = _dbcontext.InsumosTipos;
             return await Task.FromResult(query);
         }
 

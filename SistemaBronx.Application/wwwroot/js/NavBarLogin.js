@@ -1,4 +1,7 @@
-﻿document.addEventListener("DOMContentLoaded", function () {
+﻿let listaVacia = false;
+
+
+document.addEventListener("DOMContentLoaded", function () {
 
     var userSession = JSON.parse(localStorage.getItem('userSession'));
 
@@ -42,3 +45,220 @@
         }
     });
 });
+
+function abrirConfiguraciones() {
+    $('#ModalEdicionConfiguraciones').modal('show');
+    $("#btnGuardarConfiguracion").text("Aceptar");
+    $("#modalEdicionLabel").text("Configuraciones");
+}
+async function abrirConfiguracion(_nombreConfiguracion, _controllerConfiguracion) {
+    $('#ModalEdicionConfiguraciones').modal('hide');
+    $('#modalConfiguracion').modal('show');
+
+    cancelarModificarConfiguracion();
+
+    $('#txtNombreConfiguracion').on('input', function () {
+        validarCamposConfiguracion()
+    });
+
+    nombreConfiguracion = _nombreConfiguracion;
+    controllerConfiguracion = _controllerConfiguracion
+    llenarConfiguraciones()
+
+
+    document.getElementById("modalConfiguracionLabel").innerText = "Configuracion de " + nombreConfiguracion;
+
+}
+
+async function llenarConfiguraciones() {
+    let configuraciones = await listaConfiguracion();
+
+    document.getElementById("lblListaVacia").innerText = "";
+    document.getElementById("lblListaVacia").setAttribute("hidden", "hidden");
+
+    $("#configuracion-list").empty();
+
+    if (configuraciones.length == 0) {
+        document.getElementById("lblListaVacia").innerText = `La lista de ${nombreConfiguracion} esta vacia.`;
+
+        document.getElementById("lblListaVacia").style.color = 'red';
+        document.getElementById("lblListaVacia").removeAttribute("hidden");
+        listaVacia = true;
+
+    } else {
+
+        listaVacia = false;
+        configuraciones.forEach((configuracion, index) => {
+            var indexado = configuracion.Id
+            $("#configuracion-list").append(`
+                         <div class="list-item" data-id="${configuracion.Id}">
+                    <span>${configuracion.Nombre}</span>
+                    
+                    <i class="fa fa-pencil-square-o edit-icon text-white" data-index="${indexado}" onclick="editarConfiguracion(${indexado})" style="float: right;"></i>
+                    <i class="fa fa-trash eliminar-icon text-danger" data-index="${indexado}" onclick="eliminarConfiguracion(${indexado})"></i>
+                </div>
+                    `);
+        });
+    }
+}
+
+
+async function eliminarConfiguracion(id) {
+    let resultado = window.confirm("¿Desea eliminar la " + nombreConfiguracion + "?");
+
+    if (resultado) {
+        try {
+            const response = await fetch(controllerConfiguracion + "/Eliminar?id=" + id, {
+                method: "DELETE"
+            });
+
+            if (!response.ok) {
+                throw new Error("Error al eliminar la " + nombreConfiguracion);
+            }
+
+            const dataJson = await response.json();
+
+            if (dataJson.valor) {
+                llenarConfiguraciones()
+
+                exitoModal(nombreConfiguracion + " eliminada correctamente")
+            }
+        } catch (error) {
+            console.error("Ha ocurrido un error:", error);
+        }
+    }
+}
+
+
+const editarConfiguracion = id => {
+    fetch(controllerConfiguracion + "/EditarInfo?id=" + id)
+        .then(response => {
+            if (!response.ok) throw new Error("Ha ocurrido un error.");
+            return response.json();
+        })
+        .then(dataJson => {
+            if (dataJson !== null) {
+                document.getElementById("btnRegistrarModificarConfiguracion").textContent = "Modificar";
+                document.getElementById("agregarConfiguracion").setAttribute("hidden", "hidden");
+                document.getElementById("txtNombreConfiguracion").value = dataJson.Nombre;
+                document.getElementById("txtIdConfiguracion").value = dataJson.Id;
+                document.getElementById("contenedorNombreConfiguracion").removeAttribute("hidden");
+            } else {
+                throw new Error("Ha ocurrido un error.");
+            }
+        })
+        .catch(error => {
+            errorModal("Ha ocurrido un error.");
+        });
+}
+
+
+function validarCamposConfiguracion() {
+    const nombre = $("#txtNombreConfiguracion").val();
+    const camposValidos = nombre !== "";
+
+    $("#lblNombreConfiguracion").css("color", camposValidos ? "" : "red");
+    $("#txtNombreConfiguracion").css("border-color", camposValidos ? "" : "red");
+
+    return camposValidos;
+}
+
+function guardarCambiosConfiguracion() {
+    if (validarCamposConfiguracion()) {
+        const idConfiguracion = $("#txtIdConfiguracion").val();
+        const nuevoModelo = {
+            "Id": idConfiguracion !== "" ? idConfiguracion : 0,
+            "Nombre": $("#txtNombreConfiguracion").val(),
+        };
+
+        const url = idConfiguracion === "" ? controllerConfiguracion + "/Insertar" : controllerConfiguracion + "/Actualizar";
+        const method = idConfiguracion === "" ? "POST" : "PUT";
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8'
+            },
+            body: JSON.stringify(nuevoModelo)
+        })
+            .then(response => {
+                if (!response.ok) throw new Error(response.statusText);
+                return response.json();
+            })
+            .then(dataJson => {
+                const mensaje = idConfiguracion === "" ? nombreConfiguracion + " registrada correctamente" : nombreConfiguracion + " modificada correctamente";
+                llenarConfiguraciones()
+                cancelarModificarConfiguracion();
+                exitoModal(mensaje)
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    } else {
+        errorModal('Debes completar los campos requeridos');
+    }
+}
+
+
+function cancelarModificarConfiguracion() {
+    document.getElementById("txtNombreConfiguracion").value = "";
+    document.getElementById("txtIdConfiguracion").value = "";
+    document.getElementById("contenedorNombreConfiguracion").setAttribute("hidden", "hidden");
+    document.getElementById("agregarConfiguracion").removeAttribute("hidden");
+
+    if (listaVacia == true) {
+        document.getElementById("lblListaVacia").innerText = `La lista de ${nombreConfiguracion} esta vacia.`;
+        document.getElementById("lblListaVacia").style.color = 'red';
+        document.getElementById("lblListaVacia").removeAttribute("hidden");
+    }
+}
+
+function agregarConfiguracion() {
+    document.getElementById("txtNombreConfiguracion").value = "";
+    document.getElementById("txtIdConfiguracion").value = "";
+    document.getElementById("contenedorNombreConfiguracion").removeAttribute("hidden");
+    document.getElementById("agregarConfiguracion").setAttribute("hidden", "hidden");
+    document.getElementById("lblListaVacia").innerText = "";
+    document.getElementById("lblListaVacia").setAttribute("hidden", "hidden");
+    document.getElementById("btnRegistrarModificarConfiguracion").textContent = "Agregar";
+
+    $('#lblNombreConfiguracion').css('color', 'red');
+    $('#txtNombreConfiguracion').css('border-color', 'red');
+} 
+
+
+async function listaConfiguracion() {
+    const url = `/${controllerConfiguracion}/Lista`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    return data.map(configuracion => ({
+        Id: configuracion.Id,
+        Nombre: configuracion.Nombre
+    }));
+
+}
+
+    document.querySelectorAll('.nav-item.dropdown').forEach(dropdown => {
+        dropdown.addEventListener('mouseenter', function () {
+            const dropdownMenu = this.querySelector('.dropdown-menu');
+            dropdownMenu.classList.add('show'); // Mostrar el dropdown
+        });
+
+        dropdown.addEventListener('mouseleave', function () {
+            const dropdownMenu = this.querySelector('.dropdown-menu');
+            dropdownMenu.classList.remove('show'); // Ocultar el dropdown
+        });
+    });
+
+    // Configurar el dropdown para que funcione con un solo clic (si aún no funciona)
+    document.querySelectorAll('.nav-item.dropdown a').forEach(dropdownLink => {
+        dropdownLink.addEventListener('click', function (event) {
+            const dropdownMenu = this.nextElementSibling; // Obtener el menú desplegable
+            if (dropdownMenu.classList.contains('show')) {
+                dropdownMenu.classList.remove('show');
+            } else {
+                dropdownMenu.classList.add('show');
+            }
+        });
+    });
