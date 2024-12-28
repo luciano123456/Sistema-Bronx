@@ -10,6 +10,7 @@
     <Content Remove="wwwroot\css\NavBarLogin.css~RF1f800e21.TMP" />
     <Content Remove="wwwroot\js\Choferes.js" />
     <Content Remove="wwwroot\js\Home.js" />
+    <Content Remove="wwwroot\js\Insumos.js" />
     <Content Remove="wwwroot\js\Login.js" />
     <Content Remove="wwwroot\js\Monedas.js" />
     <Content Remove="wwwroot\js\NavBarLogin.js" />
@@ -23,6 +24,7 @@
 
   <ItemGroup>
     <None Include="wwwroot\Imagenes\Clientes.png" />
+    <None Include="wwwroot\js\Insumos.js" />
     <None Include="wwwroot\js\Login.js" />
     <None Include="wwwroot\js\UsuariosConfiguracion.js" />
     <None Include="wwwroot\js\Usuarios.js" />
@@ -57,6 +59,10 @@
 
   <ItemGroup>
     <Content Update="Views\Choferes\Index.cshtml">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Update="Views\Clientes\Index.cshtml">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>

@@ -158,16 +158,14 @@ public partial class SistemaBronxContext : DbContext
             entity.Property(e => e.Especificacion)
                 .HasMaxLength(255)
                 .IsUnicode(false);
+            entity.Property(e => e.IdProveedor).HasDefaultValueSql("((0))");
+            entity.Property(e => e.PorcGanancia).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.PrecioCosto).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.PrecioVenta).HasColumnType("decimal(20, 2)");
 
             entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.Insumos)
                 .HasForeignKey(d => d.IdCategoria)
                 .HasConstraintName("FK_Insumos_InsumosCategorias");
-
-            entity.HasOne(d => d.IdColorNavigation).WithMany(p => p.Insumos)
-                .HasForeignKey(d => d.IdColor)
-                .HasConstraintName("FK_Insumos_Colores");
 
             entity.HasOne(d => d.IdProveedorNavigation).WithMany(p => p.Insumos)
                 .HasForeignKey(d => d.IdProveedor)
@@ -283,7 +281,7 @@ public partial class SistemaBronxContext : DbContext
 
         modelBuilder.Entity<UnidadesDeMedida>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK_UnidadesDeMedida");
+            entity.HasKey(e => e.Id).HasName("PK_ProductosUnidadesDeMedida");
 
             entity.Property(e => e.Nombre)
                 .HasMaxLength(255)

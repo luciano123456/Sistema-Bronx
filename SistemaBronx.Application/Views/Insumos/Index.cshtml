@@ -1,0 +1,211 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+
+@*GOOGLEAR CARD BOOTSTRAP 5*@
+@section Estilos {
+
+    <link href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css" rel="stylesheet" />
+
+    @*ESTILOS DE BOTONES*@
+    <link href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css" rel="stylesheet" />
+
+    @*filter columns*@
+    <link href="https://cdn.datatables.net/fixedheader/3.2.2/css/fixedHeader.dataTables.min.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="~/css/Insumos.css" rel="stylesheet" />
+
+
+}
+
+<div class="container-fluid mt-5">
+
+
+
+    <div class="row">
+        <div class="col-lg-10">
+            <div class="card" style="width: 88%;position: absolute; left: 7vw; border: none;">
+                <div class="card-header">
+                    Insumos
+                </div>
+                <div class="card-body">
+                    <table class="display nowrap" id="grd_Insumos" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Descripcion</th>
+                                <th>Tipo</th>
+                                <th>Categoria</th>
+                                <th>U. de Medida</th>
+                                <th>Proveedor</th>
+                                <th>Especificacion</th>
+                                <th>Precio Costo</th>
+                                <th>Porc. de Ganancia</th>
+                                <th>Precio Venta</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Aquí va el contenido de tu datatable -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-end mt-2 mb-4">
+                    <a class="btn btn-warning btnnuevo" onclick="nuevoInsumo()">Nuevo</a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="modalEdicion" tabindex="-1" role="dialog" aria-labelledby="modalEdicionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <!-- Clase modal-lg para mayor ancho -->
+        <div class="modal-content modalEdicion">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalEdicionLabel">Editar Insumo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row">
+                        <div class="col-12 col-md-6">
+                            <!-- Ajuste responsivo -->
+                            <div class="form-group" hidden>
+                                <label for="txtId" class="lblNombreInput">ID</label>
+                                <input type="text" class="input-nuevomodif" id="txtId" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label id="lblDescripcion" for="txtDescripcion" class="lblNombreInput">Descripcion (*)</label>
+                                <input type="text" class="input-nuevomodif" id="txtDescripcion" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="txtCategorias" class="lblNombreInput">Categoria (*)</label>
+                                <select id="Categorias" name="select" class="input-nuevomodif select-modal-personalizado mt-2">
+                                    <option value="" selected>Categoria</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="txtUnidadDeMedida" class="lblNombreInput">U. de Medida (*)</label>
+                                <select id="UnidadesDeMedidas" name="select" class="input-nuevomodif select-modal-personalizado mt-2">
+                                    <option value="" selected>U. de Medida</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="txtTipos" class="lblNombreInput">Tipo (*)</label>
+                                <select id="Tipos" name="select" class="input-nuevomodif select-modal-personalizado mt-2">
+                                    <option value="" selected>Tipo</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <input type="text" class="input-nuevomodif" id="txtIdProveedor" name="txtIdProveedor" hidden>
+                                <label id="lblIdProveedor" for="txtIdProveedor" class="lblNombreInput">Proveedor</label>
+                                <div style="display: flex; align-items: center;">
+                                    <input type="text" class="input-nuevomodif" id="txtProveedor" name="Proveedor" style="flex: 1;" readonly>
+                                    <button type="button" class="btn btn-default" id="buscarProveedor" onclick="abrirProveedor()"
+                                            style="margin-left: 8px; background-color: #198754; padding: 6px 10px; border-radius: 4px; position: relative; top: -12px;">
+                                        <i class="fa fa-search" style="color: white; font-size: 1em;"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div class="form-group" >
+                                <label id="lblPrecioCosto" for="txtPrecioCosto" class="lblNombreInput">Precio Costo (*)</label>
+                                <input type="text" class="input-nuevomodif" id="txtPrecioCosto" required>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 4px;">
+                                <label id="lblPorcGanancia" for="txtPorcGanancia" class="lblNombreInput">Porc. Ganancia (*)</label>
+                                <input type="number" class="input-nuevomodif" id="txtPorcGanancia" required>
+                            </div>
+                            <div class="form-group" >
+                                <label id="lblPrecioVenta" for="txtPrecioVenta" class="lblNombreInput">Precio de Venta (*)</label>
+                                <input type="text" class="input-nuevomodif" id="txtPrecioVenta" required >
+                            </div>
+                            <div class="form-group">
+                                <label id="lblEspecificacion" for="txtEspecificacion" class="lblNombreInput">Especificacion</label>
+                                <input type="text" class="input-nuevomodif" id="txtEspecificacion" required>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" id="btnGuardar" class="btn btn-warning" onclick="guardarCambios()">Registrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="ProveedorModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="proveedorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="proveedorModalLabel">Seleccionar Proveedor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table id="tablaProveedores" class="table table-striped table-bordered" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Nombre</th>
+                            <th>Apodo</th>
+                            <th>Direccion</th>
+                            <th>Telefono</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+            <div class="modal-footer">
+
+
+                <button type="button" class="btn btn-success" id="btnSeleccionarProveedor"><i class="fa fa-check"> Seleccionar</i></button>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<partial name="~/Views/Utils/Modals.cshtml" />
+
+@section Scripts {
+
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+
+    @*SCRIPTS DE BOTONES*@
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js">
+
+    </script><script src="~/js/site.js"></script>
+
+    @*excel*@
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+
+    @*pdf*@
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+
+    @*imprimir*@
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
+
+    @*filter columns*@
+    <script src="https://cdn.datatables.net/fixedheader/3.2.2/js/dataTables.fixedHeader.min.js"></script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+
+
+    <script src="~/js/Insumos.js"></script>
+
+}

@@ -11,11 +11,11 @@ namespace SistemaBronx.Application.Controllers
 
     [Authorize]
 
-    public class CategoriasController : Controller
+    public class InsumosCategoriasController : Controller
     {
-        private readonly ICategoriaService _Categoriaservice;
+        private readonly IInsumoCategoriaService _Categoriaservice;
 
-        public CategoriasController(ICategoriaService Categoriaservice)
+        public InsumosCategoriasController(IInsumoCategoriaService Categoriaservice)
         {
             _Categoriaservice = Categoriaservice;
         }
@@ -30,7 +30,7 @@ namespace SistemaBronx.Application.Controllers
         {
             var Categorias = await _Categoriaservice.ObtenerTodos();
 
-            var lista = Categorias.Select(c => new VMProductoCategoria
+            var lista = Categorias.Select(c => new VMInsumoCategoria
             {
                 Id = c.Id,
                 Nombre = c.Nombre,
@@ -42,9 +42,9 @@ namespace SistemaBronx.Application.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> Insertar([FromBody] VMProductoCategoria model)
+        public async Task<IActionResult> Insertar([FromBody] VMInsumoCategoria model)
         {
-            var Categoria = new ProductosCategoria
+            var Categoria = new InsumosCategoria
             {
                 Id = model.Id,
                 Nombre = model.Nombre,
@@ -56,9 +56,9 @@ namespace SistemaBronx.Application.Controllers
         }
 
         [HttpPut]
-        public async Task<IActionResult> Actualizar([FromBody] VMProductoCategoria model)
+        public async Task<IActionResult> Actualizar([FromBody] VMInsumoCategoria model)
         {
-            var Categoria = new ProductosCategoria
+            var Categoria = new InsumosCategoria
             {
                 Id = model.Id,
                 Nombre = model.Nombre,

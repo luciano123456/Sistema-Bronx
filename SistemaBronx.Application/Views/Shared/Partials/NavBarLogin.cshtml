@@ -1,37 +1,5 @@
 ﻿<link href="~/css/navbarlogin.css" rel="stylesheet" />
 
-@* <!-- Navbar -->
-<!-- Navbar -->
-<nav class="navbar navbar-expand navbar-light nav-user">
-    <div class="container menuUsuario">
-        <!-- Nombre de usuario y menú desplegable -->
-        <ul class="navbar-nav">
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                   <span id="userName">Usuario</span>
-                </a>
-                <div class="dropdown-menu dropdown-menu-left" aria-labelledby="navbarDropdown">
-                    <a class="dropdown-item" href="#" onclick="window.location.href='/Usuarios/Configuracion';">Configuración</a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="#" onclick="window.location.href='/Login/Logout';">Cerrar sesión</a>
-                </div>
-            </li>
-        </ul>
-        <!-- Botón del Navbar -->
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <!-- Contenido del Navbar colapsable -->
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ml-auto">
-                <!-- Aquí colocarás el resto de tus elementos de navegación -->
-            </ul>
-        </div>
-    </div>
-</nav>
- *@
-
-
 
 <nav class="navbar navbar-expand-lg navbar-light" style="background-color: rgba(112, 112, 112, 0.3);">
     <div class="container-fluid">
@@ -41,6 +9,7 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <!-- Items del menú aquí -->
                 <li class="nav-item">
                     <a class="nav-link" href="#">Pedidos</a>
                 </li>
@@ -54,28 +23,26 @@
                     <a class="nav-link active" aria-current="page" href="@Url.Action("Index", "Productos")">Productos</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Insumos</a>
+                    <a class="nav-link" href="@Url.Action("Index", "Insumos")">Insumos</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="@Url.Action("Index", "Clientes")">Clientes</a>
-
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="@Url.Action("Index", "Proveedores")">Proveedores</a>
                 </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="configDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <li class="nav-item dropdown" id="configDropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="configDropdownLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Configuraciones
                     </a>
-                    <ul class="dropdown-menu" aria-labelledby="configDropdown">
-                        <li>
-                            <a class="dropdown-item" href="@Url.Action("Index", "Usuarios")">Usuarios</a>
-                        </li>
+                    <ul class="dropdown-menu" aria-labelledby="configDropdownLink">
+                        <li><a class="dropdown-item" href="@Url.Action("Index", "Usuarios")">Usuarios</a></li>
+                        <li><a class="dropdown-item" onclick="abrirConfiguraciones()">Otras</a></li>
                     </ul>
                 </li>
-
             </ul>
-            <!-- Nuevo dropdown con el nombre del usuario -->
+
+            <!-- Usuario Dropdown -->
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -90,5 +57,94 @@
         </div>
     </div>
 </nav>
+
+
+ <!-- Modal Configuraciones -->
+    <div class="modal fade" id="modalConfiguracion" tabindex="-1" role="dialog" aria-labelledby="modalConfiguracionLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalConfiguracionLabel">Configuracion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <label id="lblListaVacia" for="txtListaVacia" class="lblNombreInput" hidden></label>
+
+                <div class="list-container">
+                    <div id="configuracion-list">
+                        <!-- Lista de categorías se llenará dinámicamente -->
+                    </div>
+                </div>
+
+                <div id="contenedorNombreConfiguracion" class="form-group" hidden>
+                    <label id="lblNombre" for="txtNombre" class="lblNombreInput">Nombre</label>
+                    <input type="text" class="input-nuevomodif" id="txtNombreConfiguracion" required>
+                    <input type="text" class="input-nuevomodif" id="txtIdConfiguracion" hidden>
+
+
+                    <div class="btnModificarConfiguracion-container">
+                        <button id="btnRegistrarModificarConfiguracion" class="btnModificarConfiguracion" onclick="guardarCambiosConfiguracion()">Modificar</button>
+                        <button class="btnCancelarConfiguracion ml-2" onclick="cancelarModificarConfiguracion()">Cancelar</button>
+                    </div>
+                </div>
+
+                <div class="btnAgregarConfiguracion-container">
+                    <button id="agregarConfiguracion" class="btnAgregarConfiguracion" onclick="agregarConfiguracion()">Añadir</button>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Modal Configuraciones -->
+<div class="modal fade" id="ModalEdicionConfiguraciones" tabindex="-1" role="dialog" aria-labelledby="ModalEdicionConfiguracionesLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ModalEdicionConfiguracionesLabel">Configuraciones</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <button type="button" class="btnConfiguraciones" onclick="abrirConfiguracion('Categoria', 'InsumosCategorias')">
+                        <img src="/Imagenes/Categorias.png" alt="Icono Categorias" class="imgConfiguraciones">
+                        <span>Categorias</span>
+                    </button>
+                    <button type="button" class="btnConfiguraciones mt-2" onclick="abrirConfiguracion('Color', 'Colores')">
+                        <img src="/Imagenes/Colores.png" alt="Icono Colores" class="imgConfiguraciones">
+                        <span>Colores</span>
+                    </button>
+                    <button type="button" class="btnConfiguraciones mt-2" onclick="abrirConfiguracion('Unidad de Medida', 'UnidadesDeMedidas')">
+                        <img src="/Imagenes/unidadmedida.png" alt="Icono Unidades de Medidas" class="imgConfiguraciones">
+                        <span>Unidades de medidas</span>
+                    </button>
+                    <button type="button" class="btnConfiguraciones mt-2" onclick="abrirConfiguracion('Tipos de Insumos', 'InsumosTipos')">
+                        <img src="/Imagenes/tiposinsumos.png" alt="Icono Tipos de Insumos" class="imgConfiguraciones">
+                        <span>Tipos de Insumos</span>
+                    </button>
+                    <button type="button" class="btnConfiguraciones mt-2" onclick="abrirConfiguracion('Rol', 'Roles')">
+                        <img src="/Imagenes/Roles.png" alt="Icono Roles" class="imgConfiguraciones">
+                        <span>Roles</span>
+                    </button>
+                    @* <button type="button" class="btnConfiguraciones mt-2" onclick="abrirConfiguracion('Estados de Usuarios', 'EstadosUsuarios')">
+                    <img src="/Imagenes/Roles.png" alt="Icono Roles" class="imgConfiguraciones">
+                    <span>Estados de Usuarios</span>
+                    </button> *@
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script src="~/js/NavBarLogin.js" asp-append-version="true"></script>
