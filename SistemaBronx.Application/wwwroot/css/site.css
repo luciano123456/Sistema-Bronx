@@ -484,3 +484,32 @@ div.dt-button-collection .dt-button:hover {
 .navbar-toggler-icon {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3E%3Cpath stroke='white' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E") !important;
 }
+
+table.dataTable.row-border tbody th, table.dataTable.row-border tbody td, table.dataTable.display tbody th, table.dataTable.display tbody td {
+    border-top: none !important;
+}
+
+
+@keyframes blinkTextShadow {
+    0% {
+        box-shadow: inset 0 0 10px #d4edda;
+        color: white;
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow: inset 0 0 10px #28a745;
+        color: #28a745; 
+        transform: scale(1.1);
+    }
+
+    100% {
+        box-shadow: inset 0 0 10px #d4edda;
+        color: white;
+        transform: scale(1);
+    }
+}
+
+.blinking {
+    animation: blinkTextShadow 3s ease-out; /* Duración de 3 segundos, se repite infinitamente */
+}
