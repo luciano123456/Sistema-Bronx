@@ -1,5 +1,7 @@
 ﻿let gridInsumos;
 let grdProveedores;
+let isEditing = false;
+
 
 const precioCostoInput = document.getElementById('txtPrecioCosto');
 const precioVentaInput = document.getElementById('txtPrecioVenta');
@@ -73,7 +75,7 @@ function guardarCambios() {
             "PrecioCosto": formatoNumero($("#txtPrecioCosto").val()),
             "PorcGanancia": $("#txtPorcGanancia").val(),
             "PrecioVenta": formatoNumero($("#txtPrecioVenta").val()),
-            
+
         };
 
         const url = (idInsumo == null || idInsumo === "") ? "Insumos/Insertar" : "Insumos/Actualizar";
@@ -536,8 +538,8 @@ async function configurarDataTable(data) {
                             placeholder: 'Seleccionar...',
                             width: '100%'
                         });
-                    
-                
+
+
                     } else if (config.filterType === 'text') {
                         var input = $('<input type="text" placeholder="Buscar..." />')
                             .appendTo(cell.empty())
@@ -562,32 +564,346 @@ async function configurarDataTable(data) {
                 }, 300);
             },
         });
+
+        $('#grd_Insumos tbody').on('dblclick', 'td', async function () {
+            var cell = gridInsumos.cell(this);
+            var originalData = cell.data();
+            var colIndex = cell.index().column;
+            var rowData = gridInsumos.row($(this).closest('tr')).data();
+
+            // Verificar si la columna es la de acciones (última columna)
+            if (colIndex === gridInsumos.columns().indexes().length - 1) {
+                return; // No permitir editar en la columna de acciones
+            }
+
+
+            if (isEditing == true) {
+                return;
+            } else {
+                isEditing = true;
+            }
+
+            // Eliminar la clase 'blinking' si está presente
+            if ($(this).hasClass('blinking')) {
+                $(this).removeClass('blinking');
+            }
+
+            // Si ya hay un input o select, evitar duplicados
+            if ($(this).find('input').length > 0 || $(this).find('select').length > 0) {
+                return;
+            }
+
+            // Si la columna es la de la provincia (por ejemplo, columna 3)
+            if (colIndex === 1 || colIndex === 2 || colIndex === 3 || colIndex === 4) {
+                var select = $('<select class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
+                    .appendTo($(this).empty())
+                    .on('change', function () {
+                        // No hacer nada en el change, lo controlamos con el botón de aceptar
+                    });
+
+                // Estilo para las opciones del select
+                select.find('option').css('color', 'white'); // Cambiar el color del texto de las opciones a blanco
+                select.find('option').css('background-color', 'black'); // Cambiar el fondo de las opciones a negro
+
+                // Obtener las provincias disponibles
+
+                var result = null;
+
+                if (colIndex == 1) {
+                    result = await obtenerTipos();
+                } else if (colIndex == 2) {
+                    result = await obtenerCategorias();
+                } else if (colIndex == 3) {
+                    result = await obtenerUnidadesDeMedidas();
+                } else if (colIndex == 4) {
+                    result = await obtenerProveedores();
+                }
+
+                result.forEach(function (res) {
+                    select.append('<option value="' + res.Id + '">' + res.Nombre + '</option>');
+                });
+
+                if (colIndex == 1) {
+                    select.val(rowData.IdTipo);
+                } else if (colIndex == 2) {
+                    select.val(rowData.IdCategoria);
+                } else if (colIndex == 3) {
+                    select.val(rowData.IdUnidadMedida);
+                } else if (colIndex == 4) {
+                    select.val(rowData.IdProveedor);
+                }
+
+                // Crear los botones de guardar y cancelar
+                var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
+                    var selectedValue = select.val();
+                    var selectedText = select.find('option:selected').text();
+                    saveEdit(colIndex, gridInsumos.row($(this).closest('tr')).data(), selectedText, selectedValue, $(this).closest('tr'));
+                });
+
+                var cancelButton = $('<i class="fa fa-times text-danger"></i>').on('click', cancelEdit);
+
+                // Agregar los botones de guardar y cancelar en la celda
+                $(this).append(saveButton).append(cancelButton);
+
+                // Enfocar el select
+                select.focus();
+
+            } else if (colIndex === 6 || colIndex === 8) {
+                var valueToDisplay = originalData ? originalData.toString().replace(/[^\d.-]/g, '') : '';
+
+                var input = $('<input type="text" class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
+                    .val(formatoMoneda.format(valueToDisplay))
+                    .on('input', function () {
+                        var saveBtn = $(this).siblings('.fa-check'); // Botón de guardar
+
+                        if ($(this).val().trim() === "") {
+                            $(this).css('border-bottom', '2px solid red'); // Borde rojo
+                            saveBtn.css('opacity', '0.5'); // Desactivar botón de guardar visualmente
+                            saveBtn.prop('disabled', true); // Desactivar funcionalidad del botón
+                        }
+                    })
+                input.on('blur', function () {
+                    // Solo limpiar el campo si no se ha presionado "Aceptar"
+                    var rawValue = $(this).val().replace(/[^0-9,-]/g, ''); // Limpiar caracteres no numéricos
+                    $(this).val(formatoMoneda.format(parseDecimal(rawValue))); // Mantener el valor limpio
+                })
+                    .on('keydown', function (e) {
+                        if (e.key === 'Enter') {
+                            saveEdit(colIndex, gridInsumos.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                        } else if (e.key === 'Escape') {
+                            cancelEdit();
+                        }
+                    });
+
+                var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
+                    if (!$(this).prop('disabled')) { // Solo guardar si el botón no está deshabilitado
+                        saveEdit(colIndex, gridInsumos.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                    }
+                });
+
+                var cancelButton = $('<i class="fa fa-times text-danger"></i>').on('click', cancelEdit);
+
+                // Reemplazar el contenido de la celda
+                $(this).empty().append(input).append(saveButton).append(cancelButton);
+
+                input.focus();
+            } else { // Para las demás columnas, como Dirección
+                var valueToDisplay = (originalData && originalData.toString().trim() !== "")
+                    ? originalData.toString().replace(/<[^>]+>/g, "")
+                    : originalData || "";
+
+                // Verificar si el valor es un número y formatearlo a dos decimales
+                if (!isNaN(valueToDisplay) && valueToDisplay !== "") {
+                    valueToDisplay = parseDecimal(valueToDisplay); // Convertir a decimal con 2 decimales
+                }
+
+
+
+                var input = $('<input type="text" class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
+                    .val(valueToDisplay)
+                    .on('input', function () {
+                        var saveBtn = $(this).siblings('.fa-check'); // Botón de guardar
+
+                        if (colIndex === 0) { // Validar solo si es la columna 0
+                            if ($(this).val().trim() === "") {
+                                $(this).css('border-bottom', '2px solid red'); // Borde rojo
+                                saveBtn.css('opacity', '0.5'); // Desactivar botón de guardar visualmente
+                                saveBtn.prop('disabled', true); // Desactivar funcionalidad del botón
+                            } else {
+                                $(this).css('border-bottom', '2px solid green'); // Borde verde
+                                saveBtn.css('opacity', '1'); // Habilitar botón de guardar visualmente
+                                saveBtn.prop('disabled', false); // Habilitar funcionalidad del botón
+                            }
+                        }
+                    })
+                    .on('keydown', function (e) {
+                        if (e.key === 'Enter') {
+                            saveEdit(colIndex, gridInsumos.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                        } else if (e.key === 'Escape') {
+                            cancelEdit();
+                        }
+                    });
+
+                var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
+                    if (!$(this).prop('disabled')) { // Solo guardar si el botón no está deshabilitado
+                        saveEdit(colIndex, gridInsumos.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                    }
+                });
+
+                var cancelButton = $('<i class="fa fa-times text-danger"></i>').on('click', cancelEdit);
+
+                // Reemplazar el contenido de la celda
+                $(this).empty().append(input).append(saveButton).append(cancelButton);
+
+                input.focus();
+            }
+
+            // Función para guardar los cambios
+            function saveEdit(colIndex, rowData, newText, newValue, trElement) {
+                // Obtener el nodo de la celda desde el índice
+                var celda = $(trElement).find('td').eq(colIndex); // Obtener la celda correspondiente dentro de la fila
+                // Obtener el valor original de la celda
+                var originalText = gridInsumos.cell(trElement, colIndex).data();
+
+                if (colIndex === 2) {
+                    var tempDiv = document.createElement('div'); // Crear un div temporal
+                    tempDiv.innerHTML = originalText; // Establecer el HTML de la celda
+                    originalText = tempDiv.textContent.trim(); // Extraer solo el texto
+                    newText = newText.trim();
+                }
+
+                // Verificar si el texto realmente ha cambiado
+                if (colIndex === 6 || colIndex === 8) { // Si es la columna PrecioCosto o PrecioVenta
+                    // Convertir ambos valores (originalText y newText) a números flotantes
+                    var originalValue = parseFloat(originalText).toFixed(2);
+                    var newValueFloat = parseFloat(convertirMonedaAfloat(newText)).toFixed(2);
+
+                    if (originalValue === newValueFloat) {
+                        cancelEdit();
+                        return; // Si no ha cambiado, no hacer nada
+                    }
+                } else {
+                    // Para otras columnas, la comparación sigue siendo en texto
+                    if (originalText.toString() === newText) {
+                        cancelEdit();
+                        return; // Si no ha cambiado, no hacer nada
+                    }
+                }
+
+                // Limpiar las clases 'blinking' de las celdas relevantes antes de aplicar el parpadeo
+                $(trElement).find('td').removeClass('blinking');
+
+                // Actualizar el valor de la fila según la columna editada
+                if (colIndex === 1) { // Si es la columna de la provincia
+                    rowData.IdTipo = newValue;
+                    rowData.Tipo = newText;
+                } else if (colIndex === 2) { // Si es la columna de la provincia
+                    rowData.IdCategoria = newValue;
+                    rowData.Categoria = newText;
+                } else if (colIndex === 3) { // Si es la columna de la provincia
+                    rowData.IdUnidadMedida = newValue;
+                    rowData.UnidaddeMedida = newText;
+                } else if (colIndex === 4) { // Si es la columna de la provincia
+                    rowData.IdProveedor = newValue;
+                    rowData.Proveedor = newText;
+                } else if (colIndex === 6) { // Si es la columna de PrecioCosto
+                    rowData.PrecioCosto = convertirMonedaAfloat(newValue); // Actualizar PrecioCosto
+
+                    // Calcular PrecioVenta basado en PrecioCosto y PorcentajeGanancia
+                    var precioVentaCalculado = rowData.PrecioCosto + (rowData.PrecioCosto * (rowData.PorcGanancia / 100));
+                    rowData.PrecioVenta = precioVentaCalculado;
+
+                    // Actualizar el porcentaje de ganancia basado en el PrecioCosto
+                    rowData.PorcGanancia = parseFloat(((rowData.PrecioVenta - rowData.PrecioCosto) / rowData.PrecioCosto) * 100).toFixed(2);
+
+                    // Aplicar el efecto de parpadeo a las celdas 6 y 8 (PrecioCosto y PrecioVenta)
+                    var celda6 = $(trElement).find('td').eq(6); // Obtener la celda de PrecioCosto
+                    var celda8 = $(trElement).find('td').eq(8); // Obtener la celda de PrecioVenta
+
+                    celda6.addClass('blinking'); // Aplicar la clase 'blinking' a la celda 6
+                    celda8.addClass('blinking'); // Aplicar la clase 'blinking' a la celda 8
+                } else if (colIndex === 7) { // Si es la columna de PorcentajeGanancia
+                    rowData.PorcGanancia = parseDecimal(newValue); // Actualizar PorcentajeGanancia
+
+                    // Calcular PrecioVenta basado en PrecioCosto y PorcentajeGanancia
+                    rowData.PrecioVenta = rowData.PrecioCosto + (rowData.PrecioCosto * (rowData.PorcGanancia / 100));
+
+                    // Aplicar el efecto de parpadeo a las celdas 7 y 8 (PorcentajeGanancia y PrecioVenta)
+                    var celda7 = $(trElement).find('td').eq(7); // Obtener la celda de PorcentajeGanancia
+                    var celda8 = $(trElement).find('td').eq(8); // Obtener la celda de PrecioVenta
+
+                    celda7.addClass('blinking'); // Aplicar la clase 'blinking' a la celda 7
+                    celda8.addClass('blinking'); // Aplicar la clase 'blinking' a la celda 8
+                } else if (colIndex === 8) { // Si es la columna de PrecioVenta
+                    rowData.PrecioVenta = convertirMonedaAfloat(newValue);
+                    rowData.PorcGanancia = parseFloat(((convertirMonedaAfloat(newValue) - rowData.PrecioCosto) / rowData.PrecioCosto) * 100).toFixed(2);
+
+                    // Aplicar el efecto de parpadeo también en la celda 7
+                    var celda7 = $(trElement).find('td').eq(7); // Obtener la celda de la columna 7
+                    celda7.addClass('blinking'); // Aplicar la clase 'blinking' a la celda 7
+                } else {
+                    rowData[gridInsumos.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
+                }
+
+                // Actualizar la fila en la tabla con los nuevos datos
+                gridInsumos.row(trElement).data(rowData).draw();
+
+                // Aplicar el parpadeo solo si el texto cambió
+                if (originalText !== newText) {
+                    celda.addClass('blinking'); // Aplicar la clase 'blinking' a la celda que fue editada
+                }
+
+                // Enviar los datos al servidor
+                guardarCambiosFila(rowData);
+
+                // Desactivar el modo de edición
+                isEditing = false;
+
+                // Eliminar la clase 'blinking' después de 3 segundos (para hacer el efecto de parpadeo)
+                setTimeout(function () {
+                    $(trElement).find('td').removeClass('blinking'); // Eliminar 'blinking' de todas las celdas
+                }, 3000); // Duración de la animación de parpadeo (3 segundos)
+            }
+
+
+
+
+            // Función para cancelar la edición
+            function cancelEdit() {
+                // Restaurar el valor original
+                gridInsumos.cell(cell.index()).data(originalData).draw();
+                isEditing = false;
+            }
+        });
     } else {
         gridInsumos.clear().rows.add(data).draw();
     }
 }
 
 
-
-function agregarFiltroDesplegable(column, obtenerOpciones, opcionPredeterminada = "Seleccionar") {
-    var select = $('<select><option value="">' + opcionPredeterminada + '</option></select>')
-        .appendTo($(column.header()).empty())
-        .on('change', function () {
-            var val = $.fn.dataTable.util.escapeRegex(
-                $(this).val()
-            );
-
-            column
-                .search(val ? '^' + val + '$' : '', true, false)
-                .draw();
-        });
-
-    obtenerOpciones(function (opciones) {
-        opciones.forEach(function (opcion) {
-            select.append('<option value="' + opcion.valor + '">' + opcion.texto + '</option>');
-        });
-    });
+async function obtenerTipos() {
+    const response = await fetch('/InsumosTipos/Lista');
+    const result = await response.json();
+    return result;
 }
+
+async function obtenerCategorias() {
+    const response = await fetch('/InsumosCategorias/Lista');
+    const result = await response.json();
+    return result;
+}
+
+async function obtenerUnidadesDeMedidas() {
+    const response = await fetch('/UnidadesDeMedidas/Lista');
+    const result = await response.json();
+    return result;
+}
+
+async function obtenerProveedores() {
+    const response = await fetch('/Proveedores/Lista');
+    const result = await response.json();
+    return result;
+}
+
+async function guardarCambiosFila(rowData) {
+    try {
+        const response = await fetch('/Insumos/Actualizar', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(rowData)
+        });
+
+        if (response.ok) {
+        } else {
+            errorModal('Ha ocurrido un error al guardar los datos...')
+        }
+    } catch (error) {
+        console.error('Error de red:', error);
+    }
+}
+
 
 async function abrirProveedor() {
     const Proveedores = await obtenerProveedores();
@@ -704,7 +1020,7 @@ function sumarPorcentaje() {
         // Si los valores son inválidos, limpiar el campo de precio de venta
         $("#txtPrecioVenta").val('');
     }
-}  
+}
 
 
 
