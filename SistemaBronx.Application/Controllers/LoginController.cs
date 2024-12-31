@@ -39,6 +39,12 @@ namespace SistemaBronx.Application.Controllers
                     return Json(new { success = false, message = "Usuario o contraseña incorrectos." });
                 }
 
+                if (user.IdEstado == 2)
+                {
+                    return Json(new { success = false, message = "Tu usuario se encuentra bloqueado." });
+                }
+
+
                 var passwordHasher = new PasswordHasher<User>();
                 var result = passwordHasher.VerifyHashedPassword(user, user.Contrasena, model.Contrasena);
 
