@@ -67,6 +67,19 @@ const formatoMoneda = new Intl.NumberFormat('es-AR', {
     minimumFractionDigits: 2
 });
 
+function convertirMonedaAfloat(moneda) {
+    // Eliminar el símbolo de la moneda y reemplazar la coma por un punto
+    return parseFloat(moneda.replace(/[^0-9,.-]/g, '').replace(',', '.'));
+}
+
+function convertirAMonedaDecimal(valor) {
+    // Reemplazar coma por punto
+    if (typeof valor === 'string') {
+        valor = valor.replace(',', '.'); // Cambiar la coma por el punto
+    }
+    // Convertir a número flotante
+    return parseFloat(valor);
+}
 
 function formatoNumero(valor) {
     // Reemplaza la coma por punto y elimina otros caracteres no numéricos (como $)
