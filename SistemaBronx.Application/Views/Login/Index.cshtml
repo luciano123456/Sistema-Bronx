@@ -39,18 +39,26 @@
                     <input type="text" class="form-control" id="username" name="username" required>
                 </div>
 
-                <div class="mb-3">
+                <div class="">
                     <label for="password" class="form-label">Contraseña</label>
                     <div class="input-group">
                         <input type="password" class="form-control" id="password" name="password" required>
                     </div>
                 </div>
 
+                 <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="rememberMe">
+                    <label class="form-check-label" for="rememberMe">Recordar credenciales</label>
+                    <i id="checkIcon" class="fa fa-check-circle" style="color: green; display: none;"></i>
+                </div>
+
+
                 <!-- Mostrar error si existe -->
                 <div id="diverrorMessage" class="alert alert-danger" role="alert" style="display: none;">
                     <a id="errorMessage"></a>
                 </div>
 
+               
 
                 <button type="submit" class="btn btn-primary">Ingresar</button>
             </form>
