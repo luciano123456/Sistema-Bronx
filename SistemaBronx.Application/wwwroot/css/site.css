@@ -41,7 +41,7 @@ body {
     padding-bottom: 10px;
     background-attachment: fixed;
     background-position: center center;
-    background-color: black;
+    background-color: #191133;
     background-repeat: no-repeat no-repeat;
     background-size: cover;
     width: 99%;
@@ -109,9 +109,11 @@ tbody tr:nth-child(odd) {
 .divLogo {
     display: flex;
     justify-content: center;
-    align-items: center;
-    max-height: 200px;
-    
+    align-items: center;  
+}
+
+.imageLogo {
+   height: 80%;
 }
 
 tbody tr {
@@ -231,7 +233,7 @@ label {
 
 
 .card {
-    background-color: black !important;
+    background-color: #191133 !important;
     border-radius: 50px;
 }
 
