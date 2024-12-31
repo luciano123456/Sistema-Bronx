@@ -349,10 +349,16 @@ async function configurarDataTable(data) {
                 return; // No permitir editar en la columna de acciones
             }
 
+
             if (isEditing == true) {
                 return;
             } else {
                 isEditing = true;
+            }
+
+            // Eliminar la clase 'blinking' si está presente
+            if ($(this).hasClass('blinking')) {
+                $(this).removeClass('blinking');
             }
 
             // Si ya hay un input o select, evitar duplicados
@@ -399,7 +405,22 @@ async function configurarDataTable(data) {
                 var valueToDisplay = originalData && originalData.trim() !== "" ? originalData.replace(/<[^>]+>/g, "") : originalData || "";
 
                 var input = $('<input type="text" class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
-                    .val(valueToDisplay)  // Usar el valor limpio si originalData tiene contenido
+                    .val(valueToDisplay)
+                    .on('input', function () {
+                        var saveBtn = $(this).siblings('.fa-check'); // Botón de guardar
+
+                        if (colIndex === 0) { // Validar solo si es la columna 0
+                            if ($(this).val().trim() === "") {
+                                $(this).css('border-bottom', '2px solid red'); // Borde rojo
+                                saveBtn.css('opacity', '0.5'); // Desactivar botón de guardar visualmente
+                                saveBtn.prop('disabled', true); // Desactivar funcionalidad del botón
+                            } else {
+                                $(this).css('border-bottom', '2px solid green'); // Borde verde
+                                saveBtn.css('opacity', '1'); // Habilitar botón de guardar visualmente
+                                saveBtn.prop('disabled', false); // Habilitar funcionalidad del botón
+                            }
+                        }
+                    })
                     .on('keydown', function (e) {
                         if (e.key === 'Enter') {
                             saveEdit(colIndex, gridClientes.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
@@ -408,9 +429,10 @@ async function configurarDataTable(data) {
                         }
                     });
 
-                // Crear los botones de guardar y cancelar
                 var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
-                    saveEdit(colIndex, gridClientes.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                    if (!$(this).prop('disabled')) { // Solo guardar si el botón no está deshabilitado
+                        saveEdit(colIndex, gridClientes.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                    }
                 });
 
                 var cancelButton = $('<i class="fa fa-times text-danger"></i>').on('click', cancelEdit);
@@ -427,6 +449,13 @@ async function configurarDataTable(data) {
                 var celda = $(trElement).find('td').eq(colIndex); // Obtener la celda correspondiente dentro de la fila
                 // Obtener el valor original de la celda
                 var originalText = gridClientes.cell(trElement, colIndex).data();
+
+                if (colIndex === 2) {
+                    var tempDiv = document.createElement('div'); // Crear un div temporal
+                    tempDiv.innerHTML = originalText; // Establecer el HTML de la celda
+                    originalText = tempDiv.textContent.trim(); // Extraer solo el texto
+                    newText = newText.trim();
+                }
 
                 // Verificar si el texto realmente ha cambiado
                 if (originalText === newText) {
