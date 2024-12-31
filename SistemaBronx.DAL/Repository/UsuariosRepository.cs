@@ -75,6 +75,20 @@ namespace SistemaBronx.DAL.Repository
                 return null;
             }
         }
+
+        public async Task<User> ObtenerUsuario(string usuario)
+        {
+            try
+            {
+                User model = await _dbcontext.Usuarios.Where(x => x.Usuario.ToUpper() == usuario.ToUpper()).FirstOrDefaultAsync();
+                return model;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
         public async Task<IQueryable<User>> ObtenerTodos()
         {
             try

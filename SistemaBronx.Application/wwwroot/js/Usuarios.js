@@ -1,4 +1,5 @@
 ﻿let gridUsuarios;
+let isEditing = false;
 
 const columnConfig = [
     { index: 0, filterType: 'text' },
@@ -67,6 +68,10 @@ function guardarCambios() {
                     mensaje = "Contrasena incorrecta";
                     errorModal(mensaje);
                     return false;
+                } else if (dataJson.valor === 'Usuario') {
+                        mensaje = "El usuario ya existe en el sistema";
+                        errorModal(mensaje);
+                        return false;
                 } else {
                     $('#modalEdicion').modal('hide');
                     exitoModal(mensaje);
@@ -86,7 +91,7 @@ function validarCampos() {
     const usuario = $("#txtUsuario").val();
     const apellido = $("#txtApellido").val();
     const contrasena = $("#txtContrasena").val();
-    
+
 
     // Validación independiente para cada campo
     const nombreValido = nombre !== "";
@@ -108,7 +113,7 @@ function validarCampos() {
     $("#lblContrasena").css("color", contrasenaValido ? "" : "red");
     $("#txtContrasena").css("border-color", contrasenaValido ? "" : "red");
 
-   
+
 
     // La función retorna 'true' si todos los campos son válidos, de lo contrario 'false'
     return nombreValido && usuarioValido && apellidoValido && contrasenaValido;
@@ -158,9 +163,9 @@ async function mostrarModal(modelo) {
     $('#lblUsuario, #txtUsuario').css('color', '').css('border-color', '');
     $('#lblNombre, #txtNombre').css('color', '').css('border-color', '');
     $('#lblApellido, #txtApellido').css('color', '').css('border-color', '');
-    
 
-    
+
+
 }
 function limpiarModal() {
     const campos = ["Id", "Usuario", "Nombre", "Apellido", "Dni", "Telefono", "Direccion", "Contrasena", "ContrasenaNueva"];
@@ -357,12 +362,229 @@ async function configurarDataTable(data) {
                 });
 
             },
-});
+        });
+
+        $('#grd_Usuarios tbody').on('dblclick', 'td', async function () {
+            var cell = gridUsuarios.cell(this);
+            var originalData = cell.data();
+            var colIndex = cell.index().column;
+            var rowData = gridUsuarios.row($(this).closest('tr')).data();
+
+            // Verificar si la columna es la de acciones (última columna)
+            if (colIndex === gridUsuarios.columns().indexes().length - 1) {
+                return; // No permitir editar en la columna de acciones
+            }
+
+
+            if (isEditing == true) {
+                return;
+            } else {
+                isEditing = true;
+            }
+
+            // Eliminar la clase 'blinking' si está presente
+            if ($(this).hasClass('blinking')) {
+                $(this).removeClass('blinking');
+            }
+
+            // Si ya hay un input o select, evitar duplicados
+            if ($(this).find('input').length > 0 || $(this).find('select').length > 0) {
+                return;
+            }
+
+            // Si la columna es la de la provincia (por ejemplo, columna 3)
+            if (colIndex === 6 || colIndex === 7) {
+                var select = $('<select class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
+                    .appendTo($(this).empty())
+                    .on('change', function () {
+                        // No hacer nada en el change, lo controlamos con el botón de aceptar
+                    });
+
+                // Estilo para las opciones del select
+                select.find('option').css('color', 'white'); // Cambiar el color del texto de las opciones a blanco
+                select.find('option').css('background-color', 'black'); // Cambiar el fondo de las opciones a negro
+
+                // Obtener las provincias disponibles
+                var selectResult = colIndex === 6 ? await obtenerRoles() : await obtenerEstados();
+                selectResult.forEach(function (result) {
+                    select.append('<option value="' + result.Id + '">' + result.Nombre + '</option>');
+                });
+
+                colIndex === 6 ? select.val(rowData.IdRol) : select.val(rowData.IdEstado);
+
+                // Crear los botones de guardar y cancelar
+                var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
+                    var selectedValue = select.val();
+                    var selectedText = select.find('option:selected').text();
+                    saveEdit(colIndex, gridUsuarios.row($(this).closest('tr')).data(), selectedText, selectedValue, $(this).closest('tr'));
+                });
+
+                var cancelButton = $('<i class="fa fa-times text-danger"></i>').on('click', cancelEdit);
+
+                // Agregar los botones de guardar y cancelar en la celda
+                $(this).append(saveButton).append(cancelButton);
+
+                // Enfocar el select
+                select.focus();
+
+            } else { // Para las demás columnas, como Dirección
+                var valueToDisplay = originalData && originalData.trim() !== "" ? originalData.replace(/<[^>]+>/g, "") : originalData || "";
+
+                var input = $('<input type="text" class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
+                    .val(valueToDisplay)
+                    .on('input', function () {
+                        var saveBtn = $(this).siblings('.fa-check'); // Botón de guardar
+
+                        if (colIndex === 0) { // Validar solo si es la columna 0
+                            if ($(this).val().trim() === "") {
+                                $(this).css('border-bottom', '2px solid red'); // Borde rojo
+                                saveBtn.css('opacity', '0.5'); // Desactivar botón de guardar visualmente
+                                saveBtn.prop('disabled', true); // Desactivar funcionalidad del botón
+                            } else {
+                                $(this).css('border-bottom', '2px solid green'); // Borde verde
+                                saveBtn.css('opacity', '1'); // Habilitar botón de guardar visualmente
+                                saveBtn.prop('disabled', false); // Habilitar funcionalidad del botón
+                            }
+                        }
+                    })
+                    .on('keydown', function (e) {
+                        if (e.key === 'Enter') {
+                            saveEdit(colIndex, gridUsuarios.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                        } else if (e.key === 'Escape') {
+                            cancelEdit();
+                        }
+                    });
+
+                var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
+                    if (!$(this).prop('disabled')) { // Solo guardar si el botón no está deshabilitado
+                        saveEdit(colIndex, gridUsuarios.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                    }
+                });
+
+                var cancelButton = $('<i class="fa fa-times text-danger"></i>').on('click', cancelEdit);
+
+                // Reemplazar el contenido de la celda
+                $(this).empty().append(input).append(saveButton).append(cancelButton);
+
+                input.focus();
+            }
+
+            // Función para guardar los cambios
+            async function saveEdit(colIndex, rowData, newText, newValue, trElement) {
+                // Obtener el nodo de la celda desde el índice
+                var celda = $(trElement).find('td').eq(colIndex); // Obtener la celda correspondiente dentro de la fila
+                // Obtener el valor original de la celda
+                var originalText = gridUsuarios.cell(trElement, colIndex).data();
+
+                // Verificar si el texto realmente ha cambiado
+                if (originalText === newText) {
+                    cancelEdit();
+                    return; // Si no ha cambiado, no hacer nada
+                }
+
+                if (colIndex === 6) { // Si es la columna de la provincia
+                    rowData.IdRol = newValue;
+                    rowData.Rol = newText;
+                } else if(colIndex === 7) { // Si es la columna de la provincia
+                        rowData.IdEstado = newValue;
+                        rowData.Estado = newText;
+                } else {
+                    rowData[gridUsuarios.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
+                }
+
+               
+
+               
+
+                // Enviar los datos al servidor
+                var resp = await guardarCambiosFila(rowData);
+
+                if (resp) {
+                    // Aplicar el parpadeo solo si el texto cambió
+                    if (originalText !== newText) {
+                        // Actualizar la fila en la tabla con los nuevos datos
+                        gridUsuarios.row(trElement).data(rowData).draw();
+                        celda.addClass('blinking'); // Aplicar la clase 'blinking' a la celda que fue editada
+                    }
+                } else {
+                    cancelEdit();
+                }
+
+                // Desactivar el modo de edición
+                isEditing = false;
+
+                // Eliminar la clase 'blinking' después de 3 segundos (para hacer el efecto de parpadeo)
+                setTimeout(function () {
+                    celda.removeClass('blinking');
+                }, 3000); // Duración de la animación de parpadeo (3 segundos)
+            }
+
+
+            // Función para cancelar la edición
+            function cancelEdit() {
+                // Restaurar el valor original
+                gridUsuarios.cell(cell.index()).data(originalData).draw();
+                isEditing = false;
+            }
+        });
     } else {
-    gridUsuarios.clear().rows.add(data).draw();
-}
+        gridUsuarios.clear().rows.add(data).draw();
+    }
 }
 
+async function obtenerRoles() {
+    const response = await fetch(`/Roles/Lista`);
+    const result = await response.json();
+    return result;
+}
+
+async function obtenerEstados() {
+    const response = await fetch(`/EstadosUsuarios/Lista`);
+    const result = await response.json();
+    return result;
+}
+
+async function guardarCambiosFila(rowData) {
+    try {
+        rowData.cambioAdmin = 1;  // Puedes modificar este valor según necesites.
+
+        // Realizando la solicitud PUT con fetch.
+        const response = await fetch('/Usuarios/Actualizar', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(rowData)
+        });
+
+        if (!response.ok) {
+            throw new Error(response.statusText);
+        }
+
+        // Parsear la respuesta JSON.
+        const dataJson = await response.json();
+
+        // Verificar los valores en la respuesta y mostrar los mensajes correspondientes.
+        let mensaje = "";
+
+        if (dataJson.valor === 'Contrasena') {
+            mensaje = "Contrasena incorrecta";
+            errorModal(mensaje);
+            return false;
+        } else if (dataJson.valor === 'Usuario') {
+            mensaje = "El usuario ya existe en el sistema";
+            errorModal(mensaje);
+            return false;
+        } else {
+            return true;
+        }
+
+    } catch (error) {
+        // Si hubo un error en la red o en el servidor.
+        console.error('Error de red:', error);
+        errorModal('Ha ocurrido un error al guardar los datos...');
+    }
+}
 
 async function listaRoles() {
     const url = `/Roles/Lista`;

@@ -32,6 +32,11 @@ namespace SistemaBronx.BLL.Service
             return await _contactRepo.Obtener(id);
         }
 
+        public async Task<User> ObtenerUsuario(string usuario)
+        {
+            return await _contactRepo.ObtenerUsuario(usuario);
+        }
+
 
         public async Task<IQueryable<User>> ObtenerTodos()
         {
