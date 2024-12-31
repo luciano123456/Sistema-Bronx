@@ -32,9 +32,11 @@
 
 
 
-        <form method="put" asp-action="Actualizar">
-
-            <input type="hidden" id="Id" name="Id" value="@Model.Id" />
+        <form id="formularioActualizar" method="put">
+            <input type="hidden" id="Id" name="Id" value="@Model.Id" readonly />
+            <input type="hidden" id="IdRol" name="IdRol" value="@Model.IdRol" readonly />
+            <input type="hidden" id="IdEstado" name="IdEstado" value="@Model.IdEstado" readonly />
+            <input type="hidden" id="Usuario" name="Usuario" value="@Model.Usuario" readonly />
 
             <div class="mb-3">
                 <label for="Nombre" class="form-label text-danger">Nombre (*)</label>
@@ -72,10 +74,11 @@
             </div>
             <label for="msjerror" class="form-label" id="msjerror" hidden></label>
             <div class="d-flex justify-content-end">
-                <button type="submit"  id="btnGuardar" class="btn btn-primary btn-sm">Guardar Cambios</button>
+                <button type="submit" id="btnGuardar" class="btn btn-primary btn-sm">Guardar Cambios</button>
             </div>
         </form>
+
     </div>
 </div>
 
-<script src="~/js/usuariosconfiguracion.js"></script>
+<script src="~/js/UsuariosConfiguracion.js"></script>
