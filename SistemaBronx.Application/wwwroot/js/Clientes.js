@@ -151,8 +151,6 @@ async function listaProvincias() {
 }
 
 async function obtenerProvincias() {
-    // Llamada a la API o a la base de datos para obtener las provincias
-    // Ejemplo:
     const response = await fetch('/Clientes/ListaProvincias');
     const provincias = await response.json();
     return provincias;

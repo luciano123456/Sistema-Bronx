@@ -107,8 +107,14 @@ namespace SistemaBronx.Application.Controllers
             // Obtiene el usuario de la base de datos
             User userbase = await _Usuarioservice.Obtener(model.Id);
 
+            User nombreUsuario = await _Usuarioservice.ObtenerUsuario(model.Usuario);
 
-            if (model.CambioAdmin != 1) //YA QUE DESDE EL EDITAR DESDE EL ADMIN, NO VAMOS A MANDARLE LA CONTRASENA, SE LA CAMBIA DE UNA
+            if (nombreUsuario != null && nombreUsuario.Id != model.Id)
+            {
+                return Ok(new { valor = "Usuario" });
+            }
+
+                if (model.CambioAdmin != 1) //YA QUE DESDE EL EDITAR DESDE EL ADMIN, NO VAMOS A MANDARLE LA CONTRASENA, SE LA CAMBIA DE UNA
             {
                 var result = passwordHasher.VerifyHashedPassword(null, userbase.Contrasena, model.Contrasena);
                 if (result != PasswordVerificationResult.Success)
@@ -124,10 +130,13 @@ namespace SistemaBronx.Application.Controllers
 
             // Actualiza las propiedades del objeto ya cargado
             userbase.Nombre = model.Nombre;
+            userbase.Usuario = model.Usuario;
             userbase.Apellido = model.Apellido;
             userbase.Dni = model.Dni;
             userbase.Telefono = model.Telefono;
             userbase.Direccion = model.Direccion;
+            userbase.IdRol = model.IdRol;
+            userbase.IdEstado = model.IdEstado;
             userbase.Contrasena = passnueva; // Asigna la nueva contraseña hasheada
 
             // Realiza la actualización en la base de datos
