@@ -1,4 +1,13 @@
 ﻿$(document).ready(function () {
+    // Verificar si el usuario tiene credenciales guardadas
+    if (localStorage.getItem('rememberMe') === 'true') {
+        // Si el checkbox estaba seleccionado la última vez
+        $("#username").val(localStorage.getItem('username'));
+        $("#password").val(localStorage.getItem('password'));
+        $("#rememberMe").prop('checked', true);
+        $("#checkIcon").show(); // Mostrar el ícono verde de check
+    }
+
     // Al enviar el formulario
     $("#loginForm").on("submit", function (event) {
         event.preventDefault(); // Evitar el envío tradicional del formulario
@@ -6,6 +15,7 @@
         var username = $("#username").val(); // Obtener el nombre de usuario
         var password = $("#password").val(); // Obtener la contraseña
         var token = $('input[name="__RequestVerificationToken"]').val(); // Obtener token CSRF
+        var rememberMe = $("#rememberMe").prop('checked'); // Obtener el estado del checkbox
 
         // Crear el objeto de datos para enviar
         var data = {
@@ -32,6 +42,20 @@
             .then(data => {
                 console.log(data); // Verificar los datos recibidos
                 if (data.success) {
+                    // Si "Recordar credenciales" está seleccionado, guarda las credenciales
+                    if (rememberMe) {
+                        localStorage.setItem('username', username);
+                        localStorage.setItem('password', password);
+                        localStorage.setItem('rememberMe', true);
+                        $("#checkIcon").show(); // Mostrar el ícono verde de check
+                    } else {
+                        // Si no está seleccionado, eliminar las credenciales guardadas
+                        localStorage.removeItem('username');
+                        localStorage.removeItem('password');
+                        localStorage.removeItem('rememberMe');
+                        $("#checkIcon").hide(); // Ocultar el ícono de check
+                    }
+
                     // Redirigir a la página principal
                     localStorage.setItem('userSession', JSON.stringify(data.user)); // Guardar el usuario
                     window.location.href = data.redirectUrl;
@@ -47,13 +71,28 @@
                             $("#diverrorMessage").fadeOut();
                         }, 3000); // 3000 milisegundos = 3 segundos
                     });
-
-
                 }
             })
             .catch(error => {
                 console.error("Error: " + error);
                 $("#errorMessage").text("Hubo un problema al procesar la solicitud. Error: " + error).show();
             });
+    });
+
+    // Al cambiar el estado del checkbox, mostrar u ocultar el ícono
+    $("#rememberMe").on("change", function () {
+        var username = $("#username").val(); // Obtener el nombre de usuario
+        var password = $("#password").val(); // Obtener la contraseña
+        if ($(this).prop('checked')) {
+            $("#checkIcon").show(); // Mostrar el ícono verde de check
+            localStorage.setItem('username', username);
+            localStorage.setItem('password', password);
+            localStorage.setItem('rememberMe', true);
+        } else {
+            $("#checkIcon").hide(); // Ocultar el ícono de check
+            localStorage.removeItem('username');
+            localStorage.removeItem('password');
+            localStorage.removeItem('rememberMe');
+        }
     });
 });
