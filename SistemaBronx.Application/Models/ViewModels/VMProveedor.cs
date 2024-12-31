@@ -14,5 +14,9 @@ namespace SistemaBronx.Application.Models.ViewModels
 
         public string? Telefono { get; set; }
 
+        public string? Cbu { get; set; }
+
+        public string? Cuit { get; set; }
+
     }
 }
