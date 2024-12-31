@@ -254,6 +254,14 @@ public partial class SistemaBronxContext : DbContext
             entity.Property(e => e.Apodo)
                 .HasMaxLength(255)
                 .IsUnicode(false);
+            entity.Property(e => e.Cbu)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("CBU");
+            entity.Property(e => e.Cuit)
+                .HasMaxLength(50)
+                .IsUnicode(false)
+                .HasColumnName("CUIT");
             entity.Property(e => e.Nombre)
                 .HasMaxLength(255)
                 .IsUnicode(false);

@@ -36,6 +36,8 @@ namespace SistemaBronx.Application.Controllers
                 Apodo = c.Apodo,
                 Ubicacion = c.Ubicacion,
                 Telefono = c.Telefono,
+                Cbu = c.Cbu,
+                Cuit = c.Cuit
             }).ToList();
 
             return Ok(lista);
@@ -53,6 +55,8 @@ namespace SistemaBronx.Application.Controllers
                 Apodo = model.Apodo,
                 Ubicacion = model.Ubicacion,
                 Telefono = model.Telefono,
+                Cbu = model.Cbu,
+                Cuit = model.Cuit
             };
 
             bool respuesta = await _ProveedorService.Insertar(Proveedor);
@@ -70,6 +74,8 @@ namespace SistemaBronx.Application.Controllers
                 Apodo = model.Apodo,
                 Ubicacion = model.Ubicacion,
                 Telefono = model.Telefono,
+                Cbu = model.Cbu,
+                Cuit = model.Cuit
             };
 
             bool respuesta = await _ProveedorService.Actualizar(Proveedor);
