@@ -41,13 +41,14 @@ body {
     padding-bottom: 10px;
     background-attachment: fixed;
     background-position: center center;
-    background-color: #191133;
+    background-color: #1B2631;
     background-repeat: no-repeat no-repeat;
     background-size: cover;
     width: 99%;
     height: 98%;
     margin-left: 5px;
 }
+
 
 .input-nuevo {
     border: none;
@@ -233,7 +234,7 @@ label {
 
 
 .card {
-    background-color: #191133 !important;
+    background-color: #1B2631 !important;
     border-radius: 50px;
 }
 
@@ -515,3 +516,34 @@ table.dataTable.row-border tbody th, table.dataTable.row-border tbody td, table.
 .blinking {
     animation: blinkTextShadow 3s ease-out; /* Duración de 3 segundos, se repite infinitamente */
 }
+
+
+.acciones-menu {
+    position: relative;
+    z-index: 9999999 !important; /* Asegura que este contenedor se apile correctamente */
+}
+
+.acciones-dropdown {
+    position: absolute;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 10000; /* Eleva este elemento para superar otros */
+    margin-top: -30px;
+    padding: 5px;
+    border-radius: 4px;
+    min-width: 150px; /* Ajusta el ancho mínimo si es necesario */
+}
+
+    .acciones-dropdown button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 5px;
+        border: none;
+        background: none;
+    }
+
+        .acciones-dropdown button:hover {
+            background-color: #f0f0f0;
+        }
+

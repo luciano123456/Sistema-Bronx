@@ -3,12 +3,12 @@ let isEditing = false;
 
 
 const columnConfig = [
-    { index: 0, filterType: 'text' },
     { index: 1, filterType: 'text' },
     { index: 2, filterType: 'text' },
     { index: 3, filterType: 'text' },
     { index: 4, filterType: 'text' },
     { index: 5, filterType: 'text' },
+    { index: 6, filterType: 'text' },
 ];
 
 const Modelo_base = {
@@ -184,6 +184,29 @@ async function configurarDataTable(data) {
             scrollX: "100px",
             scrollCollapse: true,
             columns: [
+                {
+                    data: "Id",
+                    title: '',
+                    width: "1%", // Ancho fijo para la columna
+                    render: function (data) {
+                        return `
+                <div class="acciones-menu" data-id="${data}">
+                    <button class='btn btn-sm btnacciones' type='button' onclick='toggleAcciones(${data})' title='Acciones'>
+                        <i class='fa fa-ellipsis-v fa-lg text-white' aria-hidden='true'></i>
+                    </button>
+                    <div class="acciones-dropdown" style="display: none;">
+                        <button class='btn btn-sm btneditar' type='button' onclick='editarProveedor(${data})' title='Editar'>
+                            <i class='fa fa-pencil-square-o fa-lg text-success' aria-hidden='true'></i> Editar
+                        </button>
+                        <button class='btn btn-sm btneliminar' type='button' onclick='eliminarProveedor(${data})' title='Eliminar'>
+                            <i class='fa fa-trash-o fa-lg text-danger' aria-hidden='true'></i> Eliminar
+                        </button>
+                    </div>
+                </div>`;
+                    },
+                    orderable: false,
+                    searchable: false,
+                },
                 { data: 'Nombre' },
                 { data: 'Apodo' },
                 { data: 'Cuit' },
@@ -196,15 +219,7 @@ async function configurarDataTable(data) {
 
                 { data: 'Telefono' },
 
-                {
-                    data: "Id",
-                    render: function (data) {
-                        return "<button class='btn btn-sm btneditar btnacciones' type='button' onclick='editarProveedor(" + data + ")' title='Editar'><i class='fa fa-pencil-square-o fa-lg text-white' aria-hidden='true'></i></button>" +
-                            "<button class='btn btn-sm btneditar btnacciones' type='button' onclick='eliminarProveedor(" + data + ")' title='Eliminar'><i class='fa fa-trash-o fa-lg text-danger' aria-hidden='true'></i></button>";
-                    },
-                    orderable: true,
-                    searchable: true,
-                }
+                
             ],
             dom: 'Bfrtip',
             buttons: [
@@ -279,8 +294,9 @@ async function configurarDataTable(data) {
                     }
                 });
 
-                var lastColIdx = api.columns().indexes().length - 1;
-                $('.filters th').eq(lastColIdx).html(''); // Limpiar la última columna si es necesario
+                $('.filters th').eq(0).html(''); // Limpiar la última columna si es necesario
+
+                configurarOpcionesColumnas();
 
                 setTimeout(function () {
                     gridProveedores.columns.adjust();
@@ -306,11 +322,7 @@ async function configurarDataTable(data) {
             var colIndex = cell.index().column;
             var rowData = gridProveedores.row($(this).closest('tr')).data();
 
-            // Verificar si la columna es la de acciones (última columna)
-            if (colIndex === gridProveedores.columns().indexes().length - 1) {
-                return; // No permitir editar en la columna de acciones
-            }
-
+           
 
             if (isEditing == true) {
                 return;
@@ -377,7 +389,7 @@ async function configurarDataTable(data) {
                 // Obtener el valor original de la celda
                 var originalText = gridProveedores.cell(trElement, colIndex).data();
 
-                if (colIndex === 4) {
+                if (colIndex === 5) {
                     var tempDiv = document.createElement('div'); // Crear un div temporal
                     tempDiv.innerHTML = originalText; // Establecer el HTML de la celda
                     originalText = tempDiv.textContent.trim(); // Extraer solo el texto
@@ -391,7 +403,7 @@ async function configurarDataTable(data) {
                 }
 
                 // Actualizar el valor de la fila según la columna editada
-                if (colIndex === 3) { // Si es la columna de la dirección
+                if (colIndex === 4) { // Si es la columna de la dirección
                     rowData.Cbu = newText;
                 } else {
                     rowData[gridProveedores.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
@@ -448,4 +460,56 @@ async function guardarCambiosFila(rowData) {
     } catch (error) {
         console.error('Error de red:', error);
     }
+}
+
+
+$(document).on('click', function (e) {
+    // Verificar si el clic está fuera de cualquier dropdown
+    if (!$(e.target).closest('.acciones-menu').length) {
+        $('.acciones-dropdown').hide(); // Cerrar todos los dropdowns
+    }
+});
+
+function configurarOpcionesColumnas() {
+    const grid = $('#grd_Proveedores').DataTable(); // Accede al objeto DataTable utilizando el id de la tabla
+    const columnas = grid.settings().init().columns; // Obtiene la configuración de columnas
+    const container = $('#configColumnasMenu'); // El contenedor del dropdown específico para configurar columnas
+
+
+    const storageKey = `Proveedores_Columnas`; // Clave única para esta pantalla
+
+    const savedConfig = JSON.parse(localStorage.getItem(storageKey)) || {}; // Recupera configuración guardada o inicializa vacía
+
+    container.empty(); // Limpia el contenedor
+
+    columnas.forEach((col, index) => {
+        if (col.data && col.data !== "Id") { // Solo agregar columnas que no sean "Id"
+            // Recupera el valor guardado en localStorage, si existe. Si no, inicializa en 'false' para no estar marcado.
+            const isChecked = savedConfig && savedConfig[`col_${index}`] !== undefined ? savedConfig[`col_${index}`] : true;
+
+            // Asegúrate de que la columna esté visible si el valor es 'true'
+            grid.column(index).visible(isChecked);
+
+            const columnName = index != 5 ? col.data : "Direccion";
+
+            // Ahora agregamos el checkbox, asegurándonos de que se marque solo si 'isChecked' es 'true'
+            container.append(`
+                <li>
+                    <label class="dropdown-item">
+                        <input type="checkbox" class="toggle-column" data-column="${index}" ${isChecked ? 'checked' : ''}>
+                        ${columnName}
+                    </label>
+                </li>
+            `);
+        }
+    });
+
+    // Asocia el evento para ocultar/mostrar columnas
+    $('.toggle-column').on('change', function () {
+        const columnIdx = parseInt($(this).data('column'), 10);
+        const isChecked = $(this).is(':checked');
+        savedConfig[`col_${columnIdx}`] = isChecked;
+        localStorage.setItem(storageKey, JSON.stringify(savedConfig));
+        grid.column(columnIdx).visible(isChecked);
+    });
 }

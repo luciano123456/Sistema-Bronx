@@ -9,15 +9,15 @@ const precioVentaInput = document.getElementById('txtPrecioVenta');
 
 
 const columnConfig = [
-    { index: 0, filterType: 'text' },
-    { index: 1, filterType: 'select', fetchDataFunc: listaTiposFilter }, // Columna con un filtro de selección
-    { index: 2, filterType: 'select', fetchDataFunc: listaCategoriasFilter }, // Columna con un filtro de selección
-    { index: 3, filterType: 'select', fetchDataFunc: listaUnidadesDeMedidasFilter }, // Columna con un filtro de selección
-    { index: 4, filterType: 'text' },
+    { index: 1, filterType: 'text' },
+    { index: 2, filterType: 'select', fetchDataFunc: listaTiposFilter }, // Columna con un filtro de selección
+    { index: 3, filterType: 'select', fetchDataFunc: listaCategoriasFilter }, // Columna con un filtro de selección
+    { index: 4, filterType: 'select', fetchDataFunc: listaUnidadesDeMedidasFilter }, // Columna con un filtro de selección
     { index: 5, filterType: 'text' },
     { index: 6, filterType: 'text' },
     { index: 7, filterType: 'text' },
     { index: 8, filterType: 'text' },
+    { index: 9, filterType: 'text' },
 
 ];
 
@@ -440,6 +440,33 @@ async function configurarDataTable(data) {
             scrollX: "100px",
             scrollCollapse: true,
             columns: [
+                {
+                    data: "Id",
+                    title: '',
+                    width: "1%", // Ancho fijo para la columna
+                    render: function (data) {
+                        return `
+                <div class="acciones-menu" data-id="${data}">
+                    <button class='btn btn-sm btnacciones' type='button' onclick='toggleAcciones(${data})' title='Acciones'>
+                        <i class='fa fa-ellipsis-v fa-lg text-white' aria-hidden='true'></i>
+                    </button>
+                    <div class="acciones-dropdown" style="display: none;">
+                        <button class='btn btn-sm btneditar' type='button' onclick='editarInsumo(${data})' title='Editar'>
+                            <i class='fa fa-pencil-square-o fa-lg text-success' aria-hidden='true'></i> Editar
+                        </button>
+                        <button class='btn btn-sm btneliminar' type='button' onclick='eliminarInsumo(${data})' title='Eliminar'>
+                            <i class='fa fa-trash-o fa-lg text-danger' aria-hidden='true'></i> Eliminar
+                        </button>
+                         <button class='btn btn-sm btneliminar' type='button' onclick='duplicarInsumo(${data})' title='Duplicar'>
+                            <i class='fa fa-clone fa-lg text-warning' aria-hidden='true'></i> Duplicar
+                        </button>
+                    </div>
+                </div>`;
+                    },
+                    orderable: false,
+                    searchable: false,
+
+                },
                 { data: 'Descripcion' },
                 { data: 'Tipo' },
                 { data: 'Categoria' },
@@ -449,16 +476,6 @@ async function configurarDataTable(data) {
                 { data: 'PrecioCosto' },
                 { data: 'PorcGanancia' },
                 { data: 'PrecioVenta' },
-                {
-                    data: "Id",
-                    render: function (data) {
-                        return "<button class='btn btn-sm btneditar btnacciones' type='button' onclick='duplicarInsumo(" + data + ")' title='Duplicar'><i class='fa fa-clone fa-lg text-warning' aria-hidden='true'></i></button>" +
-                            "<button class='btn btn-sm btneditar btnacciones' type='button' onclick='editarInsumo(" + data + ")' title='Editar'><i class='fa fa-pencil-square-o fa-lg text-white' aria-hidden='true'></i></button>" +
-                            "<button class='btn btn-sm btneditar btnacciones' type='button' onclick='eliminarInsumo(" + data + ")' title='Eliminar'><i class='fa fa-trash-o fa-lg text-danger' aria-hidden='true'></i></button>";
-                    },
-                    orderable: true,
-                    searchable: true,
-                }
             ],
             dom: 'Bfrtip',
             buttons: [
@@ -498,7 +515,7 @@ async function configurarDataTable(data) {
                     "render": function (data, type, row) {
                         return formatNumber(data); // Formatear número en la columna
                     },
-                    "targets": [6, 8] // Columna Precio
+                    "targets": [7, 9] // Columna Precio
                 }
             ],
             orderCellsTop: true,
@@ -556,8 +573,9 @@ async function configurarDataTable(data) {
                     }
                 });
 
-                var lastColIdx = api.columns().indexes().length - 1;
-                $('.filters th').eq(lastColIdx).html(''); // Limpiar la última columna si es necesario
+                $('.filters th').eq(0).html(''); // Limpiar la última columna si es necesario
+
+                configurarOpcionesColumnas();
 
                 setTimeout(function () {
                     gridInsumos.columns.adjust();
@@ -570,11 +588,6 @@ async function configurarDataTable(data) {
             var originalData = cell.data();
             var colIndex = cell.index().column;
             var rowData = gridInsumos.row($(this).closest('tr')).data();
-
-            // Verificar si la columna es la de acciones (última columna)
-            if (colIndex === gridInsumos.columns().indexes().length - 1) {
-                return; // No permitir editar en la columna de acciones
-            }
 
 
             if (isEditing == true) {
@@ -594,7 +607,7 @@ async function configurarDataTable(data) {
             }
 
             // Si la columna es la de la provincia (por ejemplo, columna 3)
-            if (colIndex === 1 || colIndex === 2 || colIndex === 3 || colIndex === 4) {
+            if (colIndex === 2 || colIndex === 3 || colIndex === 4 || colIndex === 5) {
                 var select = $('<select class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
                     .appendTo($(this).empty())
                     .on('change', function () {
@@ -609,13 +622,13 @@ async function configurarDataTable(data) {
 
                 var result = null;
 
-                if (colIndex == 1) {
+                if (colIndex == 2) {
                     result = await obtenerTipos();
-                } else if (colIndex == 2) {
-                    result = await obtenerCategorias();
                 } else if (colIndex == 3) {
-                    result = await obtenerUnidadesDeMedidas();
+                    result = await obtenerCategorias();
                 } else if (colIndex == 4) {
+                    result = await obtenerUnidadesDeMedidas();
+                } else if (colIndex == 5) {
                     result = await obtenerProveedores();
                 }
 
@@ -623,13 +636,13 @@ async function configurarDataTable(data) {
                     select.append('<option value="' + res.Id + '">' + res.Nombre + '</option>');
                 });
 
-                if (colIndex == 1) {
+                if (colIndex == 2) {
                     select.val(rowData.IdTipo);
-                } else if (colIndex == 2) {
-                    select.val(rowData.IdCategoria);
                 } else if (colIndex == 3) {
-                    select.val(rowData.IdUnidadMedida);
+                    select.val(rowData.IdCategoria);
                 } else if (colIndex == 4) {
+                    select.val(rowData.IdUnidadMedida);
+                } else if (colIndex == 5) {
                     select.val(rowData.IdProveedor);
                 }
 
@@ -648,7 +661,7 @@ async function configurarDataTable(data) {
                 // Enfocar el select
                 select.focus();
 
-            } else if (colIndex === 6 || colIndex === 8) {
+            } else if (colIndex === 7 || colIndex === 9) {
                 var valueToDisplay = originalData ? originalData.toString().replace(/[^\d.-]/g, '') : '';
 
                 var input = $('<input type="text" class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
@@ -745,15 +758,8 @@ async function configurarDataTable(data) {
                 // Obtener el valor original de la celda
                 var originalText = gridInsumos.cell(trElement, colIndex).data();
 
-                if (colIndex === 2) {
-                    var tempDiv = document.createElement('div'); // Crear un div temporal
-                    tempDiv.innerHTML = originalText; // Establecer el HTML de la celda
-                    originalText = tempDiv.textContent.trim(); // Extraer solo el texto
-                    newText = newText.trim();
-                }
-
                 // Verificar si el texto realmente ha cambiado
-                if (colIndex === 6 || colIndex === 8) { // Si es la columna PrecioCosto o PrecioVenta
+                if (colIndex === 7 || colIndex === 9) { // Si es la columna PrecioCosto o PrecioVenta
                     // Convertir ambos valores (originalText y newText) a números flotantes
                     var originalValue = parseFloat(originalText).toFixed(2);
                     var newValueFloat = parseFloat(convertirMonedaAfloat(newText)).toFixed(2);
@@ -774,19 +780,19 @@ async function configurarDataTable(data) {
                 $(trElement).find('td').removeClass('blinking');
 
                 // Actualizar el valor de la fila según la columna editada
-                if (colIndex === 1) { // Si es la columna de la provincia
+                if (colIndex === 2) { // Si es la columna de la provincia
                     rowData.IdTipo = newValue;
                     rowData.Tipo = newText;
-                } else if (colIndex === 2) { // Si es la columna de la provincia
+                } else if (colIndex === 3) { // Si es la columna de la provincia
                     rowData.IdCategoria = newValue;
                     rowData.Categoria = newText;
-                } else if (colIndex === 3) { // Si es la columna de la provincia
+                } else if (colIndex === 4) { // Si es la columna de la provincia
                     rowData.IdUnidadMedida = newValue;
                     rowData.UnidaddeMedida = newText;
-                } else if (colIndex === 4) { // Si es la columna de la provincia
+                } else if (colIndex === 5) { // Si es la columna de la provincia
                     rowData.IdProveedor = newValue;
                     rowData.Proveedor = newText;
-                } else if (colIndex === 6) { // Si es la columna de PrecioCosto
+                } else if (colIndex === 7) { // Si es la columna de PrecioCosto
                     rowData.PrecioCosto = convertirMonedaAfloat(newValue); // Actualizar PrecioCosto
 
                     // Calcular PrecioVenta basado en PrecioCosto y PorcentajeGanancia
@@ -797,29 +803,29 @@ async function configurarDataTable(data) {
                     rowData.PorcGanancia = parseFloat(((rowData.PrecioVenta - rowData.PrecioCosto) / rowData.PrecioCosto) * 100).toFixed(2);
 
                     // Aplicar el efecto de parpadeo a las celdas 6 y 8 (PrecioCosto y PrecioVenta)
-                    var celda6 = $(trElement).find('td').eq(6); // Obtener la celda de PrecioCosto
-                    var celda8 = $(trElement).find('td').eq(8); // Obtener la celda de PrecioVenta
+                    var celda6 = $(trElement).find('td').eq(7); // Obtener la celda de PrecioCosto
+                    var celda8 = $(trElement).find('td').eq(9); // Obtener la celda de PrecioVenta
 
                     celda6.addClass('blinking'); // Aplicar la clase 'blinking' a la celda 6
                     celda8.addClass('blinking'); // Aplicar la clase 'blinking' a la celda 8
-                } else if (colIndex === 7) { // Si es la columna de PorcentajeGanancia
+                } else if (colIndex === 8) { // Si es la columna de PorcentajeGanancia
                     rowData.PorcGanancia = parseDecimal(newValue); // Actualizar PorcentajeGanancia
 
                     // Calcular PrecioVenta basado en PrecioCosto y PorcentajeGanancia
                     rowData.PrecioVenta = rowData.PrecioCosto + (rowData.PrecioCosto * (rowData.PorcGanancia / 100));
 
                     // Aplicar el efecto de parpadeo a las celdas 7 y 8 (PorcentajeGanancia y PrecioVenta)
-                    var celda7 = $(trElement).find('td').eq(7); // Obtener la celda de PorcentajeGanancia
-                    var celda8 = $(trElement).find('td').eq(8); // Obtener la celda de PrecioVenta
+                    var celda7 = $(trElement).find('td').eq(8); // Obtener la celda de PorcentajeGanancia
+                    var celda8 = $(trElement).find('td').eq(9); // Obtener la celda de PrecioVenta
 
                     celda7.addClass('blinking'); // Aplicar la clase 'blinking' a la celda 7
                     celda8.addClass('blinking'); // Aplicar la clase 'blinking' a la celda 8
-                } else if (colIndex === 8) { // Si es la columna de PrecioVenta
+                } else if (colIndex === 9) { // Si es la columna de PrecioVenta
                     rowData.PrecioVenta = convertirMonedaAfloat(newValue);
                     rowData.PorcGanancia = parseFloat(((convertirMonedaAfloat(newValue) - rowData.PrecioCosto) / rowData.PrecioCosto) * 100).toFixed(2);
 
                     // Aplicar el efecto de parpadeo también en la celda 7
-                    var celda7 = $(trElement).find('td').eq(7); // Obtener la celda de la columna 7
+                    var celda7 = $(trElement).find('td').eq(8); // Obtener la celda de la columna 7
                     celda7.addClass('blinking'); // Aplicar la clase 'blinking' a la celda 7
                 } else {
                     rowData[gridInsumos.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
@@ -1057,3 +1063,55 @@ precioVentaInput.addEventListener('blur', function () {
 
 });
 
+
+
+$(document).on('click', function (e) {
+    // Verificar si el clic está fuera de cualquier dropdown
+    if (!$(e.target).closest('.acciones-menu').length) {
+        $('.acciones-dropdown').hide(); // Cerrar todos los dropdowns
+    }
+});
+
+function configurarOpcionesColumnas() {
+    const grid = $('#grd_Insumos').DataTable(); // Accede al objeto DataTable utilizando el id de la tabla
+    const columnas = grid.settings().init().columns; // Obtiene la configuración de columnas
+    const container = $('#configColumnasMenu'); // El contenedor del dropdown específico para configurar columnas
+
+
+    const storageKey = `Insumos_Columnas`; // Clave única para esta pantalla
+
+    const savedConfig = JSON.parse(localStorage.getItem(storageKey)) || {}; // Recupera configuración guardada o inicializa vacía
+
+    container.empty(); // Limpia el contenedor
+
+    columnas.forEach((col, index) => {
+        if (col.data && col.data !== "Id") { // Solo agregar columnas que no sean "Id"
+            // Recupera el valor guardado en localStorage, si existe. Si no, inicializa en 'false' para no estar marcado.
+            const isChecked = savedConfig && savedConfig[`col_${index}`] !== undefined ? savedConfig[`col_${index}`] : true;
+
+            // Asegúrate de que la columna esté visible si el valor es 'true'
+            grid.column(index).visible(isChecked);
+
+            const columnName = index != 4 ? col.data : "U. de Medida";
+
+            // Ahora agregamos el checkbox, asegurándonos de que se marque solo si 'isChecked' es 'true'
+            container.append(`
+                <li>
+                    <label class="dropdown-item">
+                        <input type="checkbox" class="toggle-column" data-column="${index}" ${isChecked ? 'checked' : ''}>
+                        ${columnName}
+                    </label>
+                </li>
+            `);
+        }
+    });
+
+    // Asocia el evento para ocultar/mostrar columnas
+    $('.toggle-column').on('change', function () {
+        const columnIdx = parseInt($(this).data('column'), 10);
+        const isChecked = $(this).is(':checked');
+        savedConfig[`col_${columnIdx}`] = isChecked;
+        localStorage.setItem(storageKey, JSON.stringify(savedConfig));
+        grid.column(columnIdx).visible(isChecked);
+    });
+}

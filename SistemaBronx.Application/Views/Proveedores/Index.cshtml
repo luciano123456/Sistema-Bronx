@@ -20,24 +20,31 @@
 }
 
 <div class="container-fluid mt-5">
-
     <div class="row">
         <div class="col-lg-10">
-            <div class="card" style="width: 88%;position: absolute; left: 7vw; border: none;">
-                <div class="card-header">
-                    Proveedores
+            <div class="card" style="width: 88%; position: absolute; left: 7vw; border: none;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Proveedores</span>
+
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle d-flex align-items-center" type="button" id="dropdownColumnas" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa fa-cog me-2"></i> Config. Columnas
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownColumnas" id="configColumnasMenu">
+                        </ul>
+                    </div>
                 </div>
                 <div class="card-body">
                     <table class="display nowrap" id="grd_Proveedores" style="width:100%">
                         <thead>
                             <tr>
+                               <th></th>
                                 <th>Nombre</th>
                                 <th>Apodo</th>
                                 <th>Cuit</th>
                                 <th>CBU</th>
                                 <th>Ubicacion</th>
                                 <th>Telefono</th>
-                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -47,7 +54,7 @@
                 </div>
 
                 <div class="d-flex justify-content-end mt-2 mb-4">
-                    <a class="btn btn-primary btnnuevo" onclick="nuevoProveedor()">Nuevo</a>
+                    <a class="btn btn-warning btnnuevo" onclick="nuevoProveedor()">Nuevo</a>
                 </div>
 
             </div>
