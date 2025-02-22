@@ -56,8 +56,8 @@ public partial class SistemaBronxContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-         //=> optionsBuilder.UseSqlServer("Server=DESKTOP-J2J16BG\\SQLEXPRESS; Database=Sistema_Bronx; Integrated Security=true; Trusted_Connection=True; Encrypt=False");
-         => optionsBuilder.UseSqlServer("Server=200.73.140.119; Database=Sistema_Bronx; User Id=PcJuan; Password=juan; Encrypt=False");
+        => optionsBuilder.UseSqlServer("Server=DESKTOP-J2J16BG\\SQLEXPRESS; Database=Sistema_Bronx; Integrated Security=true; Trusted_Connection=True; Encrypt=False");
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Cliente>(entity =>
@@ -169,6 +169,7 @@ public partial class SistemaBronxContext : DbContext
 
             entity.HasOne(d => d.IdProveedorNavigation).WithMany(p => p.Insumos)
                 .HasForeignKey(d => d.IdProveedor)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_Insumos_Proveedores");
 
             entity.HasOne(d => d.IdTipoNavigation).WithMany(p => p.Insumos)
@@ -199,10 +200,10 @@ public partial class SistemaBronxContext : DbContext
             entity.Property(e => e.Codigo)
                 .HasMaxLength(255)
                 .IsUnicode(false);
+            entity.Property(e => e.CostoUnitario).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Descripcion)
                 .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.PorcIibbmpml).HasColumnName("PorcIIBBMPML");
 
             entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.Productos)
                 .HasForeignKey(d => d.IdCategoria)
@@ -222,9 +223,12 @@ public partial class SistemaBronxContext : DbContext
 
         modelBuilder.Entity<ProductosInsumo>(entity =>
         {
+            entity.Property(e => e.Cantidad).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.CostoUnitario).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Especificacion)
                 .HasMaxLength(255)
                 .IsUnicode(false);
+            entity.Property(e => e.SubTotal).HasColumnType("decimal(20, 2)");
 
             entity.HasOne(d => d.IdColorNavigation).WithMany(p => p.ProductosInsumos)
                 .HasForeignKey(d => d.IdColor)

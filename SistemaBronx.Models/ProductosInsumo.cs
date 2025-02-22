@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 
 namespace SistemaBronx.Models;
 
@@ -15,7 +16,11 @@ public partial class ProductosInsumo
 
     public string? Especificacion { get; set; }
 
-    public int Cantidad { get; set; }
+    public decimal CostoUnitario { get; set; }
+
+    public decimal SubTotal { get; set; }
+
+    public decimal Cantidad { get; set; }
 
     public virtual Color IdColorNavigation { get; set; } = null!;
 

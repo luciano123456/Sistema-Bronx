@@ -22,40 +22,71 @@ namespace SistemaBronx.DAL.Repository
         }
         public async Task<bool> Actualizar(UnidadesDeMedida model)
         {
-            _dbcontext.UnidadesDeMedida.Update(model);
-            await _dbcontext.SaveChangesAsync();
-            return true;
+            try
+            {
+                _dbcontext.UnidadesDeMedida.Update(model);
+                await _dbcontext.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
         }
 
         public async Task<bool> Eliminar(int id)
         {
-            UnidadesDeMedida model = _dbcontext.UnidadesDeMedida.First(c => c.Id == id);
-            _dbcontext.UnidadesDeMedida.Remove(model);
-            await _dbcontext.SaveChangesAsync();
-            return true;
+            try
+            {
+                UnidadesDeMedida model = _dbcontext.UnidadesDeMedida.First(c => c.Id == id);
+                _dbcontext.UnidadesDeMedida.Remove(model);
+                await _dbcontext.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
         }
 
         public async Task<bool> Insertar(UnidadesDeMedida model)
         {
-            _dbcontext.UnidadesDeMedida.Add(model);
-            await _dbcontext.SaveChangesAsync();
-            return true;
+            try
+            {
+                _dbcontext.UnidadesDeMedida.Add(model);
+                await _dbcontext.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
         }
 
         public async Task<UnidadesDeMedida> Obtener(int id)
         {
-            UnidadesDeMedida model = await _dbcontext.UnidadesDeMedida.FindAsync(id);
-            return model;
+            try
+            {
+                UnidadesDeMedida model = await _dbcontext.UnidadesDeMedida.FindAsync(id);
+                return model;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
-
-
-
-
 
         public async Task<IQueryable<UnidadesDeMedida>> ObtenerTodos()
         {
-            IQueryable<UnidadesDeMedida> query = _dbcontext.UnidadesDeMedida;
-            return await Task.FromResult(query);
+            try
+            {
+                IQueryable<UnidadesDeMedida> query = _dbcontext.UnidadesDeMedida;
+                return await Task.FromResult(query);
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
 
 

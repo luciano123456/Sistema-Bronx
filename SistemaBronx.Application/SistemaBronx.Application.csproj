@@ -22,6 +22,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Views\Productos\Index.cshtml" />
+    <None Include="Views\Productos\NuevoModif.cshtml" />
     <None Include="wwwroot\Imagenes\Clientes.png" />
     <None Include="wwwroot\js\Insumos.js" />
     <None Include="wwwroot\js\Login.js" />

@@ -1,459 +1,40 @@
 ﻿let gridProductos;
-var selectedProductos = [];
-let idProveedorFiltro = -1, idClienteFiltro = -1;
+let isEditing = false;
+
 
 const columnConfig = [
-    { index: 0, filterType: 'text' },
     { index: 1, filterType: 'text' },
-    { index: 2, filterType: 'select', fetchDataFunc: listaMarcasFilter }, // Columna con un filtro de selección (de provincias)
-    { index: 3, filterType: 'select', fetchDataFunc: listaCategoriasFilter }, // Columna con un filtro de selección (de provincias)
-    { index: 4, filterType: 'select', fetchDataFunc: listaUnidadesDeMedidaFilter }, // Columna con un filtro de selección (de provincias)
-    { index: 5, filterType: 'select', fetchDataFunc: listaMonedasFilter }, // Columna con un filtro de selección (de provincias)
+    { index: 2, filterType: 'text' },
+    { index: 3, filterType: 'select', fetchDataFunc: listaColoresFilter },
+    { index: 4, filterType: 'select', fetchDataFunc: listaProductosCategoriaFilter },
+    { index: 5, filterType: 'text' },
     { index: 6, filterType: 'text' },
-    { index: 7, filterType: 'text' },
-    { index: 8, filterType: 'text' },
-    { index: 9, filterType: 'text' },
-    { index: 10, filterType: 'text' },
 ];
-
-const Modelo_base = {
-    Id: 0,
-    Descripcion: "",
-    PCosto: "0",
-    PVenta: "0",
-    PorcGanancia: "0",
-}
 
 $(document).ready(() => {
 
+    listaProductos(-1);
 
-
-    listaProductos();
-    listaProveedoresFiltro();
-    listaClientesFiltro();
-
-
-
-    $('#txtDescripcion, #txtPorcentajeGanancia').on('input', function () {
+    $('#txtDescripcion, #txtCodigo').on('input', function () {
         validarCampos()
-    });
-    $('#txtAumentoPrecioCosto').on('input', function () {
-        validarCamposAumentarPrecioCosto()
-    });
-
-    $('#txtAumentoPrecioVenta').on('input', function () {
-        validarCamposAumentarPrecioVenta()
-    });
-
-    $('#txtBajaPrecioCosto').on('input', function () {
-        validarCamposBajarPrecioCosto()
-    });
-
-    $('#txtBajaPrecioVenta').on('input', function () {
-        validarCamposBajarPrecioVenta()
-    });
-
-
-    $('#txtPrecioCosto').on('input', function () {
-        validarCampos()
-        sumarPorcentaje()
-
-    });
-    $('#txtPorcentajeGanancia').on('input', function () {
-        sumarPorcentaje()
-    });
-
-    $('#txtPrecioVenta').on('input', function () {
-        calcularPorcentaje()
-    });
-
-    $('#Proveedoresfiltro, #clientesfiltro').on('change', function () {
-        validarProductosFiltro()
     });
 
 
 })
 
-function validarProductosFiltro() {
-    const idCliente = document.getElementById("clientesfiltro").value;
-    const idProveedor = document.getElementById("Proveedoresfiltro").value;
 
-    if (idCliente == -1 && idProveedor == -1) {
-        document.getElementById("txtProductoFiltro").removeAttribute("readonly");
-    } else {
-        document.getElementById("txtProductoFiltro").setAttribute("readonly", true);
-        document.getElementById("txtProductoFiltro").value = "";
-    }
-}
-
-// Define la función handleCheckboxClick
-function handleCheckboxClick() {
-    var icon = $(this).find('.fa');
-    icon.toggleClass('checked');
-
-    var checkboxIndex = $('.custom-checkbox').index($(this));
-    var ventaId = $(this).data('id');
-
-    if (icon.hasClass('checked')) {
-        icon.removeClass('fa-square-o');
-        icon.addClass('fa-check-square');
-        selectedProductos.push(ventaId);
-    } else {
-        icon.removeClass('fa-check-square');
-        icon.addClass('fa-square-o');
-        var indexToRemove = selectedProductos.indexOf(ventaId);
-        if (indexToRemove !== -1) {
-            selectedProductos.splice(indexToRemove, 1);
-        }
-    }
-
-
-    if (selectedProductos.length > 0 && idProveedorFiltro <= 0 && idClienteFiltro <= 0) {
-        document.getElementById("btnAsignarProveedor").removeAttribute("hidden");
-    } else {
-        document.getElementById("btnAsignarProveedor").setAttribute("hidden", "hidden");
-    }
-
-    if (selectedProductos.length > 0 && idProveedorFiltro > 0 && idClienteFiltro <= 0) {
-        document.getElementById("btnAsignarCliente").removeAttribute("hidden");
-    } else {
-        document.getElementById("btnAsignarCliente").setAttribute("hidden", "hidden");
-    }
-
-    if (selectedProductos.length > 0) {
-        document.getElementById("btnAumentarPrecios").removeAttribute("hidden");
-        document.getElementById("btnBajarPrecios").removeAttribute("hidden");
-    } else {
-        document.getElementById("btnAumentarPrecios").setAttribute("hidden", "hidden");
-        document.getElementById("btnBajarPrecios").setAttribute("hidden", "hidden");
-    }
-
-
-    console.log(selectedProductos);
-}
-
-
-function desmarcarCheckboxes() {
-    // Obtener todos los elementos con la clase 'custom-checkbox' dentro de la tabla
-    var checkboxes = gridProductos.cells('.custom-checkbox').nodes(); // Utiliza 'cells' para obtener las celdas en lugar de 'column'
-
-    // Iterar sobre cada checkbox y desmarcarlo
-    for (var i = 0; i < checkboxes.length; i++) {
-        var icon = $(checkboxes[i]).find('.fa');
-
-        // Desmarcar el checkbox
-        icon.removeClass('fa-check-square');
-        icon.addClass('fa-square-o');
-
-        // Asegurarse de que la clase 'checked' esté eliminada
-        icon.removeClass('checked');
-    }
-
-    // Limpiar el array de IDs seleccionados
-    selectedProductos = [];
-
-    // Ocultar el botón
-    document.getElementById("btnAsignarProveedor").removeAttribute("hidden");
-}
-
-function sumarPorcentaje() {
-    let precioCosto = Number($("#txtPrecioCosto").val());
-    let porcentajeGanancia = Number($("#txtPorcentajeGanancia").val());
-
-    if (!isNaN(precioCosto) && !isNaN(porcentajeGanancia)) {
-        let precioVenta = precioCosto + (precioCosto * (porcentajeGanancia / 100));
-        // Limitar el precio de venta a 2 decimales
-        precioVenta = precioVenta.toFixed(2);
-        $("#txtPrecioVenta").val(precioVenta);
-    }
-}
-
-
-function calcularPorcentaje() {
-    let precioCosto = Number($("#txtPrecioCosto").val());
-    let precioVenta = Number($("#txtPrecioVenta").val());
-
-    if (!isNaN(precioCosto) && !isNaN(precioVenta) && precioCosto !== 0) {
-        let porcentajeGanancia = ((precioVenta - precioCosto) / precioCosto) * 100;
-        // Limitar el porcentaje de ganancia a 2 decimales
-        porcentajeGanancia = porcentajeGanancia.toFixed(2);
-        $("#txtPorcentajeGanancia").val(porcentajeGanancia);
-    }
-}
-
-async function listaProveedoresFiltro() {
-    const url = `/Proveedores/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    $('#Proveedoresfiltro option').remove();
-
-    selectProveedores = document.getElementById("Proveedoresfiltro");
-
-    option = document.createElement("option");
-    option.value = -1;
-    option.text = "-";
-    selectProveedores.appendChild(option);
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        selectProveedores.appendChild(option);
-
-    }
-}
-
-async function listaClientesFiltro() {
-    const url = `/Clientes/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    $('#clientesfiltro option').remove();
-
-    selectClientes = document.getElementById("clientesfiltro");
-
-    option = document.createElement("option");
-    option.value = -1;
-    option.text = "-";
-    selectClientes.appendChild(option);
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        selectClientes.appendChild(option);
-
-    }
-}
-
-async function aplicarFiltros() {
-    var validacionFiltros = validarFiltros();
-    if (!validacionFiltros) {
-        const idCliente = document.getElementById("clientesfiltro").value;
-        const idProveedor = document.getElementById("Proveedoresfiltro").value;
-        const producto = document.getElementById("txtProductoFiltro").value;
-
-        idClienteFiltro = idCliente;
-        idProveedorFiltro = idProveedor;
-
-        document.getElementById("btnAsignarProveedor").setAttribute("hidden", "hidden");
-        document.getElementById("btnAsignarCliente").setAttribute("hidden", "hidden");
-        document.getElementById("btnAumentarPrecios").setAttribute("hidden", "hidden");
-        document.getElementById("btnBajarPrecios").setAttribute("hidden", "hidden");
-
-        if (idClienteFiltro > 0 || idProveedorFiltro > 0) {
-            document.getElementById("btnNuevo").setAttribute("hidden", "hidden");
-        } else {
-            document.getElementById("btnNuevo").removeAttribute("hidden");
-        }
-
-        if (producto != "") {
-            await actualizarVisibilidadProveedor(true);
-            gridProductos.column(2).visible(true);
-            gridProductos.column(10).visible(false);
-            
-        } else {
-            gridProductos.column(2).visible(false);
-            gridProductos.column(10).visible(true);
-            await actualizarVisibilidadProveedor(false);
-        }
-
-
-        selectedProductos = [];
-
-        const url = `Productos/ListaProductosFiltro?idCliente=${idCliente}&idProveedor=${idProveedor}&producto=${producto}`;
-
-        fetch(url, {
-            method: "GET",
-            headers: {
-                'Content-Type': 'application/json;charset=utf-8'
-            }
-        })
-            .then(response => {
-                if (!response.ok) throw new Error(response.statusText);
-                return response.json();
-            })
-            .then(dataJson => {
-                configurarDataTable(dataJson);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    } else {
-        errorModal(validacionFiltros)
-    }
-}
-
-function asignarProveedor() {
-
-    const nuevoModelo = {
-        productos: JSON.stringify(selectedProductos),
-        idProveedor: document.getElementById("Proveedores").value
-
-    };
-
-    const url = "Productos/AsignarProveedor";
-    const method = "POST";
-
-    fetch(url, {
-        method: method,
-        headers: {
-            'Content-Type': 'application/json;charset=utf-8'
-        },
-        body: JSON.stringify(nuevoModelo)
-    })
-        .then(response => {
-            if (!response.ok) throw new Error(response.statusText);
-            return response.json();
-        })
-        .then(dataJson => {
-            const mensaje = "Proveedor asignado correctamente";
-            exitoModal(mensaje);
-            $("#modalProveedores").modal("hide");
-            //desmarcarCheckboxes();
-            //listaProductos();
-
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-}
-
-function aumentarPrecios() {
-
-    if (validarCamposAumentarPrecioCosto && validarCamposAumentarPrecioVenta) {
-
-
-        const nuevoModelo = {
-            productos: JSON.stringify(selectedProductos),
-            idProveedor: idProveedorFiltro,
-            idCliente: idClienteFiltro,
-            PorcentajeCosto: document.getElementById("txtAumentoPrecioCosto").value,
-            PorcentajeVenta: document.getElementById("txtAumentoPrecioVenta").value
-
-        };
-
-        const url = "Productos/AumentarPrecios";
-        const method = "POST";
-
-        fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json;charset=utf-8'
-            },
-            body: JSON.stringify(nuevoModelo)
-        })
-            .then(response => {
-                if (!response.ok) throw new Error(response.statusText);
-                return response.json();
-            })
-            .then(dataJson => {
-                const mensaje = "Precios aumentados correctamente";
-                exitoModal(mensaje);
-                $("#modalAumentar").modal("hide");
-                listaProductos();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    } else {
-        errorModal('Debes completar los campos requeridos')
-    }
-}
-
-function bajarPrecios() {
-
-    if (validarCamposBajarPrecioCosto && validarCamposBajarPrecioVenta) {
-        const nuevoModelo = {
-            productos: JSON.stringify(selectedProductos),
-            idProveedor: idProveedorFiltro,
-            idCliente: idClienteFiltro,
-            PorcentajeCosto: document.getElementById("txtBajaPrecioCosto").value,
-            PorcentajeVenta: document.getElementById("txtBajaPrecioVenta").value
-
-        };
-
-        const url = "Productos/BajarPrecios";
-        const method = "POST";
-
-        fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json;charset=utf-8'
-            },
-            body: JSON.stringify(nuevoModelo)
-        })
-            .then(response => {
-                if (!response.ok) throw new Error(response.statusText);
-                return response.json();
-            })
-            .then(dataJson => {
-                const mensaje = "Precios bajados correctamente";
-                exitoModal(mensaje);
-                $("#modalBajar").modal("hide");
-                listaProductos();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    } else {
-        errorModal('Debes completar los campos requeridos')
-    }
-}
-
-
-function asignarCliente() {
-
-    const nuevoModelo = {
-        productos: JSON.stringify(selectedProductos),
-        idProveedor: idProveedorFiltro,
-        idCliente: document.getElementById("Clientes").value
-
-    };
-
-    const url = "Productos/AsignarCliente";
-    const method = "POST";
-
-    fetch(url, {
-        method: method,
-        headers: {
-            'Content-Type': 'application/json;charset=utf-8'
-        },
-        body: JSON.stringify(nuevoModelo)
-    })
-        .then(response => {
-            if (!response.ok) throw new Error(response.statusText);
-            return response.json();
-        })
-        .then(dataJson => {
-            const mensaje = "Cliente asignado correctamente";
-            exitoModal(mensaje);
-            $("#modalClientes").modal("hide");
-
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-}
 
 function guardarCambios() {
     if (validarCampos()) {
-        sumarPorcentaje(); //Por si las dudas
         const idProducto = $("#txtId").val();
         const nuevoModelo = {
-            IdCliente: idClienteFiltro,
-            IdProveedor: idProveedorFiltro,
             "Id": idProducto !== "" ? idProducto : 0,
             "Descripcion": $("#txtDescripcion").val(),
-            "IdMarca": $("#Marcas").val(),
+            "IdUnidadMedida": $("#UnidadesMedida").val(),
+            "IdUnidadNegocio": $("#UnidadesNegocio").val(),
             "IdCategoria": $("#Categorias").val(),
-            "IdMoneda": $("#Monedas").val(),
-            "IdUnidadDeMedida": $("#UnidadesDeMedidas").val(),
-            "PCosto": parseDecimal($("#txtPrecioCosto").val()),
-            "PVenta": parseDecimal($("#txtPrecioVenta").val()),
-            "PorcGanancia": parseDecimal($("#txtPorcentajeGanancia").val()),
-            "Image": document.getElementById("imgProd").value,
+            "Sku": $("#txtSku").val(),
+            "CostoUnitario": $("#txtCostoUnitario").val(),
         };
 
         const url = idProducto === "" ? "Productos/Insertar" : "Productos/Actualizar";
@@ -474,7 +55,7 @@ function guardarCambios() {
                 const mensaje = idProducto === "" ? "Producto registrado correctamente" : "Producto modificado correctamente";
                 $('#modalEdicion').modal('hide');
                 exitoModal(mensaje);
-                listaProductos();
+                aplicarFiltros();
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -485,364 +66,82 @@ function guardarCambios() {
 }
 
 
-function validarCamposAumentarPrecioCosto() {
-    const aumento = $("#txtAumentoPrecioCosto").val();
-
-    const aumentoValido = aumento !== "";
-
-    $("#lblAumentoPrecioCosto").css("color", aumentoValido ? "" : "red");
-    $("#txtAumentoPrecioCosto").css("border-color", aumentoValido ? "" : "red");
-
-    return aumentoValido;
-}
-
-function validarCamposAumentarPrecioVenta() {
-    const aumento = $("#txtAumentoPrecioVenta").val();
-
-    const aumentoValido = aumento !== "";
-
-    $("#lblAumentoPrecioVenta").css("color", aumentoValido ? "" : "red");
-    $("#txtAumentoPrecioVenta").css("border-color", aumentoValido ? "" : "red");
-
-    return aumentoValido;
-}
-
-
-function validarCamposBajarPrecioCosto() {
-    const aumento = $("#txtAumentoPrecioCosto").val();
-
-    const aumentoValido = aumento !== "";
-
-    $("#lblBajaPrecioCosto").css("color", aumentoValido ? "" : "red");
-    $("#txtBajaPrecioCosto").css("border-color", aumentoValido ? "" : "red");
-
-    return aumentoValido;
-}
-
-function validarCamposBajarPrecioVenta() {
-    const aumento = $("#txtAumentoPrecioVenta").val();
-
-    const aumentoValido = aumento !== "";
-
-    $("#lblBajaPrecioVenta").css("color", aumentoValido ? "" : "red");
-    $("#txtBajaPrecioVenta").css("border-color", aumentoValido ? "" : "red");
-
-    return aumentoValido;
-}
-
 function validarCampos() {
     const descripcion = $("#txtDescripcion").val();
-    const precioCosto = $("#txtPrecioCosto").val();
-    const precioVenta = $("#txtPrecioVenta").val();
-    const porcentajeGanancia = $("#txtPorcentajeGanancia").val();
+    const codigo = $("#txtCodigo").val();
+    const campoValidoDescripcion = descripcion !== "";
+    const campoValidoCodigo = codigo !== "";
 
-    const descripcionValida = descripcion !== "";
-    const precioCostoValido = precioCosto !== "" && !isNaN(precioCosto);
-    const precioVentaValido = precioVenta !== "" && !isNaN(precioVenta);
-    const porcentajeGananciaValido = porcentajeGanancia !== "" && !isNaN(porcentajeGanancia);
+    $("#lblDescripcion").css("color", campoValidoDescripcion ? "" : "red");
+    $("#txtDescripcion").css("border-color", campoValidoDescripcion ? "" : "red");
 
-    $("#lblDescripcion").css("color", descripcionValida ? "" : "red");
-    $("#txtDescripcion").css("border-color", descripcionValida ? "" : "red");
+    $("#lblCodigo").css("color", campoValidoCodigo ? "" : "red");
+    $("#txtCodigo").css("border-color", campoValidoCodigo ? "" : "red");
 
-    $("#lblPrecioCosto").css("color", precioCostoValido ? "" : "red");
-    $("#txtPrecioCosto").css("border-color", precioCostoValido ? "" : "red");
-
-    $("#lblPorcentajeGanancia").css("color", porcentajeGananciaValido ? "" : "red");
-    $("#txtPorcentajeGanancia").css("border-color", porcentajeGananciaValido ? "" : "red");
-
-    return descripcionValida && precioCostoValido && precioVentaValido && porcentajeGananciaValido;
-}
-
-function validarFiltros() {
-    let mensaje = "";
-
-    const idCliente = document.getElementById("clientesfiltro").value;
-    const idProveedor = document.getElementById("Proveedoresfiltro").value;
-    if (idCliente > 0 && idProveedor <= 0) {
-        mensaje = "No puedes filtrar por un cliente sin proveedor."
-    }
-
-    return mensaje
+    return campoValidoDescripcion && campoValidoCodigo;
 }
 
 function nuevoProducto() {
-
-    limpiarModal();
-    listaMarcas();
-    listaCategorias();
-    listaMonedas();
-    listaUnidadesDeMedida();
-    document.getElementById("Marcas").removeAttribute("disabled");
-    document.getElementById("txtDescripcion").removeAttribute("disabled");
-    document.getElementById("Categorias").removeAttribute("disabled");
-    document.getElementById("Monedas").removeAttribute("disabled");
-    document.getElementById("Imagen").removeAttribute("disabled");
-    document.getElementById("UnidadesDeMedidas").removeAttribute("disabled");
-    document.getElementById("txtPrecioCosto").classList.remove("txtEdicion");
-    document.getElementById("txtPorcentajeGanancia").classList.remove("txtEdicion");
-    document.getElementById("txtPrecioVenta").classList.remove("txtEdicion");
-    $('#modalEdicion').modal('show');
-    $("#btnGuardar").text("Registrar");
-    $("#modalEdicionLabel").text("Nuevo Producto");
-    asignarCamposObligatorios()
-}
-
-function asignarCamposObligatorios() {
-    $('#lblDescripcion').css('color', 'red');
-    $('#txtDescripcion').css('border-color', 'red');
-    $('#lblPrecioCosto').css('color', 'red');
-    $('#txtPrecioCosto').css('border-color', 'red');
-    $('#lblPorcentajeGanancia').css('color', 'red');
-    $('#txtPorcentajeGanancia').css('border-color', 'red');
+    window.location.href = '/Productos/NuevoModif';
 }
 
 async function mostrarModal(modelo) {
-    const idCliente = document.getElementById("clientesfiltro").value;
-    const idProveedor = document.getElementById("Proveedoresfiltro").value;
-
-    if (idProveedor > 0 || idCliente > 0) {
-        document.getElementById("Marcas").setAttribute("disabled", "disabled");
-        document.getElementById("txtDescripcion").setAttribute("disabled", "disabled");
-        document.getElementById("Categorias").setAttribute("disabled", "disabled");
-        document.getElementById("Monedas").setAttribute("disabled", "disabled");
-        document.getElementById("UnidadesDeMedidas").setAttribute("disabled", "disabled");
-        document.getElementById("txtPrecioCosto").classList.add("txtEdicion");
-        document.getElementById("txtPorcentajeGanancia").classList.add("txtEdicion");
-        document.getElementById("txtPrecioVenta").classList.add("txtEdicion");
-        document.getElementById("Imagen").setAttribute("disabled", "disabled");
-    } else {
-        document.getElementById("Marcas").removeAttribute("disabled");
-        document.getElementById("txtDescripcion").removeAttribute("disabled");
-        document.getElementById("Categorias").removeAttribute("disabled");
-        document.getElementById("Monedas").removeAttribute("disabled");
-        document.getElementById("Imagen").removeAttribute("disabled");
-        document.getElementById("UnidadesDeMedidas").removeAttribute("disabled");
-        document.getElementById("txtPrecioCosto").classList.remove("txtEdicion");
-        document.getElementById("txtPorcentajeGanancia").classList.remove("txtEdicion");
-        document.getElementById("txtPrecioVenta").classList.remove("txtEdicion");
-
-    }
-    const campos = ["Id", "Descripcion", "PrecioCosto", "PrecioVenta", "PorcentajeGanancia"];
+    const campos = ["Id", "Sku", "CostoUnitario", "Descripcion"];
     campos.forEach(campo => {
         $(`#txt${campo}`).val(modelo[campo]);
     });
 
-    await listaMarcas();
-    await listaCategorias();
-    await listaMonedas();
-    await listaUnidadesDeMedida();
-
-
-    $("#imgProducto").attr("src", "data:image/png;base64," + modelo.Image);
-    $("#imgProd").val(modelo.Image);
-    document.getElementById("txtPrecioCosto").value = modelo.PCosto;
-    document.getElementById("txtPrecioVenta").value = modelo.PVenta;
-    document.getElementById("txtPorcentajeGanancia").value = modelo.PorcGanancia;
-    document.getElementById("Marcas").value = modelo.IdMarca;
-    document.getElementById("Categorias").value = modelo.IdCategoria;
-    document.getElementById("Monedas").value = modelo.IdMoneda;
-    document.getElementById("UnidadesDeMedidas").value = modelo.IdUnidadDeMedida;
-
-
+    listaUnidadesNegocio();
+    listaUnidadesMedida();
+    listaProductosCategoria();
 
     $('#modalEdicion').modal('show');
     $("#btnGuardar").text("Guardar");
     $("#modalEdicionLabel").text("Editar Producto");
 
-    validarCampos();
+    $('#lblDescripcion, #txtDescripcion').css('color', '').css('border-color', '');
+    $('#lblSku, #txtSku').css('color', '').css('border-color', '');
+    $('#lblCostoUnitario, #txtCostoUnitario').css('color', '').css('border-color', '');
 }
 
 
 
 
 function limpiarModal() {
-    const campos = ["Id", "Descripcion", "PrecioCosto", "PrecioVenta", "PorcentajeGanancia"];
+    const campos = ["Id", "Sku", "CostoUnitario", "Descripcion"];
     campos.forEach(campo => {
         $(`#txt${campo}`).val("");
     });
 
-    $("#imgProducto").attr("src", "");
-    $("#imgProd").val("");
-
+    $('#lblDescripcion, #txtDescripcion').css('color', '').css('border-color', '');
+    $('#lblSku, #txtSku').css('color', '').css('border-color', '');
+    $('#lblCostoUnitario, #txtCostoUnitario').css('color', '').css('border-color', '');
 }
 
 
-
-async function listaProductos() {
-
-    if (idClienteFiltro > 0 || idProveedorFiltro > 0) {
-        aplicarFiltros();
-
-    } else {
-
-        document.getElementById("btnAsignarProveedor").setAttribute("hidden", "hidden");
-        document.getElementById("btnAsignarCliente").setAttribute("hidden", "hidden");
-        document.getElementById("btnAumentarPrecios").setAttribute("hidden", "hidden");
-        document.getElementById("btnBajarPrecios").setAttribute("hidden", "hidden");
-
-
-        selectedProductos = [];
-
-        const url = `/Productos/Lista`;
-        const response = await fetch(url);
-        const data = await response.json();
-        await configurarDataTable(data);
-    }
-
-
+async function aplicarFiltros() {
+    listaProductos(document.getElementById("UnidadNegocioFiltro").value)
 }
 
-async function listaMarcas() {
-    const url = `/Marcas/Lista`;
+
+async function listaProductos(UnidadNegocio) {
+    const url = `/Productos/Lista`;
     const response = await fetch(url);
     const data = await response.json();
-
-    $('#Marcas option').remove();
-
-    selectProvincias = document.getElementById("Marcas");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        selectProvincias.appendChild(option);
-
-    }
+    await configurarDataTable(data);
 }
 
-
-
-async function listaMarcasFilter() {
-    const url = `/Marcas/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    return data.map(provincia => ({
-        Id: provincia.Id,
-        Nombre: provincia.Nombre
-    }));
-
+function editarProducto(id) {
+    // Redirige a la vista 'PedidoNuevoModif' con el parámetro id
+    window.location.href = '/Productos/NuevoModif/' + id;
 }
 
-
-async function listaCategorias() {
-    const url = `/Categorias/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    $('#Categorias option').remove();
-
-    selectProvincias = document.getElementById("Categorias");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        selectProvincias.appendChild(option);
-
-    }
-}
-
-async function listaCategoriasFilter() {
-    const url = `/Categorias/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    return data.map(categoria => ({
-        Id: categoria.Id,
-        Nombre: categoria.Nombre
-    }));
-
-}
-
-
-async function listaMonedas() {
-    const url = `/Monedas/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    $('#Monedas option').remove();
-
-    selectProvincias = document.getElementById("Monedas");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        selectProvincias.appendChild(option);
-
-    }
-}
-
-async function listaMonedasFilter() {
-    const url = `/Monedas/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    return data.map(moneda => ({
-        Id: moneda.Id,
-        Nombre: moneda.Nombre
-    }));
-
-}
-
-async function listaUnidadesDeMedida() {
-    const url = `/UnidadesDeMedidas/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    $('#UnidadesDeMedidas option').remove();
-
-    selectProvincias = document.getElementById("UnidadesDeMedidas");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        selectProvincias.appendChild(option);
-
-    }
-}
-
-async function listaUnidadesDeMedidaFilter() {
-    const url = `/UnidadesDeMedidas/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    return data.map(UnidadesDeMedida => ({
-        Id: UnidadesDeMedida.Id,
-        Nombre: UnidadesDeMedida.Nombre
-    }));
-
-}
-
-
-const editarProducto = id => {
-    const idCliente = document.getElementById("clientesfiltro").value;
-    const idProveedor = document.getElementById("Proveedoresfiltro").value;
-    const url = `Productos/EditarInfo?id=${id}&idCliente=${idCliente}&idProveedor=${idProveedor}`
-    fetch(url)
-        .then(response => {
-            if (!response.ok) throw new Error("Ha ocurrido un error.");
-            return response.json();
-        })
-        .then(dataJson => {
-            if (dataJson !== null) {
-                mostrarModal(dataJson);
-            } else {
-                throw new Error("Ha ocurrido un error.");
-            }
-        })
-        .catch(error => {
-            errorModal("Ha ocurrido un error.");
-        });
-}
 async function eliminarProducto(id) {
     let resultado = window.confirm("¿Desea eliminar el Producto?");
 
     if (resultado) {
         try {
-            const response = await fetch(`Productos/Eliminar?id=${id}&idProveedor=${idProveedorFiltro}&idCliente=${idClienteFiltro}`, {
+            const response = await fetch("Productos/Eliminar?id=" + id, {
                 method: "DELETE"
             });
 
@@ -853,11 +152,11 @@ async function eliminarProducto(id) {
             const dataJson = await response.json();
 
             if (dataJson.valor) {
-                listaProductos();
+                aplicarFiltros();
                 exitoModal("Producto eliminado correctamente")
             }
         } catch (error) {
-            errorModal("Ha ocurrido un error al eliminar el producto");
+            console.error("Ha ocurrido un error:", error);
         }
     }
 }
@@ -876,51 +175,34 @@ async function configurarDataTable(data) {
             scrollCollapse: true,
             columns: [
                 {
-                    "data": "Image", "render": function (data) {
-                        if (!data) {
-                            var img = "/Imagenes/sin-imagen.png";
-                            return '<img src="' + img + '" width="40%" />';
-                        }
-                        else {
-                            var img = 'data:image/png;base64,' + data;
-                            return '<img src="' + img + '" width="60%" />';
-                        }
-                    }
-                },
-
-                { data: 'Descripcion' },
-                { data: 'Proveedor', visible: false },
-                { data: 'Marca' },
-                { data: 'Categoria' },
-                { data: 'UnidadDeMedida' },
-                { data: 'Moneda' },
-                { data: 'PCosto' },
-                { data: 'PVenta' },
-                { data: 'PorcGanancia' },
-
-                {
                     data: "Id",
+                    title: '',
+                    width: "1%", // Ancho fijo para la columna
                     render: function (data) {
-
-                        const isChecked = false;
-
-                        const checkboxClass = isChecked ? 'fa-check-square-o' : 'fa-square-o';
-
                         return `
-                                <button class='btn btn-sm btneditar btnacciones' type='button' onclick='editarProducto(${data})' title='Editar'>
-                                    <i class='fa fa-pencil-square-o fa-lg text-white' aria-hidden='true'></i>
-                                </button>
-                                <button class='btn btn-sm btneditar btnacciones' type='button' onclick='eliminarProducto(${data})' title='Eliminar'>
-                                    <i class='fa fa-trash-o fa-lg text-danger' aria-hidden='true'></i>
-                                </button>
-                                <span class="custom-checkbox" data-id='${data}'>
-                                    <i class="fa ${checkboxClass} checkbox"></i>
-                                </span>`;
+                <div class="acciones-menu" data-id="${data}">
+                    <button class='btn btn-sm btnacciones' type='button' onclick='toggleAcciones(${data})' title='Acciones'>
+                        <i class='fa fa-ellipsis-v fa-lg text-white' aria-hidden='true'></i>
+                    </button>
+                    <div class="acciones-dropdown" style="display: none;">
+                        <button class='btn btn-sm btneditar' type='button' onclick='editarProducto(${data})' title='Editar'>
+                            <i class='fa fa-pencil-square-o fa-lg text-success' aria-hidden='true'></i> Editar
+                        </button>
+                        <button class='btn btn-sm btneliminar' type='button' onclick='eliminarProducto(${data})' title='Eliminar'>
+                            <i class='fa fa-trash-o fa-lg text-danger' aria-hidden='true'></i> Eliminar
+                        </button>
+                    </div>
+                </div>`;
                     },
-                    orderable: true,
-                    searchable: true,
-                }
-
+                    orderable: false,
+                    searchable: false,
+                },
+                { data: 'Codigo' },
+                { data: 'Descripcion' },
+                { data: 'Color' },
+                { data: 'Categoria' },
+                { data: 'PorcGanancia' },
+                { data: 'CostoUnitario' },
             ],
             dom: 'Bfrtip',
             buttons: [
@@ -930,7 +212,7 @@ async function configurarDataTable(data) {
                     filename: 'Reporte Productos',
                     title: '',
                     exportOptions: {
-                        columns: [1, 2, 3, 4, 5, 6, 7, 8]
+                        columns: [0, 1, 2, 3]
                     },
                     className: 'btn-exportar-excel',
                 },
@@ -940,7 +222,7 @@ async function configurarDataTable(data) {
                     filename: 'Reporte Productos',
                     title: '',
                     exportOptions: {
-                        columns: [1, 2, 3, 4, 5, 6, 7, 8]
+                        columns: [0, 1, 2, 3]
                     },
                     className: 'btn-exportar-pdf',
                 },
@@ -949,7 +231,7 @@ async function configurarDataTable(data) {
                     text: 'Imprimir',
                     title: '',
                     exportOptions: {
-                        columns: [1, 2, 3, 4, 5, 6, 7, 8]
+                        columns: [0, 1, 2, 3]
                     },
                     className: 'btn-exportar-print'
                 },
@@ -961,13 +243,12 @@ async function configurarDataTable(data) {
             "columnDefs": [
                 {
                     "render": function (data, type, row) {
-                        return formatNumber(data); // Formatear número en la columna
+                        return formatNumber(data); // Formatear números
                     },
-                    "targets": [7, 8] // Columnas Venta, Cobro, Capital Final
-                }
+                    "targets": [6] // Índices de las columnas de números
+                },
+                
             ],
-
-
 
             initComplete: async function () {
                 var api = this.api();
@@ -1006,201 +287,203 @@ async function configurarDataTable(data) {
                     }
                 });
 
-                var lastColIdx = api.columns().indexes().length - 1;
-                $('.filters th').eq(lastColIdx).html(''); // Limpiar la última columna si es necesario
-                $('.filters th').eq(0).html('');
+                $('.filters th').eq(0).html(''); // Limpiar la última columna si es necesario
+
+                configurarOpcionesColumnas();
+
                 setTimeout(function () {
                     gridProductos.columns.adjust();
                 }, 10);
 
-
-
-
-
-                $('body').on('click', '#grd_Productos .fa-map-marker', function () {
-                    var locationText = $(this).parent().text().trim().replace(' ', ' '); // Obtener el texto visible
-                    var url = 'https://www.google.com/maps?q=' + encodeURIComponent(locationText);
-                    window.open(url, '_blank');
+                // Cambiar el cursor a 'pointer' cuando pase sobre cualquier fila o columna
+                $('#grd_Productos tbody').on('mouseenter', 'tr', function () {
+                    $(this).css('cursor', 'pointer');
                 });
+
+                // Doble clic para ejecutar la función editarPedido(id)
+                $('#grd_Productos tbody').on('dblclick', 'tr', function () {
+                    var id = gridProductos.row(this).data().Id; // Obtener el ID de la fila seleccionada
+                    editarProducto(id); // Llamar a la función de editar
+                });
+
+                let filaSeleccionada = null; // Variable para almacenar la fila seleccionada
+                $('#grd_Productos tbody').on('click', 'tr', function () {
+                    // Remover la clase de la fila anteriormente seleccionada
+                    if (filaSeleccionada) {
+                        $(filaSeleccionada).removeClass('seleccionada');
+                        $('td', filaSeleccionada).removeClass('seleccionada');
+
+                    }
+
+                    // Obtener la fila actual
+                    filaSeleccionada = $(this);
+
+                    // Agregar la clase a la fila actual
+                    $(filaSeleccionada).addClass('seleccionada');
+                    $('td', filaSeleccionada).addClass('seleccionada');
+
+                });
+
+
+
+              
             },
         });
 
-        $('#grd_Productos').on('draw.dt', function () {
-            $(document).off('click', '.custom-checkbox'); // Desvincular el evento para evitar duplicaciones
-            $(document).on('click', '.custom-checkbox', handleCheckboxClick);
-        });
-
-        $(document).on('click', '.custom-checkbox', function (event) {
-            handleCheckboxClick();
-        });
-
-        $('body').on('mouseenter', '#grd_Productos .fa-map-marker', function () {
-            $(this).css('cursor', 'pointer');
-        });
     } else {
         gridProductos.clear().rows.add(data).draw();
     }
 }
 
 
+function configurarOpcionesColumnas() {
+    const grid = $('#grd_Productos').DataTable(); // Accede al objeto DataTable utilizando el id de la tabla
+    const columnas = grid.settings().init().columns; // Obtiene la configuración de columnas
+    const container = $('#configColumnasMenu'); // El contenedor del dropdown específico para configurar columnas
 
-async function actualizarVisibilidadProveedor(visible) {
-    var column = gridProductos.column(2); // Asumiendo que la columna "Proveedor" es la tercera columna (índice 2)
-    column.visible(visible);
 
-    if (visible) {
-        var cell = $('.filters th').eq(2);
-        var select = $('<select id="filter2"><option value="">Seleccionar</option></select>')
-            .appendTo(cell.empty())
-            .on('change', function () {
-                var val = $(this).val();
-                gridProductos.column(2).search(val ? '^' + val + '$' : '', true, false).draw();
-            });
+    const storageKey = `Productos_Columnas`; // Clave única para esta pantalla
 
-        try {
-            var data = await listaProveedoresFilter(); // Obtener datos de proveedores
-            data.forEach(function (item) {
-                select.append('<option value="' + item.Nombre + '">' + item.Nombre + '</option>');
-            });
-        } catch (error) {
-            console.error("Error al obtener datos de proveedores:", error);
-            // Manejar el error según sea necesario
+    const savedConfig = JSON.parse(localStorage.getItem(storageKey)) || {}; // Recupera configuración guardada o inicializa vacía
+
+    container.empty(); // Limpia el contenedor
+
+    columnas.forEach((col, index) => {
+        if (col.data && col.data !== "Id") { // Solo agregar columnas que no sean "Id"
+            // Recupera el valor guardado en localStorage, si existe. Si no, inicializa en 'false' para no estar marcado.
+            const isChecked = savedConfig && savedConfig[`col_${index}`] !== undefined ? savedConfig[`col_${index}`] : true;
+
+            // Asegúrate de que la columna esté visible si el valor es 'true'
+            grid.column(index).visible(isChecked);
+
+            const columnName = col.data;
+
+            // Ahora agregamos el checkbox, asegurándonos de que se marque solo si 'isChecked' es 'true'
+            container.append(`
+                <li>
+                    <label class="dropdown-item">
+                        <input type="checkbox" class="toggle-column" data-column="${index}" ${isChecked ? 'checked' : ''}>
+                        ${columnName}
+                    </label>
+                </li>
+            `);
         }
-    }
-}
+    });
 
-
-async function listaProveedoresFilter() {
-    const url = `/Proveedores/Lista`;
-    const response = await fetch(url);
-
-    if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    // Mapear los datos a la estructura requerida
-    const proveedores = data.map(proveedor => ({
-        Id: proveedor.Id,
-        Nombre: proveedor.Nombre
-    }));
-
-    return proveedores;
-}
-
-function agregarFiltroDesplegable(column, obtenerOpciones, opcionPredeterminada = "Seleccionar") {
-    var select = $('<select><option value="">' + opcionPredeterminada + '</option></select>')
-        .appendTo($(column.header()).empty())
-        .on('change', function () {
-            var val = $.fn.dataTable.util.escapeRegex(
-                $(this).val()
-            );
-
-            column
-                .search(val ? '^' + val + '$' : '', true, false)
-                .draw();
-        });
-
-    obtenerOpciones(function (opciones) {
-        opciones.forEach(function (opcion) {
-            select.append('<option value="' + opcion.valor + '">' + opcion.texto + '</option>');
-        });
+    // Asocia el evento para ocultar/mostrar columnas
+    $('.toggle-column').on('change', function () {
+        const columnIdx = parseInt($(this).data('column'), 10);
+        const isChecked = $(this).is(':checked');
+        savedConfig[`col_${columnIdx}`] = isChecked;
+        localStorage.setItem(storageKey, JSON.stringify(savedConfig));
+        grid.column(columnIdx).visible(isChecked);
     });
 }
 
-const fileInput = document.getElementById("Imagen");
-
-fileInput.addEventListener("change", (e) => {
-    var files = e.target.files
-    let base64String = "";
-    let baseTotal = "";
-
-    // get a reference to the file
-    const file = e.target.files[0];
+$(document).on('click', function (e) {
+    // Verificar si el clic está fuera de cualquier dropdown
+    if (!$(e.target).closest('.acciones-menu').length) {
+        $('.acciones-dropdown').hide(); // Cerrar todos los dropdowns
+    }
+});
 
 
-
-    // encode the file using the FileReader API
-    const reader = new FileReader();
-    reader.onloadend = () => {
-        // use a regex to remove data url part
-
-        base64String = reader.result
-            .replace("data:", "")
-            .replace(/^.+,/, "");
-
-
-        var inputImg = document.getElementById("imgProd");
-        inputImg.value = base64String;
-
-        $("#imgProducto").removeAttr('hidden');
-        $("#imgProducto").attr("src", "data:image/png;base64," + base64String);
-
-    };
-
-    reader.readAsDataURL(file);
-
-}
-);
-
-function abrirmodalProveedor() {
-    listaProveedores();
-    $("#modalProveedores").modal("show");
-}
-async function listaProveedores() {
-    const url = `/Proveedores/Lista`;
+async function listaColoresFilter() {
+    const url = `/Colores/Lista`;
     const response = await fetch(url);
     const data = await response.json();
 
-    $('#Proveedores option').remove();
+    return data.map(x => ({
+        Id: x.Id,
+        Nombre: x.Nombre
+    }));
 
-    selectProveedores = document.getElementById("Proveedores");
+}
+
+
+
+async function listaProductosCategoriaFilter() {
+    const url = `/Productos/ListaCategorias`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    return data.map(x => ({
+        Id: x.Id,
+        Nombre: x.Nombre
+    }));
+
+}
+
+
+async function listaUnidadesNegocio() {
+    const data = await listaUnidadesNegocioFilter();
+
+    $('#UnidadesNegocio option').remove();
+
+    select = document.getElementById("UnidadesNegocio");
 
     for (i = 0; i < data.length; i++) {
         option = document.createElement("option");
         option.value = data[i].Id;
         option.text = data[i].Nombre;
-        selectProveedores.appendChild(option);
+        select.appendChild(option);
 
     }
 }
 
-function abrirmodalAumentarPrecios() {
-    $("#txtAumentoPrecioCosto").val("0");
-    $("#txtAumentoPrecioVenta").val("0");
-    $("#modalAumentar").modal("show");
-    validarCamposAumentarPrecioCosto();
-    validarCamposAumentarPrecioVenta();
+async function listaUnidadesMedida() {
+    const data = await listaUnidadesMedidaFilter();
 
-}
+    $('#UnidadesMedida option').remove();
 
-function abrirmodalBajarPrecios() {
-    $("#txtBajaPrecioCosto").val("0");
-    $("#txtBajaPrecioVenta").val("0");
-    $("#modalBajar").modal("show");
-    validarCamposBajarPrecioCosto();
-    validarCamposBajarPrecioVenta();
-}
-
-function abrirmodalCliente() {
-    listaClientes();
-    $("#modalClientes").modal("show");
-}
-async function listaClientes() {
-    const url = `/Clientes/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    $('#Clientes option').remove();
-
-    selectClientes = document.getElementById("Clientes");
+    select = document.getElementById("UnidadesMedida");
 
     for (i = 0; i < data.length; i++) {
         option = document.createElement("option");
         option.value = data[i].Id;
         option.text = data[i].Nombre;
-        selectClientes.appendChild(option);
+        select.appendChild(option);
+
+    }
+}
+
+async function listaProductosCategoria() {
+    const data = await listaProductosCategoriaFilter();
+
+    $('#Categorias option').remove();
+
+    select = document.getElementById("Categorias");
+
+    for (i = 0; i < data.length; i++) {
+        option = document.createElement("option");
+        option.value = data[i].Id;
+        option.text = data[i].Nombre;
+        select.appendChild(option);
+
+    }
+}
+
+
+
+
+
+async function listaUnidadesNegocioFiltro() {
+    const data = await listaUnidadesNegocioFilter();
+
+    $('#UnidadNegocioFiltro option').remove();
+
+    select = document.getElementById("UnidadNegocioFiltro");
+
+    option = document.createElement("option");
+    option.value = -1;
+    option.text = "-";
+    select.appendChild(option);
+
+    for (i = 0; i < data.length; i++) {
+        option = document.createElement("option");
+        option.value = data[i].Id;
+        option.text = data[i].Nombre;
+        select.appendChild(option);
 
     }
 }
