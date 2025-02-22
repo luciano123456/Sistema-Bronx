@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <Content Remove="wwwroot\css\NavBarLogin.css~RF1f800e21.TMP" />
-    <Content Remove="wwwroot\js\Choferes.js" />
     <Content Remove="wwwroot\js\Home.js" />
     <Content Remove="wwwroot\js\Insumos.js" />
     <Content Remove="wwwroot\js\Login.js" />
@@ -30,7 +29,6 @@
     <None Include="wwwroot\js\Usuarios.js" />
     <None Include="wwwroot\js\Zonas.js" />
     <None Include="wwwroot\js\PedidosNuevoModif.js" />
-    <None Include="wwwroot\js\Choferes.js" />
     <None Include="wwwroot\js\Monedas.js" />
     <None Include="wwwroot\js\Proveedores.js" />
     <None Include="wwwroot\js\NavBarLogin.js" />
@@ -58,10 +56,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="Views\Choferes\Index.cshtml">
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
     <Content Update="Views\Clientes\Index.cshtml">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>

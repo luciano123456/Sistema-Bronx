@@ -102,3 +102,34 @@ function formatMoneda(valor) {
     return `$${formateado}`;
 }
 
+
+function toggleAcciones(id) {
+    const dropdown = document.querySelector(`.acciones-menu[data-id='${id}'] .acciones-dropdown`);
+    const isVisible = dropdown.style.display === 'block';
+
+    // Oculta todos los demás menús desplegables
+    document.querySelectorAll('.acciones-dropdown').forEach(el => el.style.display = 'none');
+
+    if (!isVisible) {
+        // Muestra el menú
+        dropdown.style.display = 'block';
+
+        // Obtén las coordenadas del botón
+        const menuButton = document.querySelector(`.acciones-menu[data-id='${id}']`);
+        const rect = menuButton.getBoundingClientRect();
+
+        // Mueve el menú al body y ajusta su posición
+        const dropdownClone = dropdown.cloneNode(true);
+        dropdownClone.style.position = 'fixed';
+        dropdownClone.style.left = `${rect.left}px`;
+        dropdownClone.style.top = `${rect.bottom}px`;
+        dropdownClone.style.zIndex = '10000';
+        dropdownClone.style.display = 'block';
+
+        // Limpia menús previos si es necesario
+        document.querySelectorAll('.acciones-dropdown-clone').forEach(clone => clone.remove());
+
+        dropdownClone.classList.add('acciones-dropdown-clone');
+        document.body.appendChild(dropdownClone);
+    }
+}

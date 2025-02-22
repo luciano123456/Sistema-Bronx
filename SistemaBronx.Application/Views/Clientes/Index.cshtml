@@ -20,26 +20,31 @@
 }
 
 <div class="container-fluid mt-5">
-
-
-
     <div class="row">
         <div class="col-lg-10">
-            <div class="card" style="width: 88%;position: absolute; left: 7vw; border: none;">
-                <div class="card-header">
-                    Clientes
+            <div class="card" style="width: 88%; position: absolute; left: 7vw; border: none;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Clientes</span>
+
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle d-flex align-items-center" type="button" id="dropdownColumnas" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa fa-cog me-2"></i> Config. Columnas
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownColumnas" id="configColumnasMenu">
+                        </ul>
+                    </div>
                 </div>
                 <div class="card-body">
                     <table class="display nowrap" id="grd_clientes" style="width:100%">
                         <thead>
                             <tr>
+                                <th></th>
                                 <th>Nombre</th>
                                 <th>Telefono</th>
                                 <th>Direccion</th>
                                 <th>Provincia</th>
                                 <th>Localidad</th>
                                 <th>DNI/CUIT</th>
-                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -51,7 +56,6 @@
                 <div class="d-flex justify-content-end mt-2 mb-4">
                     <a class="btn btn-warning btnnuevo" onclick="nuevoCliente()">Nuevo</a>
                 </div>
-
             </div>
         </div>
     </div>
