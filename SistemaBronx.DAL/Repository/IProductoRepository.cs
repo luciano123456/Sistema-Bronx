@@ -12,10 +12,9 @@ namespace SistemaBronx.DAL.Repository
     {
         Task<bool> Eliminar(int id);
         Task<bool> Actualizar(Producto model);
-        Task<bool> Insertar(Producto model);
+        Task<bool> Insertar(Producto model, List<ProductosInsumo> insumos);
         Task<Producto> Obtener(int id);
-        Task<IQueryable<Producto>> ObtenerTodos();
-        Task<bool> InsertarInsumos(List<ProductosInsumo> insumos);
+        Task<List<Producto>> ObtenerTodos();
         Task<List<ProductosInsumo>> ObtenerInsumos(int idProducto);
         Task<bool> ActualizarInsumos(List<ProductosInsumo> insumos);
         Task<IQueryable<ProductosCategoria>> ObtenerCategorias();

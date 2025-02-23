@@ -66,12 +66,11 @@ async function insertarDatosProducto(datos) {
    
 
     //Cargamos Datos del Cliente
-    document.getElementById("UnidadesNegocio").value = datos.IdUnidadNegocio;
     document.getElementById("descripcion").value = datos.Descripcion;
-    document.getElementById("sku").value = datos.Sku;
+    document.getElementById("codigo").value = datos.Codigo;
     document.getElementById("Categorias").value = datos.IdCategoria;
     document.getElementById("UnidadMedidas").value = datos.IdUnidadMedida;
-    document.getElementById("costoTotal").value = formatoMoneda.format(datos.CostoTotal);
+    document.getElementById("costoTotal").value = formatoMoneda.format(datos.CostoUnitario);
 
     
   
@@ -535,18 +534,40 @@ async function calcularDatosProducto() {
     if (gridInsumos != null && gridInsumos.rows().count() > 0) {
         gridInsumos.rows().every(function () {
             const producto = this.data();
-            InsumoTotal += parseFloat(producto.SubTotal);
+            InsumoTotal += parseFloat(producto.SubTotal) || 0;
         });
     }
 
-    total = InsumoTotal;
+    // Mostrar total de insumos formateado
+    document.getElementById("TotalInsumos").value = formatoMoneda.format(InsumoTotal);
 
-
-
-    document.getElementById("costoTotal").value = formatoMoneda.format(parseFloat(InsumoTotal));
-
+    // Llamar a la función de cálculo de IVA y ganancia
+    calcularIVAyGanancia();
 }
 
+function calcularIVAyGanancia() {
+    // Obtener valores y asegurarse de que sean números
+    const totalInsumos = parseFloat(convertirMonedaAFloat(document.getElementById("TotalInsumos").value));
+    const porcIVA = parseFloat(document.getElementById("porcIVA").value) || 0;
+    const porcGanancia = parseFloat(document.getElementById("porcGanancia").value) || 0;
+
+    // Calcular valores
+    const totalIVA = (totalInsumos * porcIVA) / 100;
+    const totalGanancia = (totalInsumos * porcGanancia) / 100;
+
+    // Calcular costo total y redondear a múltiplos de 100
+    let costoTotal = totalInsumos + totalGanancia + totalIVA;
+
+
+    // Mostrar resultados formateados
+    document.getElementById("totalIVA").value = formatoMoneda.format(totalIVA);
+    document.getElementById("totalGanancia").value = formatoMoneda.format(totalGanancia);
+    document.getElementById("costoTotal").value = formatoMoneda.format(costoTotal);
+}
+
+// Agregar eventos para actualizar cálculos cuando cambian los porcentajes
+document.getElementById("porcIVA").addEventListener("input", calcularIVAyGanancia);
+document.getElementById("porcGanancia").addEventListener("input", calcularIVAyGanancia);
 
 
 function guardarCambios() {
@@ -563,8 +584,6 @@ function guardarCambios() {
                     "IdInsumo": parseInt(insumo.IdInsumo),
                     "Id": insumo.Id != "" ? insumo.Id : 0,
                     "Nombre": insumo.Nombre,
-                    "CostoUnitario": parseFloat(insumo.CostoUnitario),
-                    "SubTotal": parseFloat(insumo.SubTotal),
                     "Cantidad": parseInt(insumo.Cantidad),
 
                 };
@@ -583,12 +602,13 @@ function guardarCambios() {
         // Construcción del objeto para el modelo
         const nuevoModelo = {
             "Id": idProducto !== "" ? parseInt(idProducto) : 0,
-            "IdUnidadNegocio": parseInt($("#UnidadesNegocio").val()),
+            "Codigo":$("#codigo").val(),
             "Descripcion": $("#descripcion").val(),
-            "Sku": $("#sku").val(),
+            "IdColor": $("#Colores").val(),
             "IdCategoria": parseInt($("#Categorias").val()),
-            "IdUnidadMedida": parseInt($("#UnidadMedidas").val()),
-            "CostoTotal": parseFloat(convertirMonedaAFloat($("#costoTotal").val())),
+            "PorcGanancia": $("#porcGanancia").val() != "" ? parseInt($("#porcGanancia").val()) : 0,
+            "PorcIVA": $("#porcIVA").val() != "" ? parseInt($("#porcIVA").val()) : 0,
+            "CostoUnitario": $("#costoTotal").val() != "" ? parseFloat(convertirMonedaAFloat($("#costoTotal").val())) : 0,
             "ProductosInsumos": insumos
         };
 

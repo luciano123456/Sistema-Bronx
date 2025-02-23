@@ -589,6 +589,11 @@ async function configurarDataTable(data) {
             var colIndex = cell.index().column;
             var rowData = gridInsumos.row($(this).closest('tr')).data();
 
+            // Verificar si la columna es la de acciones (última columna)
+            if (colIndex === gridInsumos.columns().indexes().length - 1) {
+                return; // No permitir editar en la columna de acciones
+            }
+
 
             if (isEditing == true) {
                 return;
@@ -758,11 +763,18 @@ async function configurarDataTable(data) {
                 // Obtener el valor original de la celda
                 var originalText = gridInsumos.cell(trElement, colIndex).data();
 
+                if (colIndex === 3) {
+                    var tempDiv = document.createElement('div'); // Crear un div temporal
+                    tempDiv.innerHTML = originalText; // Establecer el HTML de la celda
+                    originalText = tempDiv.textContent.trim(); // Extraer solo el texto
+                    newText = newText.trim();
+                }
+
                 // Verificar si el texto realmente ha cambiado
                 if (colIndex === 7 || colIndex === 9) { // Si es la columna PrecioCosto o PrecioVenta
                     // Convertir ambos valores (originalText y newText) a números flotantes
                     var originalValue = parseFloat(originalText).toFixed(2);
-                    var newValueFloat = parseFloat(convertirMonedaAfloat(newText)).toFixed(2);
+                    var newValueFloat = parseFloat(convertirMonedaAFloat(newText)).toFixed(2);
 
                     if (originalValue === newValueFloat) {
                         cancelEdit();
@@ -793,10 +805,11 @@ async function configurarDataTable(data) {
                     rowData.IdProveedor = newValue;
                     rowData.Proveedor = newText;
                 } else if (colIndex === 7) { // Si es la columna de PrecioCosto
-                    rowData.PrecioCosto = convertirMonedaAfloat(newValue); // Actualizar PrecioCosto
+                    rowData.PrecioCosto = parseFloat(convertirMonedaAFloat(newValue)); // Actualizar PrecioCosto
 
-                    // Calcular PrecioVenta basado en PrecioCosto y PorcentajeGanancia
-                    var precioVentaCalculado = rowData.PrecioCosto + (rowData.PrecioCosto * (rowData.PorcGanancia / 100));
+                    var precioVentaCalculado = (parseFloat(rowData.PrecioCosto) + (parseFloat(rowData.PrecioCosto) * (rowData.PorcGanancia / 100)));
+                    precioVentaCalculado = parseFloat(precioVentaCalculado.toFixed(2));
+
                     rowData.PrecioVenta = precioVentaCalculado;
 
                     // Actualizar el porcentaje de ganancia basado en el PrecioCosto
@@ -821,8 +834,8 @@ async function configurarDataTable(data) {
                     celda7.addClass('blinking'); // Aplicar la clase 'blinking' a la celda 7
                     celda8.addClass('blinking'); // Aplicar la clase 'blinking' a la celda 8
                 } else if (colIndex === 9) { // Si es la columna de PrecioVenta
-                    rowData.PrecioVenta = convertirMonedaAfloat(newValue);
-                    rowData.PorcGanancia = parseFloat(((convertirMonedaAfloat(newValue) - rowData.PrecioCosto) / rowData.PrecioCosto) * 100).toFixed(2);
+                    rowData.PrecioVenta = convertirMonedaAFloat(newValue);
+                    rowData.PorcGanancia = parseFloat(((convertirMonedaAFloat(newValue) - rowData.PrecioCosto) / rowData.PrecioCosto) * 100).toFixed(2);
 
                     // Aplicar el efecto de parpadeo también en la celda 7
                     var celda7 = $(trElement).find('td').eq(8); // Obtener la celda de la columna 7

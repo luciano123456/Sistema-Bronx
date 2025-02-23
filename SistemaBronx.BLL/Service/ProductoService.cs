@@ -23,16 +23,16 @@ namespace SistemaBronx.BLL.Service
             return await _contactRepo.Eliminar(id);
         }
 
-        public async Task<bool> Insertar(Producto model)
+        public async Task<bool> Insertar(Producto model, List<ProductosInsumo> insumos)
         {
-            return await _contactRepo.Insertar(model);
+            return await _contactRepo.Insertar(model, insumos);
         }
 
         public async Task<Producto> Obtener(int id)
         {
             return await _contactRepo.Obtener(id);
         }
-        public async Task<IQueryable<Producto>> ObtenerTodos()
+        public async Task<List<Producto>> ObtenerTodos()
         {
             return await _contactRepo.ObtenerTodos();
         }
@@ -40,11 +40,6 @@ namespace SistemaBronx.BLL.Service
         public async Task<IQueryable<ProductosCategoria>> ObtenerCategorias()
         {
             return await _contactRepo.ObtenerCategorias();
-        }
-
-        public async Task<bool> InsertarInsumos(List<ProductosInsumo> insumos)
-        {
-            return await _contactRepo.InsertarInsumos(insumos);
         }
 
         public async Task<bool> ActualizarInsumos(List<ProductosInsumo> productos)

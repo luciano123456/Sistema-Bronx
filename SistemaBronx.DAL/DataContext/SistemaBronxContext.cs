@@ -211,7 +211,7 @@ public partial class SistemaBronxContext : DbContext
 
             entity.HasOne(d => d.IdColorNavigation).WithMany(p => p.Productos)
                 .HasForeignKey(d => d.IdColor)
-                .HasConstraintName("FK_Productos_Productos");
+                .HasConstraintName("FK_Productos_Colores");
         });
 
         modelBuilder.Entity<ProductosCategoria>(entity =>
@@ -224,16 +224,9 @@ public partial class SistemaBronxContext : DbContext
         modelBuilder.Entity<ProductosInsumo>(entity =>
         {
             entity.Property(e => e.Cantidad).HasColumnType("decimal(20, 2)");
-            entity.Property(e => e.CostoUnitario).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Especificacion)
                 .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.SubTotal).HasColumnType("decimal(20, 2)");
-
-            entity.HasOne(d => d.IdColorNavigation).WithMany(p => p.ProductosInsumos)
-                .HasForeignKey(d => d.IdColor)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ProductosInsumos_Colores");
 
             entity.HasOne(d => d.IdInsumoNavigation).WithMany(p => p.ProductosInsumos)
                 .HasForeignKey(d => d.IdInsumo)

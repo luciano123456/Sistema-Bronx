@@ -12,17 +12,9 @@ public partial class ProductosInsumo
 
     public int IdInsumo { get; set; }
 
-    public int IdColor { get; set; }
-
     public string? Especificacion { get; set; }
 
-    public decimal CostoUnitario { get; set; }
-
-    public decimal SubTotal { get; set; }
-
     public decimal Cantidad { get; set; }
-
-    public virtual Color IdColorNavigation { get; set; } = null!;
 
     public virtual Insumo IdInsumoNavigation { get; set; } = null!;
 

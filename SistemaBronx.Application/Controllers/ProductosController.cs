@@ -43,8 +43,8 @@ namespace SistemaBronx.Application.Controllers
                     IdCategoria = c.IdCategoria,
                     IdColor = c.IdColor,
                     CostoUnitario = c.CostoUnitario,
-                    Color = c.IdColorNavigation.Nombre,
-                    Categoria = c.IdCategoriaNavigation.Nombre
+                    Color = c.Color,
+                    Categoria = c.Categoria
                 }).ToList();
 
                 return Ok(lista);
@@ -76,43 +76,40 @@ namespace SistemaBronx.Application.Controllers
         [HttpPost]
         public async Task<IActionResult> Insertar([FromBody] VMProducto model)
         {
-            var Productos = new Producto
+            try
             {
-                Id = model.Id,
-                PorcIva = model.PorcIva,
-                Codigo = model.Codigo,
-                Descripcion = model.Descripcion,
-                IdCategoria = model.IdCategoria,
-                IdColor = model.IdColor,
-                PorcGanancia = model.PorcGanancia,
-
-            };
-
-            bool respuesta = await _ProductosService.Insertar(Productos);
-
-            List<ProductosInsumo> pedidosInsumo = new List<ProductosInsumo>();
-
-            // Agregar los pagos de clientes
-            if (model.ProductosInsumos != null && model.ProductosInsumos.Any())
-            {
-                foreach (var insumo in model.ProductosInsumos)
+                var producto = new Producto
                 {
-                    var nuevoInsumo = new ProductosInsumo
-                    {
-                        IdProducto = Productos.Id,
-                        IdInsumo = insumo.IdInsumo,
-                        Cantidad = insumo.Cantidad,
-                        CostoUnitario = insumo.CostoUnitario,
-                        SubTotal = insumo.SubTotal,
-                    };
-                    pedidosInsumo.Add(nuevoInsumo);
-                }
+                    Id = model.Id,
+                    PorcIva = model.PorcIva,
+                    Codigo = model.Codigo,
+                    Descripcion = model.Descripcion,
+                    IdCategoria = model.IdCategoria,
+                    IdColor = model.IdColor,
+                    PorcGanancia = model.PorcGanancia,
+                    CostoUnitario = model.CostoUnitario
+                };
+
+                List<ProductosInsumo> insumos = model.ProductosInsumos?.Select(insumo => new ProductosInsumo
+                {
+                    IdInsumo = insumo.IdInsumo,
+                    Cantidad = insumo.Cantidad
+                }).ToList() ?? new List<ProductosInsumo>();
+
+                bool resultado = await _ProductosService.Insertar(producto, insumos);
+
+                if (!resultado)
+                    return BadRequest(new { mensaje = "Error al insertar el producto y sus insumos." });
+
+                return Ok(new { valor = true });
             }
-
-            bool respInsumos = await _ProductosService.InsertarInsumos(pedidosInsumo);
-
-            return Ok(new { valor = respuesta });
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensaje = "Ocurrió un error inesperado.", error = ex.Message });
+            }
         }
+
+
 
         [HttpPut]
         public async Task<IActionResult> Actualizar([FromBody] VMProducto model)
@@ -142,14 +139,12 @@ namespace SistemaBronx.Application.Controllers
                         Cantidad = insumo.Cantidad,
                         IdInsumo = insumo.IdInsumo,
                         IdProducto = insumo.IdProducto,
-                        CostoUnitario = insumo.CostoUnitario,
-                        SubTotal = insumo.SubTotal,
                     };
                     ProductosInsumo.Add(nuevoInsumo);
                 }
             }
 
-            bool respproductos = await _ProductosService.InsertarInsumos(ProductosInsumo);
+            //bool respproductos = await _ProductosService.InsertarInsumos(ProductosInsumo);
 
             return Ok(new { valor = respuesta });
         }
@@ -181,6 +176,9 @@ namespace SistemaBronx.Application.Controllers
                     IdCategoria = model.IdCategoria,
                     IdColor = model.IdColor,
                     PorcGanancia = model.PorcGanancia,
+                    Color = model.Color,
+                    Categoria = model.Color,
+                    CostoUnitario = model.CostoUnitario,
                 };
 
                 var ProductosInsumos = await _ProductosService.ObtenerInsumos(id);
@@ -189,12 +187,12 @@ namespace SistemaBronx.Application.Controllers
                 var insumosJson = ProductosInsumos.Select(p => new VMProductoInsumo
                 {
                     Id = p.Id,
-
+                    Nombre = p.IdInsumoNavigation.Descripcion,
                     Cantidad = p.Cantidad,
                     IdInsumo = p.IdInsumo,
                     IdProducto = p.IdProducto,
-                    CostoUnitario = p.CostoUnitario,
-                    SubTotal = p.SubTotal,
+                    CostoUnitario = (decimal)p.IdInsumoNavigation.PrecioVenta,
+                    SubTotal = (decimal)p.IdInsumoNavigation.PrecioVenta * p.Cantidad
                 }).ToList();
 
 

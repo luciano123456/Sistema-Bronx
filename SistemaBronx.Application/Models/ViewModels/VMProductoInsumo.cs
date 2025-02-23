@@ -14,6 +14,7 @@ namespace SistemaBronx.Application.Models.ViewModels
         public int IdColor { get; set; }
 
         public string? Especificacion { get; set; }
+        public string? Nombre { get; set; }
 
         public decimal Cantidad { get; set; }
         public decimal SubTotal { get; set; }
