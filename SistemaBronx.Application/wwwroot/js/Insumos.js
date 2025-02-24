@@ -589,11 +589,6 @@ async function configurarDataTable(data) {
             var colIndex = cell.index().column;
             var rowData = gridInsumos.row($(this).closest('tr')).data();
 
-            // Verificar si la columna es la de acciones (última columna)
-            if (colIndex === gridInsumos.columns().indexes().length - 1) {
-                return; // No permitir editar en la columna de acciones
-            }
-
 
             if (isEditing == true) {
                 return;
@@ -758,8 +753,11 @@ async function configurarDataTable(data) {
 
             // Función para guardar los cambios
             function saveEdit(colIndex, rowData, newText, newValue, trElement) {
-                // Obtener el nodo de la celda desde el índice
-                var celda = $(trElement).find('td').eq(colIndex); // Obtener la celda correspondiente dentro de la fila
+                // Convertir el índice de columna (dato) al índice visible
+                var visibleIndex = gridInsumos.column(colIndex).index('visible');
+
+                // Obtener el nodo de la celda usando el índice visible
+                var celda = $(trElement).find('td').eq(visibleIndex);
                 // Obtener el valor original de la celda
                 var originalText = gridInsumos.cell(trElement, colIndex).data();
 
@@ -772,7 +770,7 @@ async function configurarDataTable(data) {
 
                 // Verificar si el texto realmente ha cambiado
                 if (colIndex === 7 || colIndex === 9) { // Si es la columna PrecioCosto o PrecioVenta
-                    // Convertir ambos valores (originalText y newText) a números flotantes
+                    // Convertir ambos valores a números flotantes
                     var originalValue = parseFloat(originalText).toFixed(2);
                     var newValueFloat = parseFloat(convertirMonedaAFloat(newText)).toFixed(2);
 
@@ -788,23 +786,23 @@ async function configurarDataTable(data) {
                     }
                 }
 
-                // Limpiar las clases 'blinking' de las celdas relevantes antes de aplicar el parpadeo
+                // Limpiar las clases 'blinking' de todas las celdas de la fila antes de aplicar el parpadeo
                 $(trElement).find('td').removeClass('blinking');
 
                 // Actualizar el valor de la fila según la columna editada
-                if (colIndex === 2) { // Si es la columna de la provincia
+                if (colIndex === 2) { // Columna de la provincia
                     rowData.IdTipo = newValue;
                     rowData.Tipo = newText;
-                } else if (colIndex === 3) { // Si es la columna de la provincia
+                } else if (colIndex === 3) {
                     rowData.IdCategoria = newValue;
                     rowData.Categoria = newText;
-                } else if (colIndex === 4) { // Si es la columna de la provincia
+                } else if (colIndex === 4) {
                     rowData.IdUnidadMedida = newValue;
                     rowData.UnidaddeMedida = newText;
-                } else if (colIndex === 5) { // Si es la columna de la provincia
+                } else if (colIndex === 5) {
                     rowData.IdProveedor = newValue;
                     rowData.Proveedor = newText;
-                } else if (colIndex === 7) { // Si es la columna de PrecioCosto
+                } else if (colIndex === 7) { // PrecioCosto
                     rowData.PrecioCosto = parseFloat(convertirMonedaAFloat(newValue)); // Actualizar PrecioCosto
 
                     var precioVentaCalculado = (parseFloat(rowData.PrecioCosto) + (parseFloat(rowData.PrecioCosto) * (rowData.PorcGanancia / 100)));
@@ -815,54 +813,58 @@ async function configurarDataTable(data) {
                     // Actualizar el porcentaje de ganancia basado en el PrecioCosto
                     rowData.PorcGanancia = parseFloat(((rowData.PrecioVenta - rowData.PrecioCosto) / rowData.PrecioCosto) * 100).toFixed(2);
 
-                    // Aplicar el efecto de parpadeo a las celdas 6 y 8 (PrecioCosto y PrecioVenta)
-                    var celda6 = $(trElement).find('td').eq(7); // Obtener la celda de PrecioCosto
-                    var celda8 = $(trElement).find('td').eq(9); // Obtener la celda de PrecioVenta
+                    // Obtener el índice visible para las columnas correspondientes
+                    var visibleIndex7 = gridInsumos.column(7).index('visible');
+                    var visibleIndex9 = gridInsumos.column(9).index('visible');
 
-                    celda6.addClass('blinking'); // Aplicar la clase 'blinking' a la celda 6
-                    celda8.addClass('blinking'); // Aplicar la clase 'blinking' a la celda 8
-                } else if (colIndex === 8) { // Si es la columna de PorcentajeGanancia
+                    // Aplicar el efecto de parpadeo a las celdas de PrecioCosto y PrecioVenta
+                    $(trElement).find('td').eq(visibleIndex7).addClass('blinking');
+                    $(trElement).find('td').eq(visibleIndex9).addClass('blinking');
+                } else if (colIndex === 8) { // PorcentajeGanancia
                     rowData.PorcGanancia = parseDecimal(newValue); // Actualizar PorcentajeGanancia
 
                     // Calcular PrecioVenta basado en PrecioCosto y PorcentajeGanancia
                     rowData.PrecioVenta = rowData.PrecioCosto + (rowData.PrecioCosto * (rowData.PorcGanancia / 100));
 
-                    // Aplicar el efecto de parpadeo a las celdas 7 y 8 (PorcentajeGanancia y PrecioVenta)
-                    var celda7 = $(trElement).find('td').eq(8); // Obtener la celda de PorcentajeGanancia
-                    var celda8 = $(trElement).find('td').eq(9); // Obtener la celda de PrecioVenta
+                    // Obtener el índice visible para las columnas correspondientes
+                    var visibleIndex8 = gridInsumos.column(8).index('visible');
+                    var visibleIndex9 = gridInsumos.column(9).index('visible');
 
-                    celda7.addClass('blinking'); // Aplicar la clase 'blinking' a la celda 7
-                    celda8.addClass('blinking'); // Aplicar la clase 'blinking' a la celda 8
-                } else if (colIndex === 9) { // Si es la columna de PrecioVenta
-                    rowData.PrecioVenta = convertirMonedaAFloat(newValue);
+                    // Aplicar el efecto de parpadeo a las celdas de PorcentajeGanancia y PrecioVenta
+                    $(trElement).find('td').eq(visibleIndex8).addClass('blinking');
+                    $(trElement).find('td').eq(visibleIndex9).addClass('blinking');
+                } else if (colIndex === 9) { // PrecioVenta
+                    rowData.PrecioVenta = parseFloat(convertirMonedaAFloat(newValue))
                     rowData.PorcGanancia = parseFloat(((convertirMonedaAFloat(newValue) - rowData.PrecioCosto) / rowData.PrecioCosto) * 100).toFixed(2);
 
-                    // Aplicar el efecto de parpadeo también en la celda 7
-                    var celda7 = $(trElement).find('td').eq(8); // Obtener la celda de la columna 7
-                    celda7.addClass('blinking'); // Aplicar la clase 'blinking' a la celda 7
+                    // Obtener el índice visible para la columna 7 (PrecioCosto) o la correspondiente
+                    var visibleIndex8 = gridInsumos.column(8).index('visible');
+                    $(trElement).find('td').eq(visibleIndex8).addClass('blinking');
                 } else {
-                    rowData[gridInsumos.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
+                    // Actualizar usando el nombre de la propiedad
+                    rowData[gridInsumos.column(colIndex).header().textContent] = newText;
                 }
 
                 // Actualizar la fila en la tabla con los nuevos datos
                 gridInsumos.row(trElement).data(rowData).draw();
 
-                // Aplicar el parpadeo solo si el texto cambió
+                // Si el texto cambió, aplicar el parpadeo a la celda editada (usando el índice visible ya obtenido)
                 if (originalText !== newText) {
-                    celda.addClass('blinking'); // Aplicar la clase 'blinking' a la celda que fue editada
+                    celda.addClass('blinking');
                 }
 
-                // Enviar los datos al servidor
+                // Enviar los datos actualizados al servidor
                 guardarCambiosFila(rowData);
 
                 // Desactivar el modo de edición
                 isEditing = false;
 
-                // Eliminar la clase 'blinking' después de 3 segundos (para hacer el efecto de parpadeo)
+                // Remover la clase 'blinking' de todas las celdas después de 3 segundos
                 setTimeout(function () {
-                    $(trElement).find('td').removeClass('blinking'); // Eliminar 'blinking' de todas las celdas
-                }, 3000); // Duración de la animación de parpadeo (3 segundos)
+                    $(trElement).find('td').removeClass('blinking');
+                }, 3000);
             }
+
 
 
 

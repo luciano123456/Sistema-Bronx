@@ -384,10 +384,17 @@ async function configurarDataTable(data) {
 
             // Función para guardar los cambios
             function saveEdit(colIndex, rowData, newText, newValue, trElement) {
-                // Obtener el nodo de la celda desde el índice
-                var celda = $(trElement).find('td').eq(colIndex); // Obtener la celda correspondiente dentro de la fila
+                // Obtener el nombre de la propiedad basado en el dataSrc
+
+
+                // Convertir el índice de columna (data index) al índice visible
+                var visibleIndex = gridProveedores.column(colIndex).index('visible');
+
+                // Obtener la celda visible y aplicar la clase blinking
+                var celda = $(trElement).find('td').eq(visibleIndex);
+
                 // Obtener el valor original de la celda
-                var originalText = gridProveedores.cell(trElement, colIndex).data();
+                var originalText = gridProveedores.cell(trElement, celda).data();
 
                 if (colIndex === 5) {
                     var tempDiv = document.createElement('div'); // Crear un div temporal
@@ -396,15 +403,11 @@ async function configurarDataTable(data) {
                     newText = newText.trim();
                 }
 
-                // Verificar si el texto realmente ha cambiado
-                if (originalText === newText) {
-                    cancelEdit();
-                    return; // Si no ha cambiado, no hacer nada
-                }
 
                 // Actualizar el valor de la fila según la columna editada
-                if (colIndex === 4) { // Si es la columna de la dirección
-                    rowData.Cbu = newText;
+                if (colIndex === 5) { // Si es la columna de la dirección
+                    rowData.Ubicacion = newText;
+                
                 } else {
                     rowData[gridProveedores.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
                 }
@@ -417,17 +420,18 @@ async function configurarDataTable(data) {
                     celda.addClass('blinking'); // Aplicar la clase 'blinking' a la celda que fue editada
                 }
 
-                // Enviar los datos al servidor
+                // Enviar los datos actualizados al servidor
                 guardarCambiosFila(rowData);
 
                 // Desactivar el modo de edición
                 isEditing = false;
 
-                // Eliminar la clase 'blinking' después de 3 segundos (para hacer el efecto de parpadeo)
+                // Remover la clase blinking después de 3 segundos
                 setTimeout(function () {
                     celda.removeClass('blinking');
-                }, 3000); // Duración de la animación de parpadeo (3 segundos)
+                }, 3000);
             }
+
 
 
             // Función para cancelar la edición

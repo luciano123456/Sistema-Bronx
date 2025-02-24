@@ -454,9 +454,14 @@ async function configurarDataTable(data) {
             // Función para guardar los cambios
             function saveEdit(colIndex, rowData, newText, newValue, trElement) {
                 // Obtener el nodo de la celda desde el índice
-                var celda = $(trElement).find('td').eq(colIndex); // Obtener la celda correspondiente dentro de la fila
+                // Convertir el índice de columna (data index) al índice visible
+                var visibleIndex = gridClientes.column(colIndex).index('visible');
+
+                // Obtener la celda visible y aplicar la clase blinking
+                var celda = $(trElement).find('td').eq(visibleIndex);
+
                 // Obtener el valor original de la celda
-                var originalText = gridClientes.cell(trElement, colIndex).data();
+                var originalText = gridClientes.cell(trElement, celda).data();
 
                 if (colIndex === 3) {
                     var tempDiv = document.createElement('div'); // Crear un div temporal

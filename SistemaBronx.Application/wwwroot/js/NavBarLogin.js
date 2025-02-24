@@ -46,6 +46,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
+
 function abrirConfiguraciones() {
     $('#ModalEdicionConfiguraciones').modal('show');
     $("#btnGuardarConfiguracion").text("Aceptar");

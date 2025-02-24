@@ -477,9 +477,13 @@ async function configurarDataTable(data) {
             // Función para guardar los cambios
             async function saveEdit(colIndex, rowData, newText, newValue, trElement) {
                 // Obtener el nodo de la celda desde el índice
-                var celda = $(trElement).find('td').eq(colIndex); // Obtener la celda correspondiente dentro de la fila
+                var visibleIndex = gridUsuarios.column(colIndex).index('visible');
+
+                // Obtener la celda visible y aplicar la clase blinking
+                var celda = $(trElement).find('td').eq(visibleIndex);
+
                 // Obtener el valor original de la celda
-                var originalText = gridUsuarios.cell(trElement, colIndex).data();
+                var originalText = gridUsuarios.cell(trElement, celda).data();
 
                 // Verificar si el texto realmente ha cambiado
                 if (originalText === newText) {
