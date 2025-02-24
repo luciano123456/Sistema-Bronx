@@ -11,17 +11,13 @@ namespace SistemaBronx.Application.Models.ViewModels
 
         public int IdInsumo { get; set; }
 
-        public int IdColor { get; set; }
 
         public string? Especificacion { get; set; }
         public string? Nombre { get; set; }
 
         public decimal Cantidad { get; set; }
-        public decimal SubTotal { get; set; }
+        public string Nombre { get; set; }
         public decimal CostoUnitario { get; set; }
-
-        public virtual Color IdColorNavigation { get; set; } = null!;
-
         public virtual Insumo IdInsumoNavigation { get; set; } = null!;
 
         public virtual Producto IdProductoNavigation { get; set; } = null!;

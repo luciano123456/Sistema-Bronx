@@ -60,24 +60,18 @@ namespace SistemaBronx.DAL.Repository
                 _dbcontext.Productos.Add(model);
                 await _dbcontext.SaveChangesAsync();
 
-                if (insumos != null && insumos.Any())
-                {
-                    foreach (var p in insumos)
-                    {
-                        p.IdProducto = model.Id; // Asignar el ID del producto recién insertado
-
-                        var insumoExistente = await _dbcontext.ProductosInsumos
-                            .FirstOrDefaultAsync(x => x.IdProducto == p.IdProducto && x.IdInsumo == p.IdInsumo);
-
-                        if (insumoExistente != null)
-                        {
-                            insumoExistente.Cantidad = p.Cantidad;
-                        }
-                        else
-                        {
-                            _dbcontext.ProductosInsumos.Add(p);
-                        }
-                    }
+        public async Task<Models.Producto> Obtener(int id)
+        {
+            try
+            {
+                Producto model = await _dbcontext.Productos
+                    .FirstOrDefaultAsync(p => p.Id == id);
+                return model;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
 
                     var insumosIdsModelo = insumos.Select(p => p.IdProducto).Distinct().ToList();
                     var insumosAEliminar = await _dbcontext.ProductosInsumos
@@ -133,14 +127,19 @@ namespace SistemaBronx.DAL.Repository
                     .FromSqlRaw("EXEC ObtenerProductosConCosto")
                     .ToListAsync();
 
-                return productos;
-            }
-            catch (Exception ex)
-            {
-                // Manejo de errores
-                return null;
-            }
-        }
+                    if (insumoExistente != null)
+                    {
+                        // Si el insumo existe, actualizamos sus propiedades
+                        insumoExistente.CostoUnitario = p.CostoUnitario;
+                        insumoExistente.SubTotal = p.SubTotal;
+                        insumoExistente.Cantidad = p.Cantidad;
+                    }
+                    else
+                    {
+                        // Si el insumo no existe, lo agregamos a la base de datos
+                        _dbcontext.ProductosInsumos.Add(p);
+                    }
+                }
 
 
 
@@ -186,6 +185,7 @@ namespace SistemaBronx.DAL.Repository
             {
 
                 List<ProductosInsumo> productos = _dbcontext.ProductosInsumos
+                    .Include(c => c.IdProductoNavigation)
                     .Include(c => c.IdInsumoNavigation)
                     .Where(c => c.IdProducto == idProducto).ToList();
                 return productos;

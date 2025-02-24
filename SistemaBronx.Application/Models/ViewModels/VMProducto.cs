@@ -11,8 +11,6 @@ namespace SistemaBronx.Application.Models.ViewModels
 
         public string? Descripcion { get; set; }
 
-        public int? IdColor { get; set; }
-
         public int? IdCategoria { get; set; }
 
         public int? PorcGanancia { get; set; }
@@ -24,9 +22,6 @@ namespace SistemaBronx.Application.Models.ViewModels
         public string Categoria { get; set; }
 
         public virtual ProductosCategoria? IdCategoriaNavigation { get; set; }
-
-        public virtual Color? IdColorNavigation { get; set; }
-
         public virtual ICollection<ProductosInsumo> ProductosInsumos { get; set; } = new List<ProductosInsumo>();
 
     }

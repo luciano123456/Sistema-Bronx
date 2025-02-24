@@ -13,7 +13,6 @@ public partial class ProductosInsumo
     public int IdInsumo { get; set; }
 
     public string? Especificacion { get; set; }
-
     public decimal Cantidad { get; set; }
 
     public virtual Insumo IdInsumoNavigation { get; set; } = null!;

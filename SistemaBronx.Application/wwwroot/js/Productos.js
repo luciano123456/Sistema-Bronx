@@ -5,10 +5,9 @@ let isEditing = false;
 const columnConfig = [
     { index: 1, filterType: 'text' },
     { index: 2, filterType: 'text' },
-    { index: 3, filterType: 'select', fetchDataFunc: listaColoresFilter },
-    { index: 4, filterType: 'select', fetchDataFunc: listaProductosCategoriaFilter },
+    { index: 3, filterType: 'select', fetchDataFunc: listaProductosCategoriaFilter },
+    { index: 4, filterType: 'text' },
     { index: 5, filterType: 'text' },
-    { index: 6, filterType: 'text' },
 ];
 
 $(document).ready(() => {
@@ -199,7 +198,6 @@ async function configurarDataTable(data) {
                 },
                 { data: 'Codigo' },
                 { data: 'Descripcion' },
-                { data: 'Color' },
                 { data: 'Categoria' },
                 { data: 'PorcGanancia' },
                 { data: 'CostoUnitario' },
@@ -245,7 +243,7 @@ async function configurarDataTable(data) {
                     "render": function (data, type, row) {
                         return formatNumber(data); // Formatear números
                     },
-                    "targets": [6] // Índices de las columnas de números
+                    "targets": [5] // Índices de las columnas de números
                 },
                 
             ],

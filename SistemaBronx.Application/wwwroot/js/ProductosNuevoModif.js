@@ -13,7 +13,7 @@ const columnConfig = [
 
 $(document).ready(() => {
 
-    listaColores();
+
     listaCategorias();
 
 
@@ -256,37 +256,6 @@ async function listaCategorias() {
 
     }
 }
-
-async function listaColoresFilter() {
-    const url = `/Colores/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    return data.map(x => ({
-        Id: x.Id,
-        Nombre: x.Nombre
-    }));
-
-}
-
-
-async function listaColores() {
-    const data = await listaColoresFilter();
-
-    $('#Colores option').remove();
-
-    select = document.getElementById("Colores");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
-    }
-}
-
-
 
 
 async function obtenerInsumosUnidadNegocio(id) {
