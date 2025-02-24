@@ -254,22 +254,38 @@ async function configurarDataTable(data) {
                 var api = this.api();
 
                 // Iterar sobre las columnas y aplicar la configuración de filtros
+                // Iterar sobre las columnas y aplicar la configuración de filtros
                 columnConfig.forEach(async (config) => {
                     var cell = $('.filters th').eq(config.index);
 
                     if (config.filterType === 'select') {
-                        var select = $('<select id="filter' + config.index + '"><option value="">Seleccionar</option></select>')
+                        // Crear el select con la opción de multiselect
+                        var select = $('<select id="filter' + config.index + '" multiple="multiple"><option value="">Seleccionar...</option></select>')
                             .appendTo(cell.empty())
                             .on('change', async function () {
-                                var val = $(this).val();
-                                var selectedText = $(this).find('option:selected').text(); // Obtener el texto del nombre visible
-                                await api.column(config.index).search(val ? '^' + selectedText + '$' : '', true, false).draw(); // Buscar el texto del nombre
+                                var selectedValues = $(this).val();
+
+                                if (selectedValues && selectedValues.length > 0) {
+                                    // Filtrar por múltiples valores seleccionados (basado en texto completo)
+                                    var regex = selectedValues.join('|'); // Crear una expresión regular para múltiples opciones
+                                    await api.column(config.index).search(regex, true, false).draw(); // Realizar búsqueda con regex
+                                } else {
+                                    await api.column(config.index).search('').draw(); // Limpiar filtro
+                                }
                             });
 
-                        var data = await config.fetchDataFunc(); // Llamada a la función para obtener los datos
+                        // Llamada a la función para obtener los datos para el filtro
+                        var data = await config.fetchDataFunc();
                         data.forEach(function (item) {
-                            select.append('<option value="' + item.Id + '">' + item.Nombre + '</option>')
+                            select.append('<option value="' + item.Nombre + '">' + item.Nombre + '</option>'); // Usamos Nombre para mostrar
                         });
+
+                        // Inicializar Select2 para el filtro con la opción de multiselect
+                        select.select2({
+                            placeholder: 'Seleccionar...',
+                            width: '100%'
+                        });
+
 
                     } else if (config.filterType === 'text') {
                         var input = $('<input type="text" placeholder="Buscar..." />')
