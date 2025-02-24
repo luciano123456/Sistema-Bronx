@@ -5,7 +5,7 @@ namespace SistemaBronx.BLL.Service
     public interface IProductoService
     {
         Task<bool> Insertar(Producto model, List<ProductosInsumo> insumos);
-        Task<bool> Actualizar(Producto model);
+        Task<bool> Actualizar(Producto model, List<ProductosInsumo> insumos);
         Task<bool> Eliminar(int id);
         Task<Producto> Obtener(int id);
         Task<List<Producto>> ObtenerTodos();

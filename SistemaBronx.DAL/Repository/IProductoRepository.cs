@@ -11,7 +11,7 @@ namespace SistemaBronx.DAL.Repository
     public interface IProductoRepository<TEntityModel> where TEntityModel : class
     {
         Task<bool> Eliminar(int id);
-        Task<bool> Actualizar(Producto model);
+        Task<bool> Actualizar(Producto model, List<ProductosInsumo> insumos);
         Task<bool> Insertar(Producto model, List<ProductosInsumo> insumos);
         Task<Producto> Obtener(int id);
         Task<List<Producto>> ObtenerTodos();

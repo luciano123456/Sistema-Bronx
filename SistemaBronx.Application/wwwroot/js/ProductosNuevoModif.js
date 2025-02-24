@@ -69,11 +69,9 @@ async function insertarDatosProducto(datos) {
     document.getElementById("descripcion").value = datos.Descripcion;
     document.getElementById("codigo").value = datos.Codigo;
     document.getElementById("Categorias").value = datos.IdCategoria;
-    document.getElementById("UnidadMedidas").value = datos.IdUnidadMedida;
-    document.getElementById("costoTotal").value = formatoMoneda.format(datos.CostoUnitario);
+    document.getElementById("porcIVA").value = datos.PorcIva;
+    document.getElementById("porcGanancia").value = datos.PorcGanancia;
 
-    
-  
     document.getElementById("btnNuevoModificar").textContent = "Guardar";
 
     await calcularDatosProducto ();

@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using SistemaBronx.DAL.DataContext;
 using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace SistemaBronx.DAL.Repository
 {
@@ -21,20 +22,7 @@ namespace SistemaBronx.DAL.Repository
         {
             _dbcontext = context;
         }
-        public async Task<bool> Actualizar(Models.Producto model)
-        {
-            try
-            {
-                _dbcontext.Productos.Update(model);
-                await _dbcontext.SaveChangesAsync();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                return false;
-            }
-
-        }
+     
 
         public async Task<bool> Eliminar(int id)
         {
@@ -60,18 +48,24 @@ namespace SistemaBronx.DAL.Repository
                 _dbcontext.Productos.Add(model);
                 await _dbcontext.SaveChangesAsync();
 
-        public async Task<Models.Producto> Obtener(int id)
-        {
-            try
-            {
-                Producto model = await _dbcontext.Productos
-                    .FirstOrDefaultAsync(p => p.Id == id);
-                return model;
-            }
-            catch (Exception ex)
-            {
-                return null;
-            }
+                if (insumos != null && insumos.Any())
+                {
+                    foreach (var p in insumos)
+                    {
+                        p.IdProducto = model.Id; // Asignar el ID del producto recién insertado
+
+                        var insumoExistente = await _dbcontext.ProductosInsumos
+                            .FirstOrDefaultAsync(x => x.IdProducto == p.IdProducto && x.IdInsumo == p.IdInsumo);
+
+                        if (insumoExistente != null)
+                        {
+                            insumoExistente.Cantidad = p.Cantidad;
+                        }
+                        else
+                        {
+                            _dbcontext.ProductosInsumos.Add(p);
+                        }
+                    }
 
                     var insumosIdsModelo = insumos.Select(p => p.IdProducto).Distinct().ToList();
                     var insumosAEliminar = await _dbcontext.ProductosInsumos
@@ -94,24 +88,139 @@ namespace SistemaBronx.DAL.Repository
             }
         }
 
+        public async Task<bool> Actualizar(Producto model, List<ProductosInsumo> insumos)
+        {
+            using var transaction = await _dbcontext.Database.BeginTransactionAsync();
+            try
+            {
+                // Obtener el producto existente
+                var productoExistente = await _dbcontext.Productos
+                    .Include(p => p.ProductosInsumos)
+                    .FirstOrDefaultAsync(p => p.Id == model.Id);
+
+                if (productoExistente == null)
+                {
+                    // Manejar el caso donde el producto no existe
+                    return false;
+                }
+
+                // Actualizar las propiedades del producto
+                productoExistente.Codigo = model.Codigo;
+                productoExistente.Descripcion = model.Descripcion;
+                productoExistente.PorcGanancia = model.PorcGanancia;
+                productoExistente.PorcIva = model.PorcIva;
+                productoExistente.IdCategoria = model.IdCategoria;
+                // Actualiza otras propiedades según sea necesario
+
+                // Actualizar los insumos asociados
+                if (insumos != null && insumos.Any())
+                {
+                    // Obtener los Ids de los insumos enviados en el modelo
+                    var insumosIdsModelo = insumos.Select(i => i.IdInsumo).ToList();
+
+                    // Identificar insumos para eliminar
+                    var insumosAEliminar = productoExistente.ProductosInsumos
+                        .Where(pi => !insumosIdsModelo.Contains(pi.IdInsumo))
+                        .ToList();
+
+                    // Eliminar insumos que ya no están asociados
+                    foreach (var insumo in insumosAEliminar)
+                    {
+                        _dbcontext.ProductosInsumos.Remove(insumo);
+                    }
+
+                    // Actualizar o agregar insumos
+                    foreach (var insumoModel in insumos)
+                    {
+                        var insumoExistente = productoExistente.ProductosInsumos
+                            .FirstOrDefault(pi => pi.IdInsumo == insumoModel.IdInsumo);
+
+                        if (insumoExistente != null)
+                        {
+                            // Actualizar cantidad del insumo existente
+                            insumoExistente.Cantidad = insumoModel.Cantidad;
+                        }
+                        else
+                        {
+                            // Agregar nuevo insumo
+                            var nuevoInsumo = new ProductosInsumo
+                            {
+                                IdProducto = model.Id,
+                                IdInsumo = insumoModel.IdInsumo,
+                                Cantidad = insumoModel.Cantidad
+                            };
+                            productoExistente.ProductosInsumos.Add(nuevoInsumo);
+                        }
+                    }
+                }
+                else
+                {
+                    // Si no se proporcionaron insumos, eliminar todos los asociados
+                    _dbcontext.ProductosInsumos.RemoveRange(productoExistente.ProductosInsumos);
+                }
+
+                // Guardar cambios en la base de datos
+                await _dbcontext.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                return false;
+            }
+        }
 
 
         public async Task<Producto> Obtener(int id)
         {
             try
             {
-                // Ejecutar el Stored Procedure y obtener el producto con el CostoUnitario calculado
-                var producto = _dbcontext.Set<Producto>()
-                    .FromSqlRaw("EXEC ObtenerProductoConCostoId @Id", new SqlParameter("@Id", id))
-                    .AsEnumerable() // Asegúrate de que el resultado sea IQueryable
-                    .FirstOrDefault();  // Ahora puedes usar FirstOrDefaultAsync
+                Producto producto = null;
+
+                // Crear el comando para ejecutar el procedimiento almacenado
+                using (var command = _dbcontext.Database.GetDbConnection().CreateCommand())
+                {
+                    command.CommandText = "ObtenerProductoConCostoId";
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.Parameters.Add(new SqlParameter("@Id", id));
+
+                    _dbcontext.Database.OpenConnection();
+
+                    // Ejecutar el comando y leer los resultados
+                    using (var result = await command.ExecuteReaderAsync())
+                    {
+                        if (await result.ReadAsync())
+                        {
+                            producto = new Producto
+                            {
+                                Id = result.GetInt32(result.GetOrdinal("Id")),
+                                Codigo = result.GetString(result.GetOrdinal("Codigo")),
+                                Descripcion = result.IsDBNull(result.GetOrdinal("Descripcion")) ? null : result.GetString(result.GetOrdinal("Descripcion")),
+                                PorcGanancia = result.IsDBNull(result.GetOrdinal("PorcGanancia")) ? (int?)null : result.GetInt32(result.GetOrdinal("PorcGanancia")),
+                                PorcIva = result.IsDBNull(result.GetOrdinal("PorcIva")) ? (int?)null : result.GetInt32(result.GetOrdinal("PorcIva")),
+                                IdCategoria = result.IsDBNull(result.GetOrdinal("IdCategoria")) ? (int?)null : result.GetInt32(result.GetOrdinal("IdCategoria")),
+                                CostoUnitario = result.GetDecimal(result.GetOrdinal("CostoUnitario")),
+                                IdCategoriaNavigation = new ProductosCategoria
+                                {
+                                    Id = result.GetInt32(result.GetOrdinal("CategoriaId")),
+                                    Nombre = result.GetString(result.GetOrdinal("CategoriaNombre"))
+                                }
+                            };
+                        }
+                    }
+                }
 
                 return producto;
             }
             catch (Exception ex)
             {
                 // Manejo de errores
-                return null;
+                throw new Exception("Error al obtener el producto con costo y su categoría", ex);
+            }
+            finally
+            {
+                _dbcontext.Database.CloseConnection();
             }
         }
 
@@ -122,24 +231,49 @@ namespace SistemaBronx.DAL.Repository
         {
             try
             {
-                // Ejecutar el Stored Procedure y mapear los resultados
-                var productos = await _dbcontext.Set<Producto>()
-                    .FromSqlRaw("EXEC ObtenerProductosConCosto")
-                    .ToListAsync();
+                var productos = new List<Producto>();
 
-                    if (insumoExistente != null)
+                // Ejecutar el procedimiento almacenado y leer los resultados
+                using (var command = _dbcontext.Database.GetDbConnection().CreateCommand())
+                {
+                    command.CommandText = "ObtenerProductosConCosto";
+                    command.CommandType = CommandType.StoredProcedure;
+
+                    _dbcontext.Database.OpenConnection();
+
+                    using (var result = await command.ExecuteReaderAsync())
                     {
-                        // Si el insumo existe, actualizamos sus propiedades
-                        insumoExistente.CostoUnitario = p.CostoUnitario;
-                        insumoExistente.SubTotal = p.SubTotal;
-                        insumoExistente.Cantidad = p.Cantidad;
-                    }
-                    else
-                    {
-                        // Si el insumo no existe, lo agregamos a la base de datos
-                        _dbcontext.ProductosInsumos.Add(p);
+                        while (await result.ReadAsync())
+                        {
+                            var producto = new Producto
+                            {
+                                Id = result.GetInt32(result.GetOrdinal("Id")),
+                                Codigo = result.GetString(result.GetOrdinal("Codigo")),
+                                Descripcion = result.IsDBNull(result.GetOrdinal("Descripcion")) ? null : result.GetString(result.GetOrdinal("Descripcion")),
+                                PorcGanancia = result.IsDBNull(result.GetOrdinal("PorcGanancia")) ? (int?)null : result.GetInt32(result.GetOrdinal("PorcGanancia")),
+                                PorcIva = result.IsDBNull(result.GetOrdinal("PorcIva")) ? (int?)null : result.GetInt32(result.GetOrdinal("PorcIva")),
+                                IdCategoria = result.IsDBNull(result.GetOrdinal("IdCategoria")) ? (int?)null : result.GetInt32(result.GetOrdinal("IdCategoria")),
+                                CostoUnitario = result.GetDecimal(result.GetOrdinal("CostoUnitario")),
+                                IdCategoriaNavigation = new ProductosCategoria
+                                {
+                                    Id = result.GetInt32(result.GetOrdinal("CategoriaId")),
+                                    Nombre = result.GetString(result.GetOrdinal("CategoriaNombre"))
+                                }
+                            };
+
+                            productos.Add(producto);
+                        }
                     }
                 }
+
+                return productos;
+            }
+            catch (Exception ex)
+            {
+                // Manejo de errores
+                throw new Exception("Error al obtener los productos con costo y sus categorías", ex);
+            }
+        }
 
 
 
@@ -158,7 +292,7 @@ namespace SistemaBronx.DAL.Repository
             }
         }
 
-       
+
 
         public async Task<bool> ActualizarInsumos(List<ProductosInsumo> insumos)
         {
@@ -185,7 +319,6 @@ namespace SistemaBronx.DAL.Repository
             {
 
                 List<ProductosInsumo> productos = _dbcontext.ProductosInsumos
-                    .Include(c => c.IdProductoNavigation)
                     .Include(c => c.IdInsumoNavigation)
                     .Where(c => c.IdProducto == idProducto).ToList();
                 return productos;

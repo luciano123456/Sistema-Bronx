@@ -18,7 +18,6 @@ namespace SistemaBronx.Application.Models.ViewModels
         public int? PorcIva { get; set; }
         public decimal CostoUnitario { get; set; }
 
-        public string Color { get; set; }
         public string Categoria { get; set; }
 
         public virtual ProductosCategoria? IdCategoriaNavigation { get; set; }

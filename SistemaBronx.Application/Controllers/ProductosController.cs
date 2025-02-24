@@ -76,14 +76,16 @@ namespace SistemaBronx.Application.Controllers
         {
             try
             {
-                Id = model.Id,
-                PorcIva = model.PorcIva,
-                Codigo = model.Codigo,
-                Descripcion = model.Descripcion,
-                IdCategoria = model.IdCategoria,
-                PorcGanancia = model.PorcGanancia,
-
-            };
+                var producto = new Producto
+                {
+                    Id = model.Id,
+                    PorcIva = model.PorcIva,
+                    Codigo = model.Codigo,
+                    Descripcion = model.Descripcion,
+                    IdCategoria = model.IdCategoria,
+                    PorcGanancia = model.PorcGanancia,
+                    CostoUnitario = model.CostoUnitario
+                };
 
                 List<ProductosInsumo> insumos = model.ProductosInsumos?.Select(insumo => new ProductosInsumo
                 {
@@ -100,18 +102,9 @@ namespace SistemaBronx.Application.Controllers
             }
             catch (Exception ex)
             {
-                foreach (var insumo in model.ProductosInsumos)
-                {
-                    var nuevoInsumo = new ProductosInsumo
-                    {
-                        IdProducto = Productos.Id,
-                        IdInsumo = insumo.IdInsumo,
-                        Cantidad = insumo.Cantidad,
-                    };
-                    pedidosInsumo.Add(nuevoInsumo);
-                }
+                return StatusCode(500, new { mensaje = "Ocurrió un error inesperado.", error = ex.Message });
             }
-
+        }
 
 
         [HttpPut]
@@ -127,7 +120,7 @@ namespace SistemaBronx.Application.Controllers
                 PorcGanancia = model.PorcGanancia,
             };
 
-            bool respuesta = await _ProductosService.Actualizar(Productos);
+           
 
             List<ProductosInsumo> ProductosInsumo = new List<ProductosInsumo>();
 
@@ -146,7 +139,8 @@ namespace SistemaBronx.Application.Controllers
                 }
             }
 
-            //bool respproductos = await _ProductosService.InsertarInsumos(ProductosInsumo);
+            bool respuesta = await _ProductosService.Actualizar(Productos, ProductosInsumo);
+
 
             return Ok(new { valor = respuesta });
         }
@@ -177,8 +171,6 @@ namespace SistemaBronx.Application.Controllers
                     Descripcion = model.Descripcion,
                     IdCategoria = model.IdCategoria,
                     PorcGanancia = model.PorcGanancia,
-                    Color = model.Color,
-                    Categoria = model.Color,
                     CostoUnitario = model.CostoUnitario,
                 };
 
@@ -191,7 +183,8 @@ namespace SistemaBronx.Application.Controllers
                     Cantidad = p.Cantidad,
                     IdInsumo = p.IdInsumo,
                     IdProducto = p.IdProducto,
-                    CostoUnitario = (decimal)p.IdInsumoNavigation.PrecioVenta
+                    CostoUnitario = (decimal)p.IdInsumoNavigation.PrecioVenta,
+                    SubTotal = (decimal)p.IdInsumoNavigation.PrecioVenta * p.Cantidad
                 }).ToList();
 
 
