@@ -547,3 +547,7 @@ table.dataTable.row-border tbody th, table.dataTable.row-border tbody td, table.
             background-color: #f0f0f0;
         }
 
+
+select option:disabled {
+    color: red; /* Cambiar el color de la letra a rojo */
+}

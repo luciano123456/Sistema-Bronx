@@ -1,0 +1,31 @@
+.input-nuevo {
+    border: none;
+    border-bottom: 2px solid blue;
+    width: 100%;
+    color: black;
+    max-width: 3000px !important;
+    text-align: center !important;
+    font-size: 0.7vw;
+    background: transparent !important;
+    color: white !important;
+}
+
+.input-nuevo-select {
+    border: none;
+    border-bottom: 2px solid blue;
+    width: 100% !important;
+    color: white; /* Texto blanco cuando no está desplegado */
+    text-align: center !important;
+    font-size: 0.8vw;
+    background: transparent !important;
+}
+
+
+
+
+    .input-nuevo-select option {
+        background-color: white !important; /* Fondo del desplegable */
+        color: black !important; /* Texto negro en el desplegable */
+    }
+
+

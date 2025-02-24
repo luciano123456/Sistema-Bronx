@@ -57,6 +57,10 @@ builder.Services.AddScoped<IColorService, ColorService>();
 builder.Services.AddScoped<IGenericRepository<InsumosTipo>, InsumosTipoRepository>();
 builder.Services.AddScoped<IInsumosTipoService, InsumosTipoService>();
 
+builder.Services.AddScoped<IProductoRepository<Producto>, ProductoRepository>();
+builder.Services.AddScoped<IProductoService, ProductoService>();
+
+
 
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>
