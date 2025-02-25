@@ -10,37 +10,37 @@ const precioVentaInput = document.getElementById('txtPrecioVenta');
 
 const columnConfig = [
     { index: 1, filterType: 'text' },
-    { index: 2, filterType: 'select', fetchDataFunc: listaTiposFilter }, // Columna con un filtro de selección
-    { index: 3, filterType: 'select', fetchDataFunc: listaCategoriasFilter }, // Columna con un filtro de selección
-    { index: 4, filterType: 'select', fetchDataFunc: listaUnidadesDeMedidasFilter }, // Columna con un filtro de selección
-    { index: 5, filterType: 'text' },
-    { index: 6, filterType: 'text' },
-    { index: 7, filterType: 'text' },
+    { index: 2, filterType: 'text' },
+    { index: 3, filterType: 'text' },
+    { index: 4, filterType: 'text' },
+    { index: 5, filterType: 'select', fetchDataFunc: listaTiposFilter }, // Columna con un filtro de selección
+    { index: 6, filterType: 'select', fetchDataFunc: listaCategoriasFilter }, // Columna con un filtro de selección
+    { index: 7, filterType: 'select', fetchDataFunc: listaUnidadesDeMedidasFilter }, // Columna con un filtro de selección
     { index: 8, filterType: 'text' },
     { index: 9, filterType: 'text' },
 
 ];
 
-const Modelo_base = {
-    Id: 0,
-    Descripcion: "",
-    IdTipo: 1,
-    IdCategoria: 1,
-    IdUnidadMedida: 1,
-    IdProveedor: 0,
-    Especificacion: "",
-    PrecioCosto: "",
-    PorcGanancia: "",
-    PrecioVenta: "",
-}
 
 $(document).ready(() => {
 
+
     listaInsumos();
+
+
+
+    $("#Categorias, #UnidadesDeMedidas, #Tipos").select2({
+        dropdownParent: $("#modalEdicion"), // Asegura que el dropdown se muestre dentro del modal
+        width: "100%",
+        placeholder: "Selecciona una opción",
+        allowClear: false
+    });
+
 
     $('#txtDescripcion, #txtPrecioCosto, #txtPorcGanancia, #txtPrecioVenta').on('input', function () {
         validarCampos();
     });
+
 
 
     $('#txtPrecioCosto').on('input', function () {
@@ -183,6 +183,13 @@ async function mostrarModal(modelo) {
     document.getElementById("txtIdProveedor").value = modelo.IdProveedor;
     document.getElementById("txtProveedor").value = modelo.Proveedor;
 
+
+    $("#Categorias, #UnidadesDeMedidas, #Tipos").select2({
+        dropdownParent: $("#modalEdicion"), // Asegura que el dropdown se muestre dentro del modal
+        width: "100%",
+        placeholder: "Selecciona una opción",
+        allowClear: true
+    });
 
 
     $('#modalEdicion').modal('show');
@@ -468,14 +475,15 @@ async function configurarDataTable(data) {
 
                 },
                 { data: 'Descripcion' },
+                { data: 'PrecioCosto' },
+                { data: 'PorcGanancia' },
+                { data: 'PrecioVenta' },
                 { data: 'Tipo' },
                 { data: 'Categoria' },
                 { data: 'UnidaddeMedida' },
                 { data: 'Proveedor' },
                 { data: 'Especificacion' },
-                { data: 'PrecioCosto' },
-                { data: 'PorcGanancia' },
-                { data: 'PrecioVenta' },
+               
             ],
             dom: 'Bfrtip',
             buttons: [
@@ -485,7 +493,7 @@ async function configurarDataTable(data) {
                     filename: 'Reporte Insumos',
                     title: '',
                     exportOptions: {
-                        columns: [0, 1, 2, 3, 4, 5]
+                        columns: [1, 2, 3, 4, 5, 6,7,8,9]
                     },
                     className: 'btn-exportar-excel',
                 },
@@ -495,7 +503,7 @@ async function configurarDataTable(data) {
                     filename: 'Reporte Insumos',
                     title: '',
                     exportOptions: {
-                        columns: [0, 1, 2, 3, 4, 5]
+                        columns: [1, 2, 3, 4, 5, 6, 7, 8, 9]
                     },
                     className: 'btn-exportar-pdf',
                 },
@@ -504,7 +512,7 @@ async function configurarDataTable(data) {
                     text: 'Imprimir',
                     title: '',
                     exportOptions: {
-                        columns: [0, 1, 2, 3, 4, 5]
+                        columns: [1, 2, 3, 4, 5, 6, 7, 8, 9]
                     },
                     className: 'btn-exportar-print'
                 },
@@ -515,7 +523,7 @@ async function configurarDataTable(data) {
                     "render": function (data, type, row) {
                         return formatNumber(data); // Formatear número en la columna
                     },
-                    "targets": [7, 9] // Columna Precio
+                    "targets": [2, 4] // Columna Precio
                 }
             ],
             orderCellsTop: true,
@@ -607,7 +615,7 @@ async function configurarDataTable(data) {
             }
 
             // Si la columna es la de la provincia (por ejemplo, columna 3)
-            if (colIndex === 2 || colIndex === 3 || colIndex === 4 || colIndex === 5) {
+            if (colIndex === 5 || colIndex === 6 || colIndex ===7 || colIndex === 8) {
                 var select = $('<select class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
                     .appendTo($(this).empty())
                     .on('change', function () {
@@ -622,13 +630,13 @@ async function configurarDataTable(data) {
 
                 var result = null;
 
-                if (colIndex == 2) {
+                if (colIndex == 5) {
                     result = await obtenerTipos();
-                } else if (colIndex == 3) {
+                } else if (colIndex == 6) {
                     result = await obtenerCategorias();
-                } else if (colIndex == 4) {
+                } else if (colIndex == 7) {
                     result = await obtenerUnidadesDeMedidas();
-                } else if (colIndex == 5) {
+                } else if (colIndex == 8) {
                     result = await obtenerProveedores();
                 }
 
@@ -636,13 +644,13 @@ async function configurarDataTable(data) {
                     select.append('<option value="' + res.Id + '">' + res.Nombre + '</option>');
                 });
 
-                if (colIndex == 2) {
+                if (colIndex == 5) {
                     select.val(rowData.IdTipo);
-                } else if (colIndex == 3) {
+                } else if (colIndex == 6) {
                     select.val(rowData.IdCategoria);
-                } else if (colIndex == 4) {
+                } else if (colIndex == 7) {
                     select.val(rowData.IdUnidadMedida);
-                } else if (colIndex == 5) {
+                } else if (colIndex == 8) {
                     select.val(rowData.IdProveedor);
                 }
 
@@ -661,7 +669,7 @@ async function configurarDataTable(data) {
                 // Enfocar el select
                 select.focus();
 
-            } else if (colIndex === 7 || colIndex === 9) {
+            } else if (colIndex === 2 || colIndex === 4) {
                 var valueToDisplay = originalData ? originalData.toString().replace(/[^\d.-]/g, '') : '';
 
                 var input = $('<input type="text" class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
@@ -761,7 +769,7 @@ async function configurarDataTable(data) {
                 // Obtener el valor original de la celda
                 var originalText = gridInsumos.cell(trElement, colIndex).data();
 
-                if (colIndex === 3) {
+                if (colIndex === 7) {
                     var tempDiv = document.createElement('div'); // Crear un div temporal
                     tempDiv.innerHTML = originalText; // Establecer el HTML de la celda
                     originalText = tempDiv.textContent.trim(); // Extraer solo el texto
@@ -769,7 +777,7 @@ async function configurarDataTable(data) {
                 }
 
                 // Verificar si el texto realmente ha cambiado
-                if (colIndex === 7 || colIndex === 9) { // Si es la columna PrecioCosto o PrecioVenta
+                if (colIndex === 2 || colIndex === 4) { // Si es la columna PrecioCosto o PrecioVenta
                     // Convertir ambos valores a números flotantes
                     var originalValue = parseFloat(originalText).toFixed(2);
                     var newValueFloat = parseFloat(convertirMonedaAFloat(newText)).toFixed(2);
@@ -790,19 +798,19 @@ async function configurarDataTable(data) {
                 $(trElement).find('td').removeClass('blinking');
 
                 // Actualizar el valor de la fila según la columna editada
-                if (colIndex === 2) { // Columna de la provincia
+                if (colIndex === 5) { // Columna de la provincia
                     rowData.IdTipo = newValue;
                     rowData.Tipo = newText;
-                } else if (colIndex === 3) {
+                } else if (colIndex === 6) {
                     rowData.IdCategoria = newValue;
                     rowData.Categoria = newText;
-                } else if (colIndex === 4) {
+                } else if (colIndex === 7) {
                     rowData.IdUnidadMedida = newValue;
                     rowData.UnidaddeMedida = newText;
-                } else if (colIndex === 5) {
+                } else if (colIndex === 8) {
                     rowData.IdProveedor = newValue;
                     rowData.Proveedor = newText;
-                } else if (colIndex === 7) { // PrecioCosto
+                } else if (colIndex === 2) { // PrecioCosto
                     rowData.PrecioCosto = parseFloat(convertirMonedaAFloat(newValue)); // Actualizar PrecioCosto
 
                     var precioVentaCalculado = (parseFloat(rowData.PrecioCosto) + (parseFloat(rowData.PrecioCosto) * (rowData.PorcGanancia / 100)));
@@ -814,26 +822,26 @@ async function configurarDataTable(data) {
                     rowData.PorcGanancia = parseFloat(((rowData.PrecioVenta - rowData.PrecioCosto) / rowData.PrecioCosto) * 100).toFixed(2);
 
                     // Obtener el índice visible para las columnas correspondientes
-                    var visibleIndex7 = gridInsumos.column(7).index('visible');
-                    var visibleIndex9 = gridInsumos.column(9).index('visible');
+                    var visibleIndex7 = gridInsumos.column(2).index('visible');
+                    var visibleIndex9 = gridInsumos.column(4).index('visible');
 
                     // Aplicar el efecto de parpadeo a las celdas de PrecioCosto y PrecioVenta
                     $(trElement).find('td').eq(visibleIndex7).addClass('blinking');
                     $(trElement).find('td').eq(visibleIndex9).addClass('blinking');
-                } else if (colIndex === 8) { // PorcentajeGanancia
+                } else if (colIndex === 3) { // PorcentajeGanancia
                     rowData.PorcGanancia = parseDecimal(newValue); // Actualizar PorcentajeGanancia
 
                     // Calcular PrecioVenta basado en PrecioCosto y PorcentajeGanancia
                     rowData.PrecioVenta = rowData.PrecioCosto + (rowData.PrecioCosto * (rowData.PorcGanancia / 100));
 
                     // Obtener el índice visible para las columnas correspondientes
-                    var visibleIndex8 = gridInsumos.column(8).index('visible');
-                    var visibleIndex9 = gridInsumos.column(9).index('visible');
+                    var visibleIndex8 = gridInsumos.column(3).index('visible');
+                    var visibleIndex9 = gridInsumos.column(4).index('visible');
 
                     // Aplicar el efecto de parpadeo a las celdas de PorcentajeGanancia y PrecioVenta
                     $(trElement).find('td').eq(visibleIndex8).addClass('blinking');
                     $(trElement).find('td').eq(visibleIndex9).addClass('blinking');
-                } else if (colIndex === 9) { // PrecioVenta
+                } else if (colIndex === 4) { // PrecioVenta
                     rowData.PrecioVenta = parseFloat(convertirMonedaAFloat(newValue))
                     rowData.PorcGanancia = parseFloat(((convertirMonedaAFloat(newValue) - rowData.PrecioCosto) / rowData.PrecioCosto) * 100).toFixed(2);
 

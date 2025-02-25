@@ -8,14 +8,13 @@ const columnConfig = [
     { index: 3, filterType: 'select', fetchDataFunc: listaProductosCategoriaFilter },
     { index: 4, filterType: 'text' },
     { index: 5, filterType: 'text' },
-    { index: 6, filterType: 'text' },
 ];
 
 $(document).ready(() => {
 
     listaProductos(-1);
 
-    $('#txtDescripcion, #txtCodigo').on('input', function () {
+    $('#txtNombre, #txtCodigo').on('input', function () {
         validarCampos()
     });
 
@@ -29,7 +28,7 @@ function guardarCambios() {
         const idProducto = $("#txtId").val();
         const nuevoModelo = {
             "Id": idProducto !== "" ? idProducto : 0,
-            "Descripcion": $("#txtDescripcion").val(),
+            "Nombre": $("#txtNombre").val(),
             "IdUnidadMedida": $("#UnidadesMedida").val(),
             "IdUnidadNegocio": $("#UnidadesNegocio").val(),
             "IdCategoria": $("#Categorias").val(),
@@ -67,18 +66,14 @@ function guardarCambios() {
 
 
 function validarCampos() {
-    const descripcion = $("#txtDescripcion").val();
-    const codigo = $("#txtCodigo").val();
-    const campoValidoDescripcion = descripcion !== "";
+    const Nombre = $("#txtNombre").val();
+    const campoValidoNombre = Nombre !== "";
     const campoValidoCodigo = codigo !== "";
 
-    $("#lblDescripcion").css("color", campoValidoDescripcion ? "" : "red");
-    $("#txtDescripcion").css("border-color", campoValidoDescripcion ? "" : "red");
+    $("#lblNombre").css("color", campoValidoNombre ? "" : "red");
+    $("#txtNombre").css("border-color", campoValidoNombre ? "" : "red");
 
-    $("#lblCodigo").css("color", campoValidoCodigo ? "" : "red");
-    $("#txtCodigo").css("border-color", campoValidoCodigo ? "" : "red");
-
-    return campoValidoDescripcion && campoValidoCodigo;
+    return campoValidoNombre;
 }
 
 function nuevoProducto() {
@@ -86,7 +81,7 @@ function nuevoProducto() {
 }
 
 async function mostrarModal(modelo) {
-    const campos = ["Id", "Sku", "CostoUnitario", "Descripcion"];
+    const campos = ["Id", "Sku", "CostoUnitario", "Nombre"];
     campos.forEach(campo => {
         $(`#txt${campo}`).val(modelo[campo]);
     });
@@ -99,7 +94,7 @@ async function mostrarModal(modelo) {
     $("#btnGuardar").text("Guardar");
     $("#modalEdicionLabel").text("Editar Producto");
 
-    $('#lblDescripcion, #txtDescripcion').css('color', '').css('border-color', '');
+    $('#lblNombre, #txtNombre').css('color', '').css('border-color', '');
     $('#lblSku, #txtSku').css('color', '').css('border-color', '');
     $('#lblCostoUnitario, #txtCostoUnitario').css('color', '').css('border-color', '');
 }
@@ -108,12 +103,12 @@ async function mostrarModal(modelo) {
 
 
 function limpiarModal() {
-    const campos = ["Id", "Sku", "CostoUnitario", "Descripcion"];
+    const campos = ["Id", "Sku", "CostoUnitario", "Nombre"];
     campos.forEach(campo => {
         $(`#txt${campo}`).val("");
     });
 
-    $('#lblDescripcion, #txtDescripcion').css('color', '').css('border-color', '');
+    $('#lblNombre, #txtNombre').css('color', '').css('border-color', '');
     $('#lblSku, #txtSku').css('color', '').css('border-color', '');
     $('#lblCostoUnitario, #txtCostoUnitario').css('color', '').css('border-color', '');
 }
@@ -197,8 +192,7 @@ async function configurarDataTable(data) {
                     orderable: false,
                     searchable: false,
                 },
-                { data: 'Codigo' },
-                { data: 'Descripcion' },
+                { data: 'Nombre' },
                 { data: 'Categoria' },
                 { data: 'PorcIva' },
                 { data: 'PorcGanancia' },
@@ -209,20 +203,20 @@ async function configurarDataTable(data) {
                 {
                     extend: 'excelHtml5',
                     text: 'Exportar Excel',
-                    filename: 'Reporte Productos',
+                    filename: `Reporte Productos_${moment().format('YYYY-MM-DD')}`,
                     title: '',
                     exportOptions: {
-                        columns: [0, 1, 2, 3]
+                        columns: [1, 2, 3, 4,5]
                     },
                     className: 'btn-exportar-excel',
                 },
                 {
                     extend: 'pdfHtml5',
                     text: 'Exportar PDF',
-                    filename: 'Reporte Productos',
+                    filename: `Reporte Productos_${moment().format('YYYY-MM-DD')}`,
                     title: '',
                     exportOptions: {
-                        columns: [0, 1, 2, 3]
+                        columns: [1, 2, 3, 4, 5]
                     },
                     className: 'btn-exportar-pdf',
                 },
@@ -231,7 +225,7 @@ async function configurarDataTable(data) {
                     text: 'Imprimir',
                     title: '',
                     exportOptions: {
-                        columns: [0, 1, 2, 3]
+                        columns: [1, 2, 3, 4, 5]
                     },
                     className: 'btn-exportar-print'
                 },
@@ -245,7 +239,7 @@ async function configurarDataTable(data) {
                     "render": function (data, type, row) {
                         return formatNumber(data); // Formatear números
                     },
-                    "targets": [6] // Índices de las columnas de números
+                    "targets": [5] // Índices de las columnas de números
                 },
                 
             ],

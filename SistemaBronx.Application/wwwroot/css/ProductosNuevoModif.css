@@ -13,7 +13,6 @@
 .input-nuevo-select {
     border: none;
     border-bottom: 2px solid blue;
-    width: 100% !important;
     color: white; /* Texto blanco cuando no está desplegado */
     text-align: center !important;
     font-size: 0.8vw;
@@ -29,3 +28,19 @@
     }
 
 
+
+/* Elimina los bordes y deja solo un borde inferior rojo */
+.select2-container--default .select2-selection--single {
+    border: none !important;
+    border-bottom: 2px solid blue !important;
+    border-radius: 0px !important;
+    background-color: transparent !important;
+    color: white !important;
+    margin-top: -6px;
+}
+
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: white !important;
+        line-height: 28px;
+    }

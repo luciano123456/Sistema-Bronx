@@ -264,29 +264,30 @@ async function configurarDataTable(data) {
                 {
                     extend: 'excelHtml5',
                     text: 'Exportar Excel',
-                    filename: 'Reporte Clientes',
+                    filename: `Reporte Clientes_${moment().format('YYYY-MM-DD')}`,
                     title: '',
                     exportOptions: {
-                        columns: [0, 1, 2, 3, 4, 5]
+                        columns: [1, 2, 3, 4, 5]
                     },
                     className: 'btn-exportar-excel',
                 },
                 {
                     extend: 'pdfHtml5',
                     text: 'Exportar PDF',
-                    filename: 'Reporte Clientes',
+                    filename: `Reporte Clientes_${moment().format('YYYY-MM-DD')}`,
                     title: '',
                     exportOptions: {
-                        columns: [0, 1, 2, 3, 4, 5]
+                        columns: [1, 2, 3, 4, 5]
                     },
                     className: 'btn-exportar-pdf',
                 },
                 {
                     extend: 'print',
                     text: 'Imprimir',
+
                     title: '',
                     exportOptions: {
-                        columns: [0, 1, 2, 3, 4, 5]
+                        columns: [1, 2, 3, 4, 5]
                     },
                     className: 'btn-exportar-print'
                 },
