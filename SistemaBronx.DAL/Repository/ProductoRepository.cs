@@ -105,8 +105,7 @@ namespace SistemaBronx.DAL.Repository
                 }
 
                 // Actualizar las propiedades del producto
-                productoExistente.Codigo = model.Codigo;
-                productoExistente.Descripcion = model.Descripcion;
+                productoExistente.Nombre = model.Nombre;
                 productoExistente.PorcGanancia = model.PorcGanancia;
                 productoExistente.PorcIva = model.PorcIva;
                 productoExistente.IdCategoria = model.IdCategoria;
@@ -195,8 +194,7 @@ namespace SistemaBronx.DAL.Repository
                             producto = new Producto
                             {
                                 Id = result.GetInt32(result.GetOrdinal("Id")),
-                                Codigo = result.GetString(result.GetOrdinal("Codigo")),
-                                Descripcion = result.IsDBNull(result.GetOrdinal("Descripcion")) ? null : result.GetString(result.GetOrdinal("Descripcion")),
+                                Nombre = result.GetString(result.GetOrdinal("Nombre")),
                                 PorcGanancia = result.IsDBNull(result.GetOrdinal("PorcGanancia")) ? (int?)null : result.GetInt32(result.GetOrdinal("PorcGanancia")),
                                 PorcIva = result.IsDBNull(result.GetOrdinal("PorcIva")) ? (int?)null : result.GetInt32(result.GetOrdinal("PorcIva")),
                                 IdCategoria = result.IsDBNull(result.GetOrdinal("IdCategoria")) ? (int?)null : result.GetInt32(result.GetOrdinal("IdCategoria")),
@@ -248,8 +246,7 @@ namespace SistemaBronx.DAL.Repository
                             var producto = new Producto
                             {
                                 Id = result.GetInt32(result.GetOrdinal("Id")),
-                                Codigo = result.GetString(result.GetOrdinal("Codigo")),
-                                Descripcion = result.IsDBNull(result.GetOrdinal("Descripcion")) ? null : result.GetString(result.GetOrdinal("Descripcion")),
+                                Nombre = result.GetString(result.GetOrdinal("Nombre")),
                                 PorcGanancia = result.IsDBNull(result.GetOrdinal("PorcGanancia")) ? (int?)null : result.GetInt32(result.GetOrdinal("PorcGanancia")),
                                 PorcIva = result.IsDBNull(result.GetOrdinal("PorcIva")) ? (int?)null : result.GetInt32(result.GetOrdinal("PorcIva")),
                                 IdCategoria = result.IsDBNull(result.GetOrdinal("IdCategoria")) ? (int?)null : result.GetInt32(result.GetOrdinal("IdCategoria")),

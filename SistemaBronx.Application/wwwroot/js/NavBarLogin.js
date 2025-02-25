@@ -71,6 +71,30 @@ async function abrirConfiguracion(_nombreConfiguracion, _controllerConfiguracion
 
 }
 
+function abrirConfiguraciones() {
+    $('#ModalEdicionConfiguraciones').modal('show');
+    $("#btnGuardarConfiguracion").text("Aceptar");
+    $("#modalEdicionLabel").text("Configuraciones");
+}
+async function abrirConfiguracion(_nombreConfiguracion, _controllerConfiguracion) {
+    $('#ModalEdicionConfiguraciones').modal('hide');
+    $('#modalConfiguracion').modal('show');
+
+    cancelarModificarConfiguracion();
+
+    $('#txtNombreConfiguracion').on('input', function () {
+        validarCamposConfiguracion()
+    });
+
+    nombreConfiguracion = _nombreConfiguracion;
+    controllerConfiguracion = _controllerConfiguracion
+    llenarConfiguraciones()
+
+
+    document.getElementById("modalConfiguracionLabel").innerText = "Configuracion de " + nombreConfiguracion;
+
+}
+
 async function llenarConfiguraciones() {
     let configuraciones = await listaConfiguracion();
 
@@ -199,6 +223,10 @@ function guardarCambiosConfiguracion() {
         errorModal('Debes completar los campos requeridos');
     }
 }
+
+
+
+
 
 
 function cancelarModificarConfiguracion() {
