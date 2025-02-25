@@ -25,14 +25,6 @@ public partial class Gasto
 
     public decimal SubTotalNeto { get; set; }
 
-    public decimal? DiaBlue { get; set; }
-
-    public decimal? DiaOficial { get; set; }
-
-    public decimal? SubTotalBlue { get; set; }
-
-    public decimal? SubTotalOficial { get; set; }
-
     public virtual GastosCategoria IdCategoriaNavigation { get; set; } = null!;
 
     public virtual FormasdePago IdFormadePagoNavigation { get; set; } = null!;

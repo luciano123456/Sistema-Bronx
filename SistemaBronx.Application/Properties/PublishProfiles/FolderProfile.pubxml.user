@@ -5,7 +5,51 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
 <Project>
   <PropertyGroup>
     <_PublishTargetUrl>C:\Users\PC\Desktop\Publicaciones Webs\Sistema Bronx</_PublishTargetUrl>
-    <History>True|2025-01-17T15:45:51.8517617Z||;True|2025-01-17T12:45:15.7764735-03:00||;True|2025-01-17T12:45:06.0973551-03:00||;True|2025-01-17T12:42:48.3371628-03:00||;True|2025-01-17T12:42:14.2745244-03:00||;True|2025-01-17T12:34:07.3652822-03:00||;</History>
+    <History>True|2025-02-24T04:23:34.6476168Z||;True|2025-02-24T00:48:32.1580741-03:00||;True|2025-01-17T12:45:51.8517617-03:00||;True|2025-01-17T12:45:15.7764735-03:00||;True|2025-01-17T12:45:06.0973551-03:00||;True|2025-01-17T12:42:48.3371628-03:00||;True|2025-01-17T12:42:14.2745244-03:00||;True|2025-01-17T12:34:07.3652822-03:00||;</History>
     <LastFailureDetails />
   </PropertyGroup>
+  <ItemGroup>
+    <File Include="wwwroot/js/Clientes.js">
+      <publishTime>02/24/2025 00:39:57</publishTime>
+    </File>
+    <File Include="wwwroot/js/Insumos.js">
+      <publishTime>02/24/2025 00:39:57</publishTime>
+    </File>
+    <File Include="wwwroot/js/Login.js">
+      <publishTime>12/31/2024 03:29:22</publishTime>
+    </File>
+    <File Include="wwwroot/js/Monedas.js">
+      <publishTime>12/25/2024 22:23:23</publishTime>
+    </File>
+    <File Include="wwwroot/js/NavBarLogin.js">
+      <publishTime>02/24/2025 00:39:57</publishTime>
+    </File>
+    <File Include="wwwroot/js/PedidosNuevoModif.js">
+      <publishTime>12/25/2024 22:23:23</publishTime>
+    </File>
+    <File Include="wwwroot/js/Productos.js">
+      <publishTime>02/24/2025 00:39:57</publishTime>
+    </File>
+    <File Include="wwwroot/js/ProductosNuevoModif.js">
+      <publishTime>02/23/2025 23:22:42</publishTime>
+    </File>
+    <File Include="wwwroot/js/Proveedores.js">
+      <publishTime>02/24/2025 00:39:57</publishTime>
+    </File>
+    <File Include="wwwroot/js/site.js">
+      <publishTime>02/23/2025 23:22:42</publishTime>
+    </File>
+    <File Include="wwwroot/js/Usuarios.js">
+      <publishTime>02/24/2025 00:39:57</publishTime>
+    </File>
+    <File Include="wwwroot/js/UsuariosConfiguracion.js">
+      <publishTime>12/31/2024 02:41:51</publishTime>
+    </File>
+    <File Include="wwwroot/js/Utils/moment.js">
+      <publishTime>12/25/2024 22:23:23</publishTime>
+    </File>
+    <File Include="wwwroot/js/Zonas.js">
+      <publishTime>12/30/2024 02:42:22</publishTime>
+    </File>
+  </ItemGroup>
 </Project>
