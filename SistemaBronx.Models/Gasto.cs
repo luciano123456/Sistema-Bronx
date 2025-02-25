@@ -23,7 +23,6 @@ public partial class Gasto
 
     public string? Comentarios { get; set; }
 
-    public decimal SubTotalNeto { get; set; }
 
     public virtual GastosCategoria IdCategoriaNavigation { get; set; } = null!;
 

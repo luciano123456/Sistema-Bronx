@@ -9,7 +9,6 @@ namespace SistemaBronx.BLL.Service
         Task<bool> Insertar(Gasto model);
 
         Task<Gasto> Obtener(int id);
-        Task<Gasto> ObtenerUsuario(string usuario);
 
         Task<IQueryable<Gasto>> ObtenerTodos();
     }
