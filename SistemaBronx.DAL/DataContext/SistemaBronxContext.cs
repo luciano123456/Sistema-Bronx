@@ -194,13 +194,10 @@ public partial class SistemaBronxContext : DbContext
 
         modelBuilder.Entity<Producto>(entity =>
         {
-            entity.Property(e => e.Codigo)
+            entity.Property(e => e.Nombre)
                 .HasMaxLength(255)
                 .IsUnicode(false);
             entity.Property(e => e.CostoUnitario).HasColumnType("decimal(20, 2)");
-            entity.Property(e => e.Descripcion)
-                .HasMaxLength(255)
-                .IsUnicode(false);
 
             entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.Productos)
                 .HasForeignKey(d => d.IdCategoria)

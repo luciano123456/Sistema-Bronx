@@ -7,9 +7,7 @@ namespace SistemaBronx.Application.Models.ViewModels
     {
         public int Id { get; set; }
 
-        public string Codigo { get; set; } = null!;
-
-        public string? Descripcion { get; set; }
+        public string Nombre { get; set; } = null!;
 
         public int? IdCategoria { get; set; }
 

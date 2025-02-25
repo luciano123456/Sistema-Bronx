@@ -226,20 +226,20 @@ async function configurarDataTable(data) {
                 {
                     extend: 'excelHtml5',
                     text: 'Exportar Excel',
-                    filename: 'Reporte Proveedores',
+                    filename: `Reporte Proveedores_${moment().format('YYYY-MM-DD')}`,
                     title: '',
                     exportOptions: {
-                        columns: [0, 1, 2, 3]
+                        columns: [1, 2, 3, 4,5]
                     },
                     className: 'btn-exportar-excel',
                 },
                 {
                     extend: 'pdfHtml5',
                     text: 'Exportar PDF',
-                    filename: 'Reporte Proveedores',
+                    filename: `Reporte Proveedores_${moment().format('YYYY-MM-DD')}`,
                     title: '',
                     exportOptions: {
-                        columns: [0, 1, 2, 3]
+                        columns: [1, 2, 3, 4, 5]
                     },
                     className: 'btn-exportar-pdf',
                 },
@@ -248,7 +248,7 @@ async function configurarDataTable(data) {
                     text: 'Imprimir',
                     title: '',
                     exportOptions: {
-                        columns: [0, 1, 2, 3]
+                        columns: [1, 2, 3, 4, 5]
                     },
                     className: 'btn-exportar-print'
                 },

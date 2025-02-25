@@ -36,8 +36,7 @@ namespace SistemaBronx.Application.Controllers
                 var lista = Productos.Select(c => new VMProducto
                 {
                     Id = c.Id,
-                    Codigo = c.Codigo,
-                    Descripcion = c.Descripcion,
+                    Nombre = c.Nombre,
                     PorcGanancia = c.PorcGanancia,
                     PorcIva = c.PorcIva,
                     IdCategoria = c.IdCategoria,
@@ -80,8 +79,7 @@ namespace SistemaBronx.Application.Controllers
                 {
                     Id = model.Id,
                     PorcIva = model.PorcIva,
-                    Codigo = model.Codigo,
-                    Descripcion = model.Descripcion,
+                    Nombre = model.Nombre,
                     IdCategoria = model.IdCategoria,
                     PorcGanancia = model.PorcGanancia,
                     CostoUnitario = model.CostoUnitario
@@ -114,8 +112,7 @@ namespace SistemaBronx.Application.Controllers
             {
                 Id = model.Id,
                 PorcIva = model.PorcIva,
-                Codigo = model.Codigo,
-                Descripcion = model.Descripcion,
+                Nombre = model.Nombre,
                 IdCategoria = model.IdCategoria,
                 PorcGanancia = model.PorcGanancia,
             };
@@ -167,8 +164,7 @@ namespace SistemaBronx.Application.Controllers
                 {
                     Id = model.Id,
                     PorcIva = model.PorcIva,
-                    Codigo = model.Codigo,
-                    Descripcion = model.Descripcion,
+                    Nombre = model.Nombre,
                     IdCategoria = model.IdCategoria,
                     PorcGanancia = model.PorcGanancia,
                     CostoUnitario = model.CostoUnitario,

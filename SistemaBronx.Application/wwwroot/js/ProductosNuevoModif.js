@@ -31,12 +31,20 @@ $(document).ready(() => {
 
     
     calcularDatosProducto();
-    $('#descripcion, #codigo').on('input', function () {
+    $('#Nombre').on('input', function () {
         validarCampos()
     });
 
    
     validarCampos()
+
+    $("#Categorias").select2({
+        width: "100%",
+        placeholder: "Selecciona una opción",
+        allowClear: false
+    });
+
+
 })
 
 
@@ -66,8 +74,7 @@ async function insertarDatosProducto(datos) {
    
 
     //Cargamos Datos del Cliente
-    document.getElementById("descripcion").value = datos.Descripcion;
-    document.getElementById("codigo").value = datos.Codigo;
+    document.getElementById("Nombre").value = datos.Nombre;
     document.getElementById("Categorias").value = datos.IdCategoria;
     document.getElementById("porcIVA").value = datos.PorcIva;
     document.getElementById("porcGanancia").value = datos.PorcGanancia;
@@ -79,20 +86,15 @@ async function insertarDatosProducto(datos) {
 
 
 function validarCampos() {
-    const descripcion = $("#descripcion").val();
-    const codigo = $("#codigo").val();
+    const Nombre = $("#Nombre").val();
 
-    const descripcionValida = descripcion !== "";
-    const codigoValido = codigo !== "";
+    const NombreValida = Nombre !== "";
 
-    $("#lblDescripcion").css("color", descripcionValida ? "" : "red");
-    $("#descripcion").css("border-color", descripcionValida ? "" : "red");
-
-    $("#lblCodigo").css("color", codigoValido ? "" : "red");
-    $("#codigo").css("border-color", codigoValido ? "" : "red");
+    $("#lblNombre").css("color", NombreValida ? "" : "red");
+    $("#Nombre").css("border-color", NombreValida ? "" : "red");
 
 
-    return descripcionValida && codigoValido;
+    return NombreValida ;
 }
 
 
@@ -256,15 +258,15 @@ async function listaCategorias() {
 }
 
 
-async function obtenerInsumosUnidadNegocio(id) {
-    const url = `/Insumos/Lista?IdUnidadNegocio=${id}`;
+async function obtenerInsumosUnidadNegocio() {
+    const url = `/Insumos/Lista`;
     const response = await fetch(url);
     const data = await response.json();
 
 
     return data.map(x => ({
         Id: x.Id,
-        Descripcion: x.Descripcion,
+        Nombre: x.Descripcion,
         CostoUnitario: x.PrecioCosto
     }));
 
@@ -457,7 +459,7 @@ async function cargarInsumosModal(IdUnidadNegocio, insumosEnTabla, insumoSelecci
     let primerHabilitadoId = null;
 
     insumos.forEach(insumo => {
-        const option = $(`<option value="${insumo.Id}">${insumo.Descripcion}</option>`);
+        const option = $(`<option value="${insumo.Id}">${insumo.Nombre}</option>`);
 
         if (insumosEnTabla.includes(insumo.Id)) {
             option.prop('disabled', true);
@@ -569,8 +571,7 @@ function guardarCambios() {
         // Construcción del objeto para el modelo
         const nuevoModelo = {
             "Id": idProducto !== "" ? parseInt(idProducto) : 0,
-            "Codigo":$("#codigo").val(),
-            "Descripcion": $("#descripcion").val(),
+            "Nombre": $("#Nombre").val(),
             "IdColor": $("#Colores").val(),
             "IdCategoria": parseInt($("#Categorias").val()),
             "PorcGanancia": $("#porcGanancia").val() != "" ? parseInt($("#porcGanancia").val()) : 0,
