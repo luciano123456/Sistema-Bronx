@@ -124,16 +124,11 @@ public partial class SistemaBronxContext : DbContext
             entity.Property(e => e.Comentarios)
                 .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.DiaBlue).HasColumnType("decimal(20, 2)");
-            entity.Property(e => e.DiaOficial).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Fecha).HasColumnType("datetime");
             entity.Property(e => e.ImporteAbonado).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.ImporteTotal).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Iva).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Saldo).HasColumnType("decimal(20, 2)");
-            entity.Property(e => e.SubTotalBlue).HasColumnType("decimal(20, 2)");
-            entity.Property(e => e.SubTotalNeto).HasColumnType("decimal(20, 2)");
-            entity.Property(e => e.SubTotalOficial).HasColumnType("decimal(20, 2)");
 
             entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.Gastos)
                 .HasForeignKey(d => d.IdCategoria)

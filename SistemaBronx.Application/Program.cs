@@ -60,6 +60,17 @@ builder.Services.AddScoped<IInsumosTipoService, InsumosTipoService>();
 builder.Services.AddScoped<IProductoRepository<Producto>, ProductoRepository>();
 builder.Services.AddScoped<IProductoService, ProductoService>();
 
+builder.Services.AddScoped<IGenericRepository<GastosCategoria>, GastoCategoriaRepository>();
+builder.Services.AddScoped<IGastoCategoriaService, GastoCategoriaService>();
+
+builder.Services.AddScoped<IGenericRepository<FormasdePago>, FormasdePagoRepository>();
+builder.Services.AddScoped<IFormasdePagoService, FormasdePagoService>();
+
+builder.Services.AddScoped<IGastosRepository<Gasto>, GastosRepository>();
+builder.Services.AddScoped<IGastoService, GastoService>();
+
+builder.Services.AddScoped<IGenericRepository<ProductosCategoria>, ProductoCategoriaRepository>();
+builder.Services.AddScoped<IProductoCategoriaService, ProductoCategoriaService>();
 
 
 builder.Services.AddControllersWithViews()

@@ -66,7 +66,7 @@ body {
 .divFiltros {
     padding: 5px 5px 5px 5px;
     border: 3px solid;
-    border: solid rgb(134,134,14);
+    border: solid blue;
     display: flex;
     width: 85%;
     display: block;
@@ -76,6 +76,7 @@ body {
     color: black;
     text-align: center;
 }
+
 
 .lblfiltro {
     margin-left: 30px;
