@@ -5,51 +5,114 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
 <Project>
   <PropertyGroup>
     <_PublishTargetUrl>C:\Users\PC\Desktop\Publicaciones Webs\Sistema Bronx</_PublishTargetUrl>
-    <History>True|2025-02-26T05:26:08.3345266Z||;True|2025-02-26T02:24:20.5445544-03:00||;True|2025-02-24T01:23:34.6476168-03:00||;True|2025-02-24T00:48:32.1580741-03:00||;True|2025-01-17T12:45:51.8517617-03:00||;True|2025-01-17T12:45:15.7764735-03:00||;True|2025-01-17T12:45:06.0973551-03:00||;True|2025-01-17T12:42:48.3371628-03:00||;True|2025-01-17T12:42:14.2745244-03:00||;True|2025-01-17T12:34:07.3652822-03:00||;</History>
+    <History>True|2025-02-25T15:05:56.5506464Z||;True|2025-02-25T12:05:47.8793822-03:00||;True|2025-02-25T11:53:03.8494958-03:00||;True|2025-01-17T12:45:51.8517617-03:00||;True|2025-01-17T12:45:15.7764735-03:00||;True|2025-01-17T12:45:06.0973551-03:00||;True|2025-01-17T12:42:48.3371628-03:00||;True|2025-01-17T12:42:14.2745244-03:00||;True|2025-01-17T12:34:07.3652822-03:00||;</History>
     <LastFailureDetails />
   </PropertyGroup>
   <ItemGroup>
+    <File Include="Views/Clientes/Index.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Home/Index.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Home/Privacy.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Insumos/Index.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Login/Index.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Monedas/Index.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Pedidos/Index.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Pedidos/NuevoModif.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Productos/Index.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Productos/NuevoModif.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Proveedores/Index.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Shared/Error.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Shared/Partials/NavBarLogin.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Shared/_Layout.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Shared/_Layout.cshtml.css">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Shared/_ValidationScriptsPartial.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Usuarios/Configuracion.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Usuarios/Index.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Utils/Modals.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/Zonas/Index.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/_ViewImports.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="Views/_ViewStart.cshtml">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
     <File Include="wwwroot/css/BotonMenu.css">
-      <publishTime>12/25/2024 22:23:23</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/Clientes.css">
-      <publishTime>12/30/2024 01:54:08</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/Insumos.css">
-      <publishTime>02/25/2025 23:35:42</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/Login.css">
-      <publishTime>02/22/2025 02:54:46</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/Monedas.css">
-      <publishTime>12/25/2024 22:23:23</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/NavBarLogin.css">
-      <publishTime>12/30/2024 15:40:53</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/Pedidos.css">
-      <publishTime>12/25/2024 22:23:23</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/PedidosNuevoModif.css">
-      <publishTime>12/25/2024 22:23:23</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/Productos.css">
-      <publishTime>12/28/2024 02:18:11</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/ProductosNuevoModif.css">
-      <publishTime>02/25/2025 23:35:42</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/Proveedores.css">
-      <publishTime>12/25/2024 22:23:23</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/site.css">
-      <publishTime>02/26/2025 01:53:44</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/js/Clientes.js">
       <publishTime>02/25/2025 00:49:16</publishTime>
-    </File>
-    <File Include="wwwroot/js/Gastos.js">
-      <publishTime>02/26/2025 02:22:30</publishTime>
     </File>
     <File Include="wwwroot/js/Insumos.js">
       <publishTime>02/25/2025 00:49:16</publishTime>
@@ -67,10 +130,10 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>12/25/2024 22:23:23</publishTime>
     </File>
     <File Include="wwwroot/js/Productos.js">
-      <publishTime>02/25/2025 23:35:42</publishTime>
+      <publishTime>02/25/2025 12:05:20</publishTime>
     </File>
     <File Include="wwwroot/js/ProductosNuevoModif.js">
-      <publishTime>02/25/2025 23:35:42</publishTime>
+      <publishTime>02/25/2025 11:35:31</publishTime>
     </File>
     <File Include="wwwroot/js/Proveedores.js">
       <publishTime>02/25/2025 00:49:16</publishTime>
