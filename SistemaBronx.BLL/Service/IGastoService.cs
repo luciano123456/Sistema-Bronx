@@ -10,7 +10,7 @@ namespace SistemaBronx.BLL.Service
 
         Task<Gasto> Obtener(int id);
 
-        Task<IQueryable<Gasto>> ObtenerTodos();
+        Task<IQueryable<Gasto>> ObtenerTodos(DateTime FechaDesde, DateTime FechaHasta, int Categoria, int Formadepago);
     }
 
 }

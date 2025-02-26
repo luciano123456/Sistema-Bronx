@@ -14,6 +14,6 @@ namespace SistemaBronx.DAL.Repository
         Task<bool> Actualizar(Gasto model);
         Task<bool> Insertar(Gasto model);
         Task<Gasto> Obtener(int id);
-        Task<IQueryable<Gasto>> ObtenerTodos();
+        Task<IQueryable<Gasto>> ObtenerTodos(DateTime FechaDesde, DateTime FechaHasta, int Categoria, int Formadepago);
     }
 }

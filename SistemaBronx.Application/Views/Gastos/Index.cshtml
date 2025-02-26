@@ -22,7 +22,40 @@
 }
 
 <div class="container-fluid mt-5">
-    <div class="row">
+
+    <div class="row mt-4 table-bordered table-borderless">
+
+        <div id="Filtros" class="divFiltros">
+
+            <label for="txtFechaDesde" class="lblfiltro">Fecha Desde</label>
+            <input type="date" class="input-nuevo" id="txtFechaDesde">
+
+            <label for="txtFechaHasta" class="lblfiltro">Fecha Hasta</label>
+            <input type="date" class="input-nuevo" id="txtFechaHasta">
+
+            <br />
+                
+            <label class="lblfiltro">Categoria</label>
+            <select id="CategoriasFiltro" name="select" class="input-nuevo">
+                <option value="" selected>Categoria</option>
+            </select>
+
+            <label class="lblfiltro">Forma de Pago</label>
+            <select id="FormasdePagoFiltro" name="select" class="input-nuevo">
+                <option value="" selected>Forma de Pago</option>
+            </select>
+
+            
+
+            <div class="vw-75 d-flex float-lg-end mt-2">
+                <a class="btn btn-success" id="aplicarFiltros" onclick="aplicarFiltros()">Aplicar</a>
+            </div>
+
+        </div>
+    </div>
+
+
+    <div class="row mt-5">
         <div class="col-lg-10">
             <div class="card" style="width: 88%; position: absolute; left: 7vw; border: none;">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -44,8 +77,9 @@
                                 <th>Fecha</th>
                                 <th>Categoria</th>
                                 <th>Forma de Pago</th>
-                                <th>IVA</th>
                                 <th>Importe Total</th>
+                                <th>IVA</th>
+                                <th>Sub Total</th>
                                 <th>Importe Abonado</th>
                                 <th>Saldo</th>
                                 <th>Comentarios</th>
@@ -83,32 +117,54 @@
                         <input type="text" class="input-nuevomodif" id="txtId" readonly>
                     </div>
                     <div class="form-group">
-                        <label id="lblNombre" for="txtNombre" class="lblNombreInput">Nombre (*)</label>
-                        <input type="text" class="input-nuevomodif" id="txtNombre" required>
+                        <label id="lblNombre" for="txtFecha" class="lblNombreInput">Fecha (*)</label>
+                        <input type="Date" class="input-nuevomodif" id="txtFecha" required>
                     </div>
+
                     <div class="form-group">
-                        <label for="txtTelefono" class="lblNombreInput">Teléfono</label>
-                        <input type="text" class="input-nuevomodif" id="txtTelefono">
-                    </div>
-                    <div class="form-group">
-                        <label for="txtDireccion" class="lblNombreInput">Dirección</label>
-                        <input type="text" class="input-nuevomodif" id="txtDireccion">
-                    </div>
-                    <div class="form-group">
-                        <label for="txtProvincia" class="lblNombreInput">Provincia</label>
-                        <select id="Provincias" name="select" class="input-nuevomodif select-modal-personalizado mt-2">
-                            <option value="" selected>Provincias</option>
+                        <label for="txtCategoria" class="lblNombreInput">Categoria</label>
+                        <select id="Categorias" name="select" class="input-nuevomodif select-modal-personalizado mt-2">
+                            <option value="" selected>Categoria</option>
                         </select>
                     </div>
 
-                    <div class="form-group mt-4">
-                        <label for="txtLocalidad" class="lblNombreInput">Localidad</label>
-                        <input type="text" class="input-nuevomodif" id="txtLocalidad">
-                    </div>
                     <div class="form-group">
-                        <label for="txtDni" class="lblNombreInput">DNI/CUIT</label>
-                        <input type="text" class="input-nuevomodif" id="txtDni">
+                        <label for="txtFormadePago" class="lblNombreInput">Forma de Pago</label>
+                        <select id="FormasdePago" name="select" class="input-nuevomodif select-modal-personalizado mt-2">
+                            <option value="" selected>Pago</option>
+                        </select>
                     </div>
+
+                    <div class="form-group">
+                        <label for="txtImporteTotal" class="lblNombreInput">Importe Total</label>
+                        <input type="text" class="input-nuevomodif" id="txtImporteTotal">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="txtIva" class="lblNombreInput">IVA</label>
+                        <input type="number" class="input-nuevomodif" id="txtIva">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="txtSubtotalNeto" class="lblNombreInput">SubTotal</label>
+                        <input type="text" class="input-nuevomodif" id="txtSubtotalNeto" disabled>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="txtImporteAbonado" class="lblNombreInput">Importe Abonado</label>
+                        <input type="text" class="input-nuevomodif" id="txtImporteAbonado">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="txtSaldo" class="lblNombreInput">Saldo</label>
+                        <input type="text" class="input-nuevomodif" id="txtSaldo" disabled>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="txtComentarios" class="lblNombreInput">Comentarios</label>
+                        <input type="text" class="input-nuevomodif" id="txtComentarios">
+                    </div>
+                  
                     
                 </form>
             </div>

@@ -13,9 +13,9 @@ namespace SistemaBronx.Application.Controllers
 
     public class ProductosCategoriasController : Controller
     {
-        private readonly IProductoService _Categoriaservice;
+        private readonly IProductoCategoriaService _Categoriaservice;
 
-        public ProductosCategoriasController(IProductoService Categoriaservice)
+        public ProductosCategoriasController(IProductoCategoriaService Categoriaservice)
         {
             _Categoriaservice = Categoriaservice;
         }
@@ -23,7 +23,7 @@ namespace SistemaBronx.Application.Controllers
         [HttpGet]
         public async Task<IActionResult> Lista()
         {
-            var Categorias = await _Categoriaservice.ObtenerCategorias();
+            var Categorias = await _Categoriaservice.ObtenerTodos();
 
             var lista = Categorias.Select(c => new VMProductoCategoria
             {
@@ -35,7 +35,60 @@ namespace SistemaBronx.Application.Controllers
             return Ok(lista);
         }
 
+         [HttpPost]
+        public async Task<IActionResult> Insertar([FromBody] VMProductoCategoria model)
+        {
+            var Categoria = new ProductosCategoria
+            {
+                Id = model.Id,
+                Nombre = model.Nombre,
+            };
 
+            bool respuesta = await _Categoriaservice.Insertar(Categoria);
+
+            return Ok(new { valor = respuesta });
+        }
+
+        [HttpPut]
+        public async Task<IActionResult> Actualizar([FromBody] VMProductoCategoria model)
+        {
+            var Categoria = new ProductosCategoria
+            {
+                Id = model.Id,
+                Nombre = model.Nombre,
+            };
+
+            bool respuesta = await _Categoriaservice.Actualizar(Categoria);
+
+            return Ok(new { valor = respuesta });
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> Eliminar(int id)
+        {
+            bool respuesta = await _Categoriaservice.Eliminar(id);
+
+            return StatusCode(StatusCodes.Status200OK, new { valor = respuesta });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> EditarInfo(int id)
+        {
+            var Categoria = await _Categoriaservice.Obtener(id);
+
+            if (Categoria != null)
+            {
+                return StatusCode(StatusCodes.Status200OK, Categoria);
+            }
+            else
+            {
+                return StatusCode(StatusCodes.Status404NotFound);
+            }
+        }
+        public IActionResult Privacy()
+        {
+            return View();
+        }
         
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()

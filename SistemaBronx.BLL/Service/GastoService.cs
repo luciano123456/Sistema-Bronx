@@ -34,9 +34,9 @@ namespace SistemaBronx.BLL.Service
         }
 
 
-        public async Task<IQueryable<Gasto>> ObtenerTodos()
+        public async Task<IQueryable<Gasto>> ObtenerTodos(DateTime FechaDesde, DateTime FechaHasta, int Categoria, int Formadepago)
         {
-            return await _contactRepo.ObtenerTodos();
+            return await _contactRepo.ObtenerTodos(FechaDesde, FechaHasta, Categoria, Formadepago);
         }
 
 

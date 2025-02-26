@@ -1,39 +1,60 @@
 ﻿let gridGastos;
 let isEditing = false;
 
+
+const importeTotalInput = document.getElementById('txtImporteTotal');
+const importeAbonadoInput = document.getElementById('txtImporteAbonado');
+const IvaInput = document.getElementById('txtIva');
+
+
 const columnConfig = [
     { index: 1, filterType: 'text' },
     { index: 2, filterType: 'select', fetchDataFunc: listaCategoriasFilter },
     { index: 3, filterType: 'select', fetchDataFunc: listaFormasdepagoFilter },
-    { index: 4, filterType: 'text', }, // Columna con un filtro de selección (de provincias)
+    { index: 4, filterType: 'text', },
     { index: 5, filterType: 'text' },
     { index: 6, filterType: 'text' },
     { index: 7, filterType: 'text' },
     { index: 8, filterType: 'text' },
+    { index: 9, filterType: 'text' },
 ];
 
 $(document).ready(() => {
 
-    listaGastos();
+
+    document.getElementById("txtFechaDesde").value = moment().add(-7, 'days').format('YYYY-MM-DD');
+    document.getElementById("txtFechaHasta").value = moment().format('YYYY-MM-DD');
+
+    listaGastos(document.getElementById("txtFechaDesde").value, document.getElementById("txtFechaHasta").value, -1, -1);
+
+    cargarFormasdePagoFiltro();
+    cargarCategoriasFiltro();
 
     $('#txtNombre').on('input', function () {
         validarCampos()
     });
+
+
 })
 
 
 
-function guardarCambios() {
+async function guardarCambios() {
     if (validarCampos()) {
+        await calcularGasto();
         const idGasto = $("#txtId").val();
         const nuevoModelo = {
             "Id": idGasto !== "" ? idGasto : 0,
-            "Nombre": $("#txtNombre").val(),
-            "Telefono": $("#txtTelefono").val(),
-            "Direccion": $("#txtDireccion").val(),
-            "IdProvincia": $("#Provincias").val(),
-            "Localidad": $("#txtLocalidad").val(),
-            "DNI": $("#txtDni").val()
+            "Fecha": $("#txtFecha").val(),
+            "Comentarios": $("#txtComentarios").val(),
+            "IdCategoria": $("#Categorias").val(),
+            "IdFormadePago": $("#FormasdePago").val(),
+
+            "ImporteAbonado": parseFloat(convertirMonedaAFloat($("#txtImporteAbonado").val())) || 0,
+            "ImporteTotal": parseFloat(convertirMonedaAFloat($("#txtImporteTotal").val())) || 0,
+            "SubTotalNeto": parseFloat(convertirMonedaAFloat($("#txtSubtotalNeto").val())) || 0,
+            "Iva": parseFloat($("#txtIva").val()) || 0,
+            "Saldo": parseFloat(convertirMonedaAFloat($("#txtSaldo").val())) || 0
         };
 
         const url = idGasto === "" ? "Gastos/Insertar" : "Gastos/Actualizar";
@@ -54,7 +75,7 @@ function guardarCambios() {
                 const mensaje = idGasto === "" ? "Gasto registrado correctamente" : "Gasto modificado correctamente";
                 $('#modalEdicion').modal('hide');
                 exitoModal(mensaje);
-                listaGastos();
+                aplicarFiltros();
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -74,9 +95,15 @@ function validarCampos() {
 
     return camposValidos;
 }
-function nuevoGasto() {
+async function nuevoGasto() {
     limpiarModal();
-    listaProvincias();
+
+
+    document.getElementById("txtFecha").value = moment().format('YYYY-MM-DD');
+
+    await listaCategoriasModal();
+    await listaFormasdepagoModal()
+
     $('#modalEdicion').modal('show');
     $("#btnGuardar").text("Registrar");
     $("#modalEdicionLabel").text("Nuevo Gasto");
@@ -85,62 +112,44 @@ function nuevoGasto() {
 }
 
 async function mostrarModal(modelo) {
-    const campos = ["Id", "Nombre", "Telefono", "Direccion", "IdProvincia", "Localidad", "Dni"];
+    const campos = ["Id", "Fecha", "Comentarios", "ImporteAbonado", "ImporteTotal", "SubtotalNeto", "Iva", "Saldo"];
     campos.forEach(campo => {
-        $(`#txt${campo}`).val(modelo[campo]);
+        if (campo == "ImporteAbonado" || campo == "ImporteTotal" || campo == "SubtotalNeto" || campo == "Saldo") {
+            $(`#txt${campo}`).val(formatNumber(modelo[campo]));
+        } else if(campo == "Fecha")
+        {
+            $(`#txt${campo}`).val(moment(modelo.Fecha, "YYYY-MM-DDTHH:mm:ss").format("YYYY-MM-DD"));
+        } else {
+            $(`#txt${campo}`).val(modelo[campo]);
+        }
     });
 
-    await listaProvincias();
+await listaCategoriasModal();
+await listaFormasdepagoModal();
 
-    document.getElementById("Provincias").value = modelo.IdProvincia;
+document.getElementById("FormasdePago").value = modelo.IdFormadePago;
+document.getElementById("Categorias").value = modelo.IdCategoria;
 
 
 
-    $('#modalEdicion').modal('show');
-    $("#btnGuardar").text("Guardar");
-    $("#modalEdicionLabel").text("Editar Gasto");
 
-    $('#lblNombre, #txtNombre').css('color', '').css('border-color', '');
+$('#modalEdicion').modal('show');
+$("#btnGuardar").text("Guardar");
+$("#modalEdicionLabel").text("Editar Gasto");
+
 }
-
 
 
 
 function limpiarModal() {
-    const campos = ["Id", "Nombre", "Telefono", "Direccion", "IdProvincia", "Localidad", "DNI"];
+    const campos = ["Id", "Fecha", "Comentarios", "ImporteAbonado", "ImporteTotal", "SubtotalNeto", "Iva", "Saldo"];
     campos.forEach(campo => {
         $(`#txt${campo}`).val("");
     });
 
-    $("#lblNombre, #txtNombre").css("color", "").css("border-color", "");
 }
 
 
-
-async function listaGastos() {
-    const url = `/Gastos/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-    await configurarDataTable(data);
-}
-
-async function listaProvincias() {
-    const url = `/Gastos/ListaProvincias`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    $('#Provincias option').remove();
-
-    selectProvincias = document.getElementById("Provincias");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        selectProvincias.appendChild(option);
-
-    }
-}
 
 
 
@@ -178,7 +187,7 @@ async function eliminarGasto(id) {
             const dataJson = await response.json();
 
             if (dataJson.valor) {
-                listaGastos();
+                aplicarFiltros();
                 exitoModal("Gasto eliminado correctamente")
             }
         } catch (error) {
@@ -227,8 +236,9 @@ async function configurarDataTable(data) {
                 { data: 'Fecha' },
                 { data: 'Categoria' },
                 { data: 'FormaPago' },
-                { data: 'Iva' },
                 { data: 'ImporteTotal' },
+                { data: 'Iva' },
+                { data: 'SubtotalNeto' },
                 { data: 'ImporteAbonado' },
                 { data: 'Saldo' },
                 { data: 'Comentarios' },
@@ -273,20 +283,31 @@ async function configurarDataTable(data) {
             "columnDefs": [
                 {
                     "render": function (data, type, row) {
+                        let formattedNumber = formatNumber(data);
+                        let color = data > 0 ? 'red' : 'green'; // Color según si es negativo o positivo
+                        return `<span style="color: ${color}; font-weight: bold;">${formattedNumber}</span>`;
+                    },
+                    "targets": [8] // Índice de la columna 'Saldo'
+                },
+                {
+                    "render": function (data, type, row) {
                         if (data) {
-                            const date = new Date(data); // Convierte la cadena en un objeto Date
-                            return date.toLocaleDateString('es-ES'); // Formato: 'DD/MM/YYYY'
+                         
+                            return moment(data, "YYYY-MM-DDTHH:mm:ss").add(12, 'hours').format('DD/MM/YYYY');
                         }
                     },
-                    "targets": [1] // Índices de las columnas de fechas
+                    "targets": [1]
                 },
+
                 {
                     "render": function (data, type, row) {
                         return formatNumber(data); // Formatear número en la columna
                     },
-                    "targets": [5, 6,7] // Columna Precio
+                    "targets": [4, 6, 7, 8] // Columna Precio
                 }
+
                
+
             ],
 
             initComplete: async function () {
@@ -367,6 +388,11 @@ async function configurarDataTable(data) {
             var colIndex = cell.index().column;
             var rowData = gridGastos.row($(this).closest('tr')).data();
 
+            if (colIndex == 0 || colIndex == 6 || colIndex == 8) {
+                return false;
+            }
+
+
             if (isEditing == true) {
                 return;
             } else {
@@ -384,7 +410,7 @@ async function configurarDataTable(data) {
             }
 
             // Si la columna es la de la provincia (por ejemplo, columna 3)
-            if (colIndex === 2 || colIndex === 3 ) {
+            if (colIndex === 2 || colIndex === 3) {
                 var select = $('<select class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
                     .appendTo($(this).empty())
                     .on('change', function () {
@@ -413,7 +439,7 @@ async function configurarDataTable(data) {
                     select.val(rowData.IdFormadePago);
                 } else if (colIndex == 2) {
                     select.val(rowData.IdCategoria);
-               
+
                 }
 
                 // Crear los botones de guardar y cancelar
@@ -431,8 +457,53 @@ async function configurarDataTable(data) {
                 // Enfocar el select
                 select.focus();
 
-            } else if (colIndex === 5 || colIndex === 6) {
+
+            } else if (colIndex === 1) { // Cambia el índice según tu columna de fecha
+                var fechaOriginal = originalData ? moment(originalData, "YYYY-MM-DDTHH:mm:ss").utc().format("YYYY-MM-DD") : '';
+
+                    var inputFecha = $('<input type="date" class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid blue; color: blue; text-align: center;" />')
+                        .val(fechaOriginal)
+                        .on('input', function () {
+                            var saveBtn = $(this).siblings('.fa-check');
+
+                            if ($(this).val().trim() === "") {
+                                $(this).css('border-bottom', '2px solid red');
+                                saveBtn.css('opacity', '0.5');
+                                saveBtn.prop('disabled', true);
+                            } else {
+                                $(this).css('border-bottom', '2px solid blue');
+                                saveBtn.css('opacity', '1');
+                                saveBtn.prop('disabled', false);
+                            }
+                        })
+                        .on('keydown', function (e) {
+                            if (e.key === 'Enter') {
+                                saveEdit(colIndex, gridGastos.row($(this).closest('tr')).data(), new Date(inputFecha.val()).toISOString().split('T')[0], inputFecha.val(), $(this).closest('tr'));
+
+
+                            } else if (e.key === 'Escape') {
+                                cancelEdit();
+                            }
+                        });
+
+                    var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
+                        if (!$(this).prop('disabled')) {
+                            saveEdit(colIndex, gridGastos.row($(this).closest('tr')).data(), new Date(inputFecha.val()).toISOString().split('T')[0], inputFecha.val(), $(this).closest('tr'));
+
+
+                        }
+                    });
+
+                    var cancelButton = $('<i class="fa fa-times text-danger"></i>').on('click', cancelEdit);
+
+                    $(this).empty().append(inputFecha).append(saveButton).append(cancelButton);
+
+                    inputFecha.focus();
+                
+
+            } else if (colIndex === 4 || colIndex === 6) {
                 var valueToDisplay = originalData ? originalData.toString().replace(/[^\d.-]/g, '') : '';
+
 
                 var input = $('<input type="text" class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
                     .val(formatoMoneda.format(valueToDisplay))
@@ -443,6 +514,10 @@ async function configurarDataTable(data) {
                             $(this).css('border-bottom', '2px solid red'); // Borde rojo
                             saveBtn.css('opacity', '0.5'); // Desactivar botón de guardar visualmente
                             saveBtn.prop('disabled', true); // Desactivar funcionalidad del botón
+                        } else {
+                            $(this).css('border-bottom', '2px solid green'); // Borde rojo
+                            saveBtn.css('opacity', '1'); // Desactivar botón de guardar visualmente
+                            saveBtn.prop('disabled', false); // Desactivar funcionalidad del botón
                         }
                     })
                 input.on('blur', function () {
@@ -535,7 +610,7 @@ async function configurarDataTable(data) {
 
 
                 // Verificar si el texto realmente ha cambiado
-                if (colIndex === 5 || colIndex === 6) { // Si es la columna PrecioCosto o PrecioVenta
+                if (colIndex === 4 || colIndex === 6) { // Si es la columna PrecioCosto o PrecioVenta
                     // Convertir ambos valores a números flotantes
                     var originalValue = parseFloat(originalText).toFixed(2);
                     var newValueFloat = parseFloat(convertirMonedaAFloat(newText)).toFixed(2);
@@ -553,44 +628,54 @@ async function configurarDataTable(data) {
                 }
 
 
+
                 // Actualizar el valor de la fila según la columna editada
                 if (colIndex === 2) { // Si es la columna de la dirección
                     rowData.IdCategoria = newValue;
                     rowData.Categoria = newText;
-                } else if (colIndex === 3) { // Si es la columna de la provincia
+                } else if (colIndex === 3) { // Si es la columna de forma de pago
                     rowData.IdFormadePago = newValue;
-                    rowData.FormaPago = newText;  
-                } else if (colIndex === 5) { // PrecioCosto
-                    rowData.PrecioCosto = parseFloat(convertirMonedaAFloat(newValue)); // Actualizar PrecioCosto
-
-                    var precioVentaCalculado = (parseFloat(rowData.PrecioCosto) + (parseFloat(rowData.PrecioCosto) * (rowData.PorcGanancia / 100)));
-                    precioVentaCalculado = parseFloat(precioVentaCalculado.toFixed(2));
-
-                    rowData.PrecioVenta = precioVentaCalculado;
-
-                    // Actualizar el porcentaje de ganancia basado en el PrecioCosto
-                    rowData.PorcGanancia = parseFloat(((rowData.PrecioVenta - rowData.PrecioCosto) / rowData.PrecioCosto) * 100).toFixed(2);
+                    rowData.FormaPago = newText;
+                } else if (colIndex === 7) { // Si es la columna de importe abonado
+                    rowData.ImporteAbonado = parseFloat(convertirMonedaAFloat(newText));
+                    rowData.Saldo = rowData.SubtotalNeto - rowData.ImporteAbonado;
 
                     // Obtener el índice visible para las columnas correspondientes
-                    var visibleIndex7 = gridInsumos.column(2).index('visible');
-                    var visibleIndex9 = gridInsumos.column(4).index('visible');
+                    var visibleIndex7 = gridGastos.column(8).index('visible');
 
                     // Aplicar el efecto de parpadeo a las celdas de PrecioCosto y PrecioVenta
                     $(trElement).find('td').eq(visibleIndex7).addClass('blinking');
-                    $(trElement).find('td').eq(visibleIndex9).addClass('blinking');
-                } else if (colIndex === 3) { // PorcentajeGanancia
-                    rowData.PorcGanancia = parseDecimal(newValue); // Actualizar PorcentajeGanancia
 
-                    // Calcular PrecioVenta basado en PrecioCosto y PorcentajeGanancia
-                    rowData.PrecioVenta = rowData.PrecioCosto + (rowData.PrecioCosto * (rowData.PorcGanancia / 100));
+                } else if (colIndex === 5) { // Si es la columna de Iva
+
+                    var precioSubtotal = (parseFloat(rowData.ImporteTotal) + (parseFloat(rowData.ImporteTotal) * (parseFloat(newValue) / 100)));
+                    precioSubtotal = parseFloat(precioSubtotal.toFixed(2));
+
+                    rowData.SubtotalNeto = precioSubtotal;
+
 
                     // Obtener el índice visible para las columnas correspondientes
-                    var visibleIndex8 = gridInsumos.column(3).index('visible');
-                    var visibleIndex9 = gridInsumos.column(4).index('visible');
+                    var visibleIndex7 = gridGastos.column(6).index('visible');
 
-                    // Aplicar el efecto de parpadeo a las celdas de PorcentajeGanancia y PrecioVenta
-                    $(trElement).find('td').eq(visibleIndex8).addClass('blinking');
-                    $(trElement).find('td').eq(visibleIndex9).addClass('blinking');
+                    // Aplicar el efecto de parpadeo a las celdas de PrecioCosto y PrecioVenta
+                    $(trElement).find('td').eq(visibleIndex7).addClass('blinking');
+
+                    rowData.Iva = newText;
+                } else if (colIndex === 4) { // PrecioCosto
+                    rowData.ImporteTotal = parseFloat(convertirMonedaAFloat(newValue)); // Actualizar PrecioCosto
+
+                    var precioSubtotal = (parseFloat(rowData.ImporteTotal) + (parseFloat(rowData.ImporteTotal) * (rowData.Iva / 100)));
+                    precioSubtotal = parseFloat(precioSubtotal.toFixed(2));
+
+                    rowData.SubtotalNeto = precioSubtotal;
+
+
+                    // Obtener el índice visible para las columnas correspondientes
+                    var visibleIndex7 = gridGastos.column(6).index('visible');
+
+                    // Aplicar el efecto de parpadeo a las celdas de PrecioCosto y PrecioVenta
+                    $(trElement).find('td').eq(visibleIndex7).addClass('blinking');
+
                 } else {
                     rowData[gridGastos.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
                 }
@@ -609,10 +694,9 @@ async function configurarDataTable(data) {
                 // Desactivar el modo de edición
                 isEditing = false;
 
-                // Eliminar la clase 'blinking' después de 3 segundos (para hacer el efecto de parpadeo)
                 setTimeout(function () {
-                    celda.removeClass('blinking');
-                }, 3000); // Duración de la animación de parpadeo (3 segundos)
+                    $(trElement).find('td').removeClass('blinking');
+                }, 3000);
             }
 
 
@@ -699,6 +783,14 @@ function configurarOpcionesColumnas() {
     });
 }
 
+async function listaGastos(fechaDesde, fechaHasta, categoria, formadepago) {
+    const url = `/Gastos/Lista?FechaDesde=${fechaDesde}&FechaHasta=${fechaHasta}&Categoria=${categoria}&FormadePago=${formadepago}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    await configurarDataTable(data);
+}
+
+
 
 
 async function listaCategoriasFilter() {
@@ -712,6 +804,7 @@ async function listaCategoriasFilter() {
     }));
 
 }
+
 
 
 async function listaFormasdepagoFilter() {
@@ -728,14 +821,121 @@ async function listaFormasdepagoFilter() {
 
 
 
-async function listaFormasdepago() {
-    const url = `/FormasdePago/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
+async function listaFormasdepagoModal() {
+    const data = await listaFormasdepagoFilter();
 
-    return data.map(dto => ({
-        Id: dto.Id,
-        Nombre: dto.Nombre
-    }));
+    $('#FormasdePago option').remove();
 
+    select = document.getElementById("FormasdePago");
+
+    for (i = 0; i < data.length; i++) {
+        option = document.createElement("option");
+        option.value = data[i].Id;
+        option.text = data[i].Nombre;
+        select.appendChild(option);
+    }
+
+}
+
+
+async function listaCategoriasModal() {
+    const data = await listaCategoriasFilter();
+
+    $('#Categorias option').remove();
+
+    select = document.getElementById("Categorias");
+
+    for (i = 0; i < data.length; i++) {
+        option = document.createElement("option");
+        option.value = data[i].Id;
+        option.text = data[i].Nombre;
+        select.appendChild(option);
+    }
+
+}
+
+async function cargarCategoriasFiltro() {
+    const data = await listaCategoriasFilter();
+
+    $('#CategoriasFiltro option').remove();
+
+    select = document.getElementById("CategoriasFiltro");
+
+    option = document.createElement("option");
+    option.value = "-1";
+    option.text = "Todos";
+    select.appendChild(option);
+
+    for (i = 0; i < data.length; i++) {
+        option = document.createElement("option");
+        option.value = data[i].Id;
+        option.text = data[i].Nombre;
+        select.appendChild(option);
+    }
+
+}
+
+async function cargarFormasdePagoFiltro() {
+    const data = await listaFormasdepagoFilter();
+
+    $('#FormasdePagoFiltro option').remove();
+
+    select = document.getElementById("FormasdePagoFiltro");
+
+            option = document.createElement("option");
+            option.value = "-1";
+            option.text = "Todos";
+            select.appendChild(option);
+
+    for (i = 0; i < data.length; i++) {
+        option = document.createElement("option");
+        option.value = data[i].Id;
+        option.text = data[i].Nombre;
+        select.appendChild(option);
+    }
+
+}
+
+async function aplicarFiltros() {
+    listaGastos(document.getElementById("txtFechaDesde").value, document.getElementById("txtFechaHasta").value, document.getElementById("CategoriasFiltro").value, document.getElementById("FormasdePagoFiltro").value);
+}
+
+importeTotalInput.addEventListener('blur', function () {
+    const rawValue = this.value.replace(/[^0-9.,]/g, '').replace(',', '.');
+    const parsedValue = parseFloat(rawValue) || 0;
+
+    // Formatear el número al finalizar la edición
+    this.value = formatNumber(parsedValue);
+
+    calcularGasto();
+
+});
+
+importeAbonadoInput.addEventListener('blur', function () {
+    const rawValue = this.value.replace(/[^0-9.,]/g, '').replace(',', '.');
+    const parsedValue = parseFloat(rawValue) || 0;
+
+    // Formatear el número al finalizar la edición
+    this.value = formatNumber(parsedValue);
+
+    calcularGasto();
+
+});
+
+IvaInput.addEventListener('blur', function () {
+    calcularGasto();
+
+});
+
+
+function calcularGasto() {
+    var ImporteTotal = parseFloat(convertirMonedaAFloat(importeTotalInput.value)) || 0;
+    var importeAbonado = parseFloat(convertirMonedaAFloat(importeAbonadoInput.value)) || 0;
+    var Iva = parseFloat(IvaInput.value) || 0; // Cambiado a parseFloat para evitar truncamiento
+    var SubTotalInput = document.getElementById("txtSubtotalNeto");
+    var SaldoInput = document.getElementById("txtSaldo");
+
+
+    SubTotalInput.value = formatNumber(ImporteTotal + (ImporteTotal * Iva / 100));
+    SaldoInput.value = formatNumber(parseFloat(convertirMonedaAFloat(SubTotalInput.value)) - importeAbonado);
 }

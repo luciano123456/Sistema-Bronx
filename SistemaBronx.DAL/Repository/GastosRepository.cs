@@ -77,13 +77,18 @@ namespace SistemaBronx.DAL.Repository
         }
 
 
-        public async Task<IQueryable<Gasto>> ObtenerTodos()
+        public async Task<IQueryable<Gasto>> ObtenerTodos(DateTime FechaDesde, DateTime FechaHasta, int Categoria, int Formadepago)
         {
             try
             {
                 IQueryable<Gasto> query = _dbcontext.Gastos
-                    .Include(c => c.IdCategoriaNavigation)
-                    .Include(c => c.IdFormadePagoNavigation);
+                                                         .Where(x => x.Fecha >= FechaDesde
+                                                                  && x.Fecha <= FechaHasta
+                                                                  && (x.IdCategoria == Categoria || Categoria == -1)
+                                                                  && (x.IdFormadePago == Formadepago || Formadepago == -1))
+                                                         .OrderByDescending(x => x.Fecha)
+                                                         .Include(c => c.IdCategoriaNavigation)
+                                                         .Include(c => c.IdFormadePagoNavigation);
 
                 return await Task.FromResult(query);
 

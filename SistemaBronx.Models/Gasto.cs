@@ -18,6 +18,7 @@ public partial class Gasto
     public decimal ImporteTotal { get; set; }
 
     public decimal ImporteAbonado { get; set; }
+    public decimal SubtotalNeto { get; set; }
 
     public decimal Saldo { get; set; }
 

@@ -69,6 +69,9 @@ builder.Services.AddScoped<IFormasdePagoService, FormasdePagoService>();
 builder.Services.AddScoped<IGastosRepository<Gasto>, GastosRepository>();
 builder.Services.AddScoped<IGastoService, GastoService>();
 
+builder.Services.AddScoped<IGenericRepository<ProductosCategoria>, ProductoCategoriaRepository>();
+builder.Services.AddScoped<IProductoCategoriaService, ProductoCategoriaService>();
+
 
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>

@@ -28,9 +28,9 @@ namespace SistemaBronx.Application.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Lista()
+        public async Task<IActionResult> Lista(DateTime FechaDesde, DateTime FechaHasta, int Categoria, int Formadepago)
         {
-            var Gastos = await _GastoService.ObtenerTodos();
+            var Gastos = await _GastoService.ObtenerTodos(FechaDesde, FechaHasta, Categoria, Formadepago);
 
             var lista = Gastos.Select(c => new VMGasto
             {
@@ -43,6 +43,7 @@ namespace SistemaBronx.Application.Controllers
                 IdCategoria = c.IdCategoria,
                 IdFormadePago = c.IdFormadePago,
                 Saldo = c.Saldo,
+                SubtotalNeto = c.SubtotalNeto,
                 FormaPago = c.IdFormadePagoNavigation.Nombre,
                 Categoria = c.IdCategoriaNavigation.Nombre
 
@@ -97,6 +98,7 @@ namespace SistemaBronx.Application.Controllers
                 IdFormadePago = model.IdFormadePago,
                 ImporteAbonado = model.ImporteAbonado,
                 ImporteTotal = model.ImporteTotal,
+                SubtotalNeto = model.SubtotalNeto,
                 Iva = model.Iva,
             };
 
@@ -118,6 +120,7 @@ namespace SistemaBronx.Application.Controllers
                 IdFormadePago = model.IdFormadePago,
                 ImporteAbonado = model.ImporteAbonado,
                 ImporteTotal = model.ImporteTotal,
+                SubtotalNeto = model.SubtotalNeto,
                 Iva = model.Iva,
             };
 
