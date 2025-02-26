@@ -44,7 +44,12 @@ $(document).ready(() => {
         allowClear: false
     });
 
-
+    $("#insumoSelect").select2({
+        width: "100%",
+        dropdownParent: $("#insumosModal"), // Asegura que el dropdown se muestre dentro del modal
+        placeholder: "Selecciona una opción",
+        allowClear: false
+    });
 })
 
 
@@ -308,6 +313,8 @@ async function anadirInsumo() {
         precioInput.val(formatoMoneda.format(costoUnitario));
         totalInput.val(formatoMoneda.format(costoUnitario));
     });
+
+
 
     insumoSelect.trigger("change");
 

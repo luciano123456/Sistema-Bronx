@@ -29,18 +29,34 @@
 
 
 
-/* Elimina los bordes y deja solo un borde inferior rojo */
-.select2-container--default .select2-selection--single {
+/* Aplica estilos solo a los Select2 que NO estén dentro del modal #insumosModal */
+.select2-container--default:not(#insumosModal .select2-container) .select2-selection--single {
     border: none !important;
-    border-bottom: 2px solid blue !important;
+    border-bottom: 2px solid red !important;
     border-radius: 0px !important;
     background-color: transparent !important;
     color: white !important;
     margin-top: -6px;
 }
 
-
-    .select2-container--default .select2-selection--single .select2-selection__rendered {
+    /* Aplica color blanco al texto, excepto en insumoSelect dentro de #insumosModal */
+    .select2-container--default:not(#insumosModal .select2-container)
+    .select2-selection--single .select2-selection__rendered {
         color: white !important;
         line-height: 28px;
+    }
+
+
+
+/* Aumenta la altura solo en Select2 dentro del modal #insumosModal */
+#insumosModal .select2-container--default .select2-selection--single {
+    height: 40px !important; /* Ajusta la altura */
+    line-height: 40px !important; /* Centra el texto */
+    padding: .300rem .10rem;
+    font-size: 1rem;
+}
+
+    /* Asegura que el texto dentro del input también se centre */
+    #insumosModal .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 28px !important;
     }

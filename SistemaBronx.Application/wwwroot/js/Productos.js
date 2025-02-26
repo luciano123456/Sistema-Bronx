@@ -4,8 +4,8 @@ let isEditing = false;
 
 const columnConfig = [
     { index: 1, filterType: 'text' },
-    { index: 2, filterType: 'text' },
-    { index: 3, filterType: 'select', fetchDataFunc: listaProductosCategoriaFilter },
+    { index: 2, filterType: 'select', fetchDataFunc: listaProductosCategoriaFilter },
+    { index: 3, filterType: 'text' },
     { index: 4, filterType: 'text' },
     { index: 5, filterType: 'text' },
 ];
@@ -115,11 +115,11 @@ function limpiarModal() {
 
 
 async function aplicarFiltros() {
-    listaProductos(document.getElementById("UnidadNegocioFiltro").value)
+    listaProductos()
 }
 
 
-async function listaProductos(UnidadNegocio) {
+async function listaProductos() {
     const url = `/Productos/Lista`;
     const response = await fetch(url);
     const data = await response.json();
