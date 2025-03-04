@@ -20,4 +20,6 @@ public partial class Proveedor
     public string? Cuit { get; set; }
 
     public virtual ICollection<Insumo> Insumos { get; set; } = new List<Insumo>();
+
+    public virtual ICollection<PedidosDetalleProceso> PedidosDetalleProcesos { get; set; } = new List<PedidosDetalleProceso>();
 }

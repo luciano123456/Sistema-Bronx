@@ -3,16 +3,16 @@ using SistemaBronx.Models;
 
 namespace SistemaBronx.BLL.Service
 {
-    public class Insumoservice : IInsumoService
+    public class PedidoCategoriaService : IPedidoCategoriaService
     {
 
-        private readonly IInsumoRepository<Insumo> _contactRepo;
+        private readonly IGenericRepository<PedidosCategoria> _contactRepo;
 
-        public Insumoservice(IInsumoRepository<Insumo> contactRepo)
+        public PedidoCategoriaService(IGenericRepository<PedidosCategoria> contactRepo)
         {
             _contactRepo = contactRepo;
         }
-        public async Task<bool> Actualizar(Insumo model)
+        public async Task<bool> Actualizar(PedidosCategoria model)
         {
             return await _contactRepo.Actualizar(model);
         }
@@ -22,22 +22,21 @@ namespace SistemaBronx.BLL.Service
             return await _contactRepo.Eliminar(id);
         }
 
-        public async Task<bool> Insertar(Insumo model)
+        public async Task<bool> Insertar(PedidosCategoria model)
         {
             return await _contactRepo.Insertar(model);
         }
 
-        public async Task<Insumo> Obtener(int id)
+        public async Task<PedidosCategoria> Obtener(int id)
         {
             return await _contactRepo.Obtener(id);
         }
 
 
-        public async Task<IQueryable<Insumo>> ObtenerTodos()
+        public async Task<IQueryable<PedidosCategoria>> ObtenerTodos()
         {
             return await _contactRepo.ObtenerTodos();
         }
-
 
 
 

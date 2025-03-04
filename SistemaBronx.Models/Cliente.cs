@@ -24,4 +24,6 @@ public partial class Cliente
     public decimal? SaldoAfavor { get; set; }
 
     public virtual Provincia? IdProvinciaNavigation { get; set; }
+
+    public virtual ICollection<Pedido> Pedidos { get; set; } = new List<Pedido>();
 }

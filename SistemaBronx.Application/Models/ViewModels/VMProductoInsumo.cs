@@ -14,6 +14,7 @@ namespace SistemaBronx.Application.Models.ViewModels
 
         public string? Especificacion { get; set; }
         public string? Nombre { get; set; }
+        public string? Categoria { get; set; }
 
         public decimal Cantidad { get; set; }
         public decimal CostoUnitario { get; set; }

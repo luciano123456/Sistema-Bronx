@@ -68,6 +68,25 @@ namespace SistemaBronx.Application.Controllers
             return Ok(lista);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> ListaInsumosProducto(int IdProducto)
+        {
+            var Insumos = await _ProductosService.ObtenerInsumos(IdProducto);
+
+            var lista = Insumos.Select(p => new VMProductoInsumo
+            {
+                Nombre = p.IdInsumoNavigation.Descripcion,
+                Cantidad = p.Cantidad,
+                IdInsumo = p.IdInsumo,
+                IdProducto = p.IdProducto,
+                CostoUnitario = (decimal)p.IdInsumoNavigation.PrecioVenta,
+                SubTotal = (decimal)p.IdInsumoNavigation.PrecioVenta * p.Cantidad
+            }).ToList();
+
+            return Ok(lista);
+        }
+
+
 
 
         [HttpPost]
@@ -180,7 +199,9 @@ namespace SistemaBronx.Application.Controllers
                     IdInsumo = p.IdInsumo,
                     IdProducto = p.IdProducto,
                     CostoUnitario = (decimal)p.IdInsumoNavigation.PrecioVenta,
-                    SubTotal = (decimal)p.IdInsumoNavigation.PrecioVenta * p.Cantidad
+                    SubTotal = (decimal)p.IdInsumoNavigation.PrecioVenta * p.Cantidad,
+                    Categoria = p.IdInsumoNavigation.IdCategoriaNavigation.Nombre
+                    
                 }).ToList();
 
 

@@ -39,7 +39,7 @@ namespace SistemaBronx.Application.Controllers
                 IdTipo = c.IdTipo,
                 IdCategoria = c.IdCategoria,
                 IdUnidadMedida = c.IdUnidadMedida,
-                IdProveedor = c.IdProveedor,
+                IdProveedor = (int)c.IdProveedor,
                 Especificacion = c.Especificacion,
                 PrecioCosto = c.PrecioCosto,
                 PorcGanancia = c.PorcGanancia,
@@ -82,9 +82,9 @@ namespace SistemaBronx.Application.Controllers
                 IdUnidadMedida = model.IdUnidadMedida,
                 IdProveedor =  model.IdProveedor,
                 Especificacion = model.Especificacion,
-                PrecioCosto = model.PrecioCosto,
-                PorcGanancia = model.PorcGanancia,
-                PrecioVenta = model.PrecioVenta,
+                PrecioCosto = (decimal)model.PrecioCosto,
+                PorcGanancia = (decimal)model.PorcGanancia,
+                PrecioVenta = (decimal)model.PrecioVenta,
             };
 
             bool respuesta = await _Insumoservice.Insertar(insumo);
@@ -104,9 +104,9 @@ namespace SistemaBronx.Application.Controllers
                 IdUnidadMedida = model.IdUnidadMedida,
                 IdProveedor = model.IdProveedor,
                 Especificacion = model.Especificacion,
-                PrecioCosto = model.PrecioCosto,
-                PorcGanancia = model.PorcGanancia,
-                PrecioVenta = model.PrecioVenta,
+                PrecioCosto = (decimal)model.PrecioCosto,
+                PorcGanancia = (decimal)model.PorcGanancia,
+                PrecioVenta = (decimal)model.PrecioVenta,
             };
 
             bool respuesta = await _Insumoservice.Actualizar(insumo);
@@ -134,7 +134,7 @@ namespace SistemaBronx.Application.Controllers
                 IdTipo = InsumoResp.IdTipo,
                 IdCategoria = InsumoResp.IdCategoria,
                 IdUnidadMedida = InsumoResp.IdUnidadMedida,
-                IdProveedor = InsumoResp.IdProveedor,
+                IdProveedor = (int)InsumoResp.IdProveedor,
                 Especificacion = InsumoResp.Especificacion,
                 PrecioCosto = InsumoResp.PrecioCosto,
                 PorcGanancia = InsumoResp.PorcGanancia,

@@ -36,6 +36,18 @@ public partial class SistemaBronxContext : DbContext
 
     public virtual DbSet<InsumosTipo> InsumosTipos { get; set; }
 
+    public virtual DbSet<Pedido> Pedidos { get; set; }
+
+    public virtual DbSet<PedidosCategoria> PedidosCategorias { get; set; }
+
+    public virtual DbSet<PedidosDetalle> PedidosDetalles { get; set; }
+
+    public virtual DbSet<PedidosDetalleProceso> PedidosDetalleProcesos { get; set; }
+
+    public virtual DbSet<PedidosEstado> PedidosEstados { get; set; }
+
+    public virtual DbSet<PedidosTipo> PedidosTipos { get; set; }
+
     public virtual DbSet<Producto> Productos { get; set; }
 
     public virtual DbSet<ProductosCategoria> ProductosCategorias { get; set; }
@@ -56,8 +68,7 @@ public partial class SistemaBronxContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-        //=> optionsBuilder.UseSqlServer("Server=DESKTOP-J2J16BG\\SQLEXPRESS; Database=Sistema_Bronx; Integrated Security=true; Trusted_Connection=True; Encrypt=False");
-        => optionsBuilder.UseSqlServer("Server=200.73.140.119; Database=Sistema_Bronx; User Id=PcJuan; Password=juan; Encrypt=False");
+        => optionsBuilder.UseSqlServer("Server=DESKTOP-J2J16BG\\SQLEXPRESS; Database=Sistema_Bronx; Integrated Security=true; Trusted_Connection=True; Encrypt=False");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -121,6 +132,8 @@ public partial class SistemaBronxContext : DbContext
 
         modelBuilder.Entity<Gasto>(entity =>
         {
+            entity.HasKey(e => e.Id).HasName("PK_Gastos_1");
+
             entity.Property(e => e.Comentarios)
                 .HasMaxLength(255)
                 .IsUnicode(false);
@@ -129,6 +142,7 @@ public partial class SistemaBronxContext : DbContext
             entity.Property(e => e.ImporteTotal).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Iva).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Saldo).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.SubtotalNeto).HasColumnType("decimal(20, 2)");
 
             entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.Gastos)
                 .HasForeignKey(d => d.IdCategoria)
@@ -191,12 +205,142 @@ public partial class SistemaBronxContext : DbContext
                 .IsUnicode(false);
         });
 
+        modelBuilder.Entity<Pedido>(entity =>
+        {
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Fecha).HasColumnType("datetime");
+            entity.Property(e => e.ImporteAbonado).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.Saldo).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.SubTotal).HasColumnType("decimal(20, 2)");
+
+            entity.HasOne(d => d.IdNavigation).WithOne(p => p.Pedido)
+                .HasForeignKey<Pedido>(d => d.Id)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Pedidos_FormasdePago");
+
+            entity.HasOne(d => d.IdClienteNavigation).WithMany(p => p.Pedidos)
+                .HasForeignKey(d => d.IdCliente)
+                .HasConstraintName("FK_Pedidos_Pedidos");
+
+            entity.HasOne(d => d.IdEstadoNavigation).WithMany(p => p.Pedidos)
+                .HasForeignKey(d => d.IdEstado)
+                .HasConstraintName("FK_Pedidos_Pedidos1");
+
+            entity.HasOne(d => d.IdTipoNavigation).WithMany(p => p.Pedidos)
+                .HasForeignKey(d => d.IdTipo)
+                .HasConstraintName("FK_Pedidos_PedidosTipos");
+        });
+
+        modelBuilder.Entity<PedidosCategoria>(entity =>
+        {
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<PedidosDetalle>(entity =>
+        {
+            entity.ToTable("PedidosDetalle");
+
+            entity.Property(e => e.Cantidad).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.CostoInicial).HasColumnType("decimal(20, 2)");
+
+            entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.PedidosDetalles)
+                .HasForeignKey(d => d.IdCategoria)
+                .HasConstraintName("FK_PedidosDetalle_PedidosCategorias");
+
+            entity.HasOne(d => d.IdColorNavigation).WithMany(p => p.PedidosDetalles)
+                .HasForeignKey(d => d.IdColor)
+                .HasConstraintName("FK_PedidosDetalle_Colores");
+
+            entity.HasOne(d => d.IdPedidoNavigation).WithMany(p => p.PedidosDetalles)
+                .HasForeignKey(d => d.IdPedido)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_PedidosDetalle_Pedidos");
+
+            entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.PedidosDetalles)
+                .HasForeignKey(d => d.IdProducto)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_PedidosDetalle_Productos");
+        });
+
+        modelBuilder.Entity<PedidosDetalleProceso>(entity =>
+        {
+            entity.Property(e => e.Cantidad).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.Comentarios)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.Descripcion)
+                .HasMaxLength(250)
+                .IsUnicode(false);
+            entity.Property(e => e.Especificacion)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.FechaActualizacion).HasColumnType("datetime");
+            entity.Property(e => e.PrecioUnitario).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.SubTotal).HasColumnType("decimal(20, 2)");
+
+            entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.PedidosDetalleProcesos)
+                .HasForeignKey(d => d.IdCategoria)
+                .HasConstraintName("FK_PedidosDetalleProcesos_PedidosCategorias");
+
+            entity.HasOne(d => d.IdColorNavigation).WithMany(p => p.PedidosDetalleProcesos)
+                .HasForeignKey(d => d.IdColor)
+                .HasConstraintName("FK_PedidosDetalleProcesos_Colores");
+
+            entity.HasOne(d => d.IdDetalleNavigation).WithMany(p => p.PedidosDetalleProcesos)
+                .HasForeignKey(d => d.IdDetalle)
+                .HasConstraintName("FK_PedidosDetalleProcesos_PedidosDetalle");
+
+            entity.HasOne(d => d.IdEstadoNavigation).WithMany(p => p.PedidosDetalleProcesos)
+                .HasForeignKey(d => d.IdEstado)
+                .HasConstraintName("FK_PedidosDetalleProcesos_PedidosEstados");
+
+            entity.HasOne(d => d.IdInsumoNavigation).WithMany(p => p.PedidosDetalleProcesos)
+                .HasForeignKey(d => d.IdInsumo)
+                .HasConstraintName("FK_PedidosDetalleProcesos_Insumos");
+
+            entity.HasOne(d => d.IdPedidoNavigation).WithMany(p => p.PedidosDetalleProcesos)
+                .HasForeignKey(d => d.IdPedido)
+                .HasConstraintName("FK_PedidosDetalleProcesos_Pedidos");
+
+            entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.PedidosDetalleProcesos)
+                .HasForeignKey(d => d.IdProducto)
+                .HasConstraintName("FK_PedidosDetalleProcesos_Productos");
+
+            entity.HasOne(d => d.IdProveedorNavigation).WithMany(p => p.PedidosDetalleProcesos)
+                .HasForeignKey(d => d.IdProveedor)
+                .HasConstraintName("FK_PedidosDetalleProcesos_Proveedores");
+
+            entity.HasOne(d => d.IdTipoNavigation).WithMany(p => p.PedidosDetalleProcesos)
+                .HasForeignKey(d => d.IdTipo)
+                .HasConstraintName("FK_PedidosDetalleProcesos_PedidosTipos");
+
+            entity.HasOne(d => d.IdUnidadMedidaNavigation).WithMany(p => p.PedidosDetalleProcesos)
+                .HasForeignKey(d => d.IdUnidadMedida)
+                .HasConstraintName("FK_PedidosDetalleProcesos_UnidadesDeMedida");
+        });
+
+        modelBuilder.Entity<PedidosEstado>(entity =>
+        {
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<PedidosTipo>(entity =>
+        {
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+        });
+
         modelBuilder.Entity<Producto>(entity =>
         {
+            entity.Property(e => e.CostoUnitario).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Nombre)
                 .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.CostoUnitario).HasColumnType("decimal(20, 2)");
 
             entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.Productos)
                 .HasForeignKey(d => d.IdCategoria)
@@ -224,7 +368,6 @@ public partial class SistemaBronxContext : DbContext
 
             entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.ProductosInsumos)
                 .HasForeignKey(d => d.IdProducto)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ProductosInsumos_ProductosInsumos");
         });
 

@@ -10,4 +10,6 @@ public partial class FormasdePago
     public string Nombre { get; set; } = null!;
 
     public virtual ICollection<Gasto> Gastos { get; set; } = new List<Gasto>();
+
+    public virtual Pedido? Pedido { get; set; }
 }
