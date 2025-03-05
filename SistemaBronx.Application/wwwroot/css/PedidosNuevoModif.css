@@ -40,10 +40,12 @@ select option:disabled {
 
 #productoModal .modal-body {
     background: #353c48;
+    
 }
 
 #productoModal .modal-header {
     background: #2a303a;
+    
 }
 
 #productoModal .modal-title {
@@ -52,12 +54,15 @@ select option:disabled {
 
 #grd_Productos_Modal {
     width: 100%;
+    
 }
 
     #grd_Productos_Modal tbody {
         display: block;
-        max-height: 415px;
-        overflow-y: auto;
+        max-height: 550px;
+        
+
+        
     }
 
         #grd_Productos_Modal thead,

@@ -187,6 +187,7 @@ namespace SistemaBronx.Application.Controllers
                     IdCategoria = model.IdCategoria,
                     PorcGanancia = model.PorcGanancia,
                     CostoUnitario = model.CostoUnitario,
+                    Categoria = model.IdCategoriaNavigation.Nombre
                 };
 
                 var ProductosInsumos = await _ProductosService.ObtenerInsumos(id);
@@ -201,7 +202,8 @@ namespace SistemaBronx.Application.Controllers
                     CostoUnitario = (decimal)p.IdInsumoNavigation.PrecioVenta,
                     SubTotal = (decimal)p.IdInsumoNavigation.PrecioVenta * p.Cantidad,
                     Categoria = p.IdInsumoNavigation.IdCategoriaNavigation.Nombre,
-                    Color = ""
+                    Color = "",
+                    IdColor = 0
                 }).ToList();
 
 

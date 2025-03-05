@@ -10,6 +10,7 @@ namespace SistemaBronx.Application.Models.ViewModels
         public int IdProducto { get; set; }
 
         public int IdInsumo { get; set; }
+        public int IdColor { get; set; }
 
 
         public string? Especificacion { get; set; }
