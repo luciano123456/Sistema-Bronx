@@ -121,8 +121,9 @@ async function configurarDataTableProductosModal(data) {
 
                     var data = gridProductosModal.row(this).data();
 
-                    const insumosProducto = await ObtenerInsumosProducto(data.Id);
-                    configurarDataTableInsumosModal(insumosProducto.Insumos);
+                    cargarInformacionProducto(data.Id);
+                  
+
                    
 
                     // Obtener la fila actual
@@ -169,63 +170,49 @@ async function configurarDataTableInsumosModal(data) {
             columns: [
                 { data: 'Cantidad' },
                 { data: 'Nombre' },
-                { data: 'Nombre' },
-                { data: 'Nombre' },
+                { data: 'Categoria' },
+                { data: 'Color' },
                 { data: 'Id', visible: false },
-
             ],
             orderCellsTop: true,
             fixedHeader: true,
-            "columnDefs": [
-
-                {
-                    "render": function (data, type, row) {
-                        return formatNumber(data); // Formatear números
-                    },
-                    "targets": [2] // Índices de las columnas de números
-                },
-
-            ],
-
+            "columnDefs": [],
             initComplete: async function () {
-
                 var api = this.api();
 
                 setTimeout(function () {
                     gridInsumosModal.columns.adjust();
                 }, 150);
 
+                let filasSeleccionadas = []; // Array para almacenar las filas seleccionadas
 
-                let filaSeleccionada = null; // Variable para almacenar la fila seleccionada
+                // Evento para seleccionar o deseleccionar filas
                 $('#grd_Insumos_Modal tbody').on('click', 'tr', function () {
-                    // Remover la clase de la fila anteriormente seleccionada
-                    if (filaSeleccionada) {
-                        $(filaSeleccionada).removeClass('selected');
-                        $('td', filaSeleccionada).removeClass('selected');
+                    var fila = $(this);
 
+                    // Verificar si la fila ya está seleccionada
+                    var index = filasSeleccionadas.indexOf(fila[0]);
+
+                    if (index === -1) {
+                        // Si no está seleccionada, agregarla
+                        filasSeleccionadas.push(fila[0]);
+                        fila.addClass('selected');
+                        $('td', fila).addClass('selected');
+                    } else {
+                        // Si ya está seleccionada, quitarla
+                        filasSeleccionadas.splice(index, 1);
+                        fila.removeClass('selected');
+                        $('td', fila).removeClass('selected');
                     }
-
-                    // Obtener la fila actual
-                    filaSeleccionada = $(this);
-
-                    // Agregar la clase a la fila actual
-                    $(filaSeleccionada).addClass('selected');
-                    $('td', filaSeleccionada).addClass('selected');
-
                 });
 
+                // Cambiar el cursor cuando el mouse esté sobre la tabla
                 $('body').on('mouseenter', '#grd_Insumos_Modal', function () {
                     $(this).css('cursor', 'pointer');
                 });
-
-
             },
         });
-
     } else {
-
-
-
         gridInsumosModal.clear().rows.add(data.$values).draw();
 
         setTimeout(function () {
@@ -233,7 +220,6 @@ async function configurarDataTableInsumosModal(data) {
         }, 250);
     }
 }
-
 
 
 
@@ -326,6 +312,11 @@ async function ObtenerInsumosProducto(id) {
     const response = await fetch(url);
     const data = await response.json();
     return data;
+}
+
+async function cargarInformacionProducto(id) {
+    const insumosProducto = await ObtenerInsumosProducto(id);
+    configurarDataTableInsumosModal(insumosProducto.Insumos);
 }
 
 

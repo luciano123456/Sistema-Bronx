@@ -200,8 +200,8 @@ namespace SistemaBronx.Application.Controllers
                     IdProducto = p.IdProducto,
                     CostoUnitario = (decimal)p.IdInsumoNavigation.PrecioVenta,
                     SubTotal = (decimal)p.IdInsumoNavigation.PrecioVenta * p.Cantidad,
-                    Categoria = p.IdInsumoNavigation.IdCategoriaNavigation.Nombre
-                    
+                    Categoria = p.IdInsumoNavigation.IdCategoriaNavigation.Nombre,
+                    Color = ""
                 }).ToList();
 
 

@@ -317,6 +317,7 @@ namespace SistemaBronx.DAL.Repository
 
                 List<ProductosInsumo> productos = _dbcontext.ProductosInsumos
                     .Include(c => c.IdInsumoNavigation)
+                    .Include(c => c.IdInsumoNavigation.IdCategoriaNavigation)
                     .Where(c => c.IdProducto == idProducto).ToList();
                 return productos;
 
