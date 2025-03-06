@@ -1,6 +1,8 @@
 ﻿let gridProductos = null;
 let gridProductosModal = null;
 let gridInsumosModal = null;
+let isEditing = false;
+
 
 $(document).ready(async function () {
 
@@ -65,7 +67,7 @@ async function listaColores() {
 
     }
 
-   
+
 }
 
 async function listaCategoriasFilter() {
@@ -117,7 +119,7 @@ async function configurarDataTableProductosModal(data) {
                 { data: 'Categoria' },
                 { data: 'CostoUnitario' },
                 { data: 'Id', visible: false },
-               
+
             ],
             orderCellsTop: true,
             fixedHeader: true,
@@ -153,9 +155,9 @@ async function configurarDataTableProductosModal(data) {
                     var data = gridProductosModal.row(this).data();
 
                     cargarInformacionProducto(data.Id);
-                  
 
-                   
+
+
 
                     // Obtener la fila actual
                     filaSeleccionada = $(this);
@@ -210,7 +212,7 @@ async function configurarDataTableInsumosModal(data) {
             orderCellsTop: true,
             fixedHeader: true,
             "columnDefs": [],
-            
+
             initComplete: async function () {
                 var api = this.api();
 
@@ -278,6 +280,177 @@ async function configurarDataTableInsumosModal(data) {
                     ultimaFilaSeleccionada = fila[0];
                 });
 
+                $('#grd_Insumos_Modal tbody').on('dblclick', 'td', async function () {
+                    var cell = gridInsumosModal.cell(this);
+                    var originalData = cell.data();
+                    var colIndex = cell.index().column;
+                    var rowData = gridInsumosModal.row($(this).closest('tr')).data();
+
+                    if (colIndex != 0 && colIndex != 3) {
+                        return;
+                    }
+
+                    if (isEditing == true) {
+                        return;
+                    } else {
+                        isEditing = true;
+                    }
+
+                    // Eliminar la clase 'blinking' si está presente
+                    if ($(this).hasClass('blinking')) {
+                        $(this).removeClass('blinking');
+                    }
+
+                    // Si ya hay un input o select, evitar duplicados
+                    if ($(this).find('input').length > 0 || $(this).find('select').length > 0) {
+                        return;
+                    }
+
+
+
+                    // Si la columna es la de la provincia (por ejemplo, columna 3)
+                    if (colIndex === 3) {
+                        var select = $('<select class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
+                            .appendTo($(this).empty())
+                            .on('change', function () {
+                                // No hacer nada en el change, lo controlamos con el botón de aceptar
+                            });
+
+                        // Estilo para las opciones del select
+                        select.find('option').css('color', 'white'); // Cambiar el color del texto de las opciones a blanco
+                        select.find('option').css('background-color', 'black'); // Cambiar el fondo de las opciones a negro
+
+                        // Obtener las provincias disponibles
+
+                        var result = null;
+
+
+                        result = await listaColoresFilter();
+
+                        result.forEach(function (res) {
+                            select.append('<option value="' + res.Id + '">' + res.Nombre + '</option>');
+                        });
+
+
+                        select.val(rowData.IdColor);
+
+
+                        // Crear los botones de guardar y cancelar
+                        var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
+                            var selectedValue = select.val();
+                            var selectedText = select.find('option:selected').text();
+                            saveEdit(colIndex, gridInsumosModal.row($(this).closest('tr')).data(), selectedText, selectedValue, $(this).closest('tr'));
+                        });
+
+                        var cancelButton = $('<i class="fa fa-times text-danger"></i>').on('click', cancelEdit);
+
+                        // Agregar los botones de guardar y cancelar en la celda
+                        $(this).append(saveButton).append(cancelButton);
+
+                        // Enfocar el select
+                        select.focus();
+
+                    } else {
+                        var valueToDisplay = originalData
+                        var input = $('<input type="text" class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
+                            .val(valueToDisplay)
+                            .on('input', function () {
+                                var saveBtn = $(this).siblings('.fa-check'); // Botón de guardar
+
+                                if (colIndex === 0) { // Validar solo si es la columna 0
+                                    if ($(this).val().trim() === "") {
+                                        $(this).css('border-bottom', '2px solid red'); // Borde rojo
+                                        saveBtn.css('opacity', '0.5'); // Desactivar botón de guardar visualmente
+                                        saveBtn.prop('disabled', true); // Desactivar funcionalidad del botón
+                                    } else {
+                                        $(this).css('border-bottom', '2px solid green'); // Borde verde
+                                        saveBtn.css('opacity', '1'); // Habilitar botón de guardar visualmente
+                                        saveBtn.prop('disabled', false); // Habilitar funcionalidad del botón
+                                    }
+                                }
+                            })
+                            .on('keydown', function (e) {
+                                if (e.key === 'Enter') {
+                                    saveEdit(colIndex, gridInsumosModal.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                                } else if (e.key === 'Escape') {
+                                    cancelEdit();
+                                }
+                            });
+
+
+                        var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
+                            if (!$(this).prop('disabled')) { // Solo guardar si el botón no está deshabilitado
+                                saveEdit(colIndex, gridInsumosModal.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                            }
+                        });
+
+                        var cancelButton = $('<i class="fa fa-times text-danger"></i>').on('click', cancelEdit);
+
+                        // Reemplazar el contenido de la celda
+                        $(this).empty().append(input).append(saveButton).append(cancelButton);
+
+                        input.focus();
+                    }
+
+
+                    // Función para guardar los cambios
+                    function saveEdit(colIndex, rowData, newText, newValue, trElement) {
+                        // Obtener el nombre de la propiedad basado en el dataSrc
+
+
+                        // Convertir el índice de columna (data index) al índice visible
+                        var visibleIndex = gridInsumosModal.column(colIndex).index('visible');
+
+                        // Obtener la celda visible y aplicar la clase blinking
+                        var celda = $(trElement).find('td').eq(visibleIndex);
+
+                        // Obtener el valor original de la celda
+                        var originalText = gridInsumosModal.cell(trElement, celda).data();
+
+                        if (colIndex === 5) {
+                            var tempDiv = document.createElement('div'); // Crear un div temporal
+                            tempDiv.innerHTML = originalText; // Establecer el HTML de la celda
+                            originalText = tempDiv.textContent.trim(); // Extraer solo el texto
+                            newText = newText.trim();
+                        }
+
+
+                        // Actualizar el valor de la fila según la columna editada
+                        if (colIndex === 5) { // Si es la columna de la dirección
+                            rowData.Ubicacion = newText;
+
+                        } else {
+                            rowData[gridInsumosModal.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
+                        }
+
+                        // Actualizar la fila en la tabla con los nuevos datos
+                        gridInsumosModal.row(trElement).data(rowData).draw();
+
+                        // Aplicar el parpadeo solo si el texto cambió
+                        if (originalText !== newText) {
+                            celda.addClass('blinking'); // Aplicar la clase 'blinking' a la celda que fue editada
+                        }
+
+
+                        // Desactivar el modo de edición
+                        isEditing = false;
+
+                        // Remover la clase blinking después de 3 segundos
+                        setTimeout(function () {
+                            celda.removeClass('blinking');
+                        }, 3000);
+                    }
+
+
+
+                    // Función para cancelar la edición
+                    function cancelEdit() {
+                        // Restaurar el valor original
+                        gridInsumosModal.cell(cell.index()).data(originalData).draw();
+                        isEditing = false;
+                    }
+                });
+
                 // Para asegurarnos de que las filas seleccionadas se mantengan consistentes con los eventos de Ctrl y Shift
                 $('#grd_Insumos_Modal tbody').on('click', 'tr', function (event) {
                     var fila = $(this);
@@ -308,7 +481,7 @@ async function configurarDataTableInsumosModal(data) {
 $('#ProductoModalCantidad').on('keyup', function () {
     // Obtener el color seleccionado
     var cantidad = $(this).val(); // El valor es el ID del color
-   
+
 
     // Actualizar las celdas correspondientes en la tabla
     $('#grd_Insumos_Modal tbody tr').each(function () {
@@ -320,7 +493,7 @@ $('#ProductoModalCantidad').on('keyup', function () {
 
         // Establecer el nuevo valor y el nuevo texto en las celdas
         celdaCantidad.text(cantidad); // Poner el ID del color en "IdColor"
-        
+
     });
 });
 
@@ -420,7 +593,7 @@ async function cargarDatosProductoModal() {
     listaCategorias();
     listaColores();
     configurarDataTableProductosModal(datosProducto);
-    
+
 }
 
 
@@ -458,7 +631,7 @@ async function cargarInformacionProducto(id) {
     var totalConGanancia = totalInsumos + totalGanancia;
     var totalIva = totalConGanancia * (Producto.PorcIva / 100);
 
-    
+
 
     document.getElementById("ProductoModalNombre").value = Producto.Nombre;
     document.getElementById("ProductoModalCategoria").value = Producto.Categoria;
@@ -481,7 +654,7 @@ async function anadirProducto() {
     await cargarDatosProductoModal();
     await configurarDataTableInsumosModal(null);
     $("#productoModal").modal('show');
-  
+
 }
 
 
