@@ -555,3 +555,9 @@ table.dataTable.row-border tbody th, table.dataTable.row-border tbody td, table.
 select option:disabled {
     color: red; /* Cambiar el color de la letra a rojo */
 }
+
+input:disabled {
+    background: rgb(128, 128, 128, 0.20) !important ; /* Color gris claro de fondo */
+    color: white;
+    cursor: not-allowed; /* Cambia el cursor para indicar que no se puede interactuar */
+}

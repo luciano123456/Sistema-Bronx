@@ -2,9 +2,13 @@
 let gridProductosModal = null;
 let gridInsumosModal = null;
 let isEditing = false;
+let filasSeleccionadas = []; // Array para almacenar las filas seleccionadas
+let filaSeleccionadaProductos = null; // Variable para almacenar la fila seleccionada
 
 
 $(document).ready(async function () {
+
+
 
     document.getElementById("Fecha").value = moment().format('YYYY-MM-DD');
 
@@ -26,6 +30,42 @@ $(document).ready(async function () {
         allowClear: false
     });
 
+    $("#Categorias").on("change", function () {
+        var textoSeleccionado = $(this).find("option:selected").text().toLowerCase().trim(); // Obtener el texto seleccionado de la lista de categorías
+
+        // Si se selecciona "Todos", mostrar todas las filas
+        if (textoSeleccionado === "todos") {
+            $("#grd_Productos_Modal tbody tr").show(); // Muestra todas las filas
+            // Eliminar mensaje de "No se encontraron resultados" si está presente
+            $("#grd_Productos_Modal tbody tr:contains('No hay datos disponibles en la tabla')").remove();
+        } else {
+            // Filtrar las filas de la tabla
+            var foundAny = false; // Variable para saber si encontramos al menos una coincidencia
+
+            $("#grd_Productos_Modal tbody tr").each(function () {
+                var categoriaTexto = $(this).find('td').eq(1).text().toLowerCase().trim(); // Ajusta el índice de la columna si es necesario
+                if (categoriaTexto.indexOf(textoSeleccionado) > -1) {
+                    $(this).show(); // Mostrar la fila si hay coincidencia
+                    foundAny = true; // Marcamos que encontramos una coincidencia
+                } else {
+                    $(this).hide(); // Ocultar la fila si no hay coincidencia
+                }
+            });
+
+            // Si no se encontró ninguna coincidencia, mostrar un mensaje o hacer algo
+            if (!foundAny) {
+                // Verificar si ya existe la fila de "No se encontraron resultados"
+                if ($("#grd_Productos_Modal tbody tr:contains('No hay datos disponibles en la tabla')").length === 0) {
+                    $("#grd_Productos_Modal tbody").append('<tr><td colspan="5" class="text-center">No hay datos disponibles en la tabla</td></tr>');
+                }
+            } else {
+                // Si hay coincidencias, asegurarse de que cualquier mensaje previo sea eliminado
+                $("#grd_Productos_Modal tbody tr:contains('No hay datos disponibles en la tabla')").remove();
+            }
+        }
+    });
+
+
 
     $("#busqueda").on("keyup", function () {
         var value = $(this).val().toLowerCase();
@@ -35,9 +75,22 @@ $(document).ready(async function () {
     });
 
 
+    
+
 
 });
 
+async function listaEstadosFilter() {
+    const url = `/PedidosEstados/Lista`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    return data.map(x => ({
+        Id: x.Id,
+        Nombre: x.Nombre
+    }));
+
+}
 
 async function listaColoresFilter() {
     const url = `/Colores/Lista`;
@@ -90,6 +143,11 @@ async function listaCategorias() {
 
     select = document.getElementById("Categorias");
 
+    ption = document.createElement("option");
+    option.value = "-1"
+    option.text = "Todos"
+    select.appendChild(option);
+
     for (i = 0; i < data.length; i++) {
         option = document.createElement("option");
         option.value = data[i].Id;
@@ -111,8 +169,9 @@ async function configurarDataTableProductosModal(data) {
                 url: "//cdn.datatables.net/plug-ins/2.0.7/i18n/es-MX.json"
             },
             paging: false,  // Desactiva la paginación
-            scrollX: "200px",
-            scrollCollapse: true,
+            scrollX: true,  // Asegura que se pueda hacer scroll horizontal
+            scrollY: "400px",  // Ajusta la altura para el scroll vertical
+            scrollCollapse: true,  // Habilita el colapso del scroll si hay pocas filas
             searching: false, // 🔹 Esto oculta el campo de búsqueda
             columns: [
                 { data: 'Nombre' },
@@ -140,31 +199,31 @@ async function configurarDataTableProductosModal(data) {
 
                 setTimeout(function () {
                     gridProductosModal.columns.adjust();
-                }, 150);
+                }, 250);
 
 
-                let filaSeleccionada = null; // Variable para almacenar la fila seleccionada
+                
                 $('#grd_Productos_Modal tbody').on('click', 'tr', async function () {
                     // Remover la clase de la fila anteriormente seleccionada
-                    if (filaSeleccionada) {
-                        $(filaSeleccionada).removeClass('selected');
-                        $('td', filaSeleccionada).removeClass('selected');
+                    if (filaSeleccionadaProductos) {
+                        $(filaSeleccionadaProductos).removeClass('selected');
+                        $('td', filaSeleccionadaProductos).removeClass('selected');
 
                     }
 
                     var data = gridProductosModal.row(this).data();
 
-                    cargarInformacionProducto(data.Id);
-
-
+                    if (data != null) {
+                        cargarInformacionProducto(data.Id);
+                    }
 
 
                     // Obtener la fila actual
-                    filaSeleccionada = $(this);
+                    filaSeleccionadaProductos = $(this);
 
                     // Agregar la clase a la fila actual
-                    $(filaSeleccionada).addClass('selected');
-                    $('td', filaSeleccionada).addClass('selected');
+                    $(filaSeleccionadaProductos).addClass('selected');
+                    $('td', filaSeleccionadaProductos).addClass('selected');
 
                 });
 
@@ -198,19 +257,28 @@ async function configurarDataTableInsumosModal(data) {
                 url: "//cdn.datatables.net/plug-ins/2.0.7/i18n/es-MX.json"
             },
             paging: false,  // Desactiva la paginación
-            scrollX: "200px",
-            scrollCollapse: true,
+            scrollX: true,  // Asegura que se pueda hacer scroll horizontal
+            scrollY: "200px",  // Ajusta la altura para el scroll vertical
+            scrollCollapse: true,  // Habilita el colapso del scroll si hay pocas filas
             searching: false, // 🔹 Esto oculta el campo de búsqueda
             columns: [
                 { data: 'Cantidad' },
                 { data: 'Nombre' },
                 { data: 'Categoria' },
-                { data: 'Color', name: 'Color' },
                 { data: 'IdColor', visible: false, name: 'IdColor' },
+                { data: 'Color', name: 'Color' },  // Establece el ancho para la columna de Color
+                { data: 'IdEstado', visible: false },
+                { data: 'Estado', },  // Establece el ancho para la columna de Estado
+                { data: 'IdTipo', visible: false },
+                { data: 'Tipo', },  // Establece el ancho para la columna de Estado
+                { data: 'Especificacion' },
+                { data: 'Comentarios' },
                 { data: 'Id', visible: false },
             ],
+            
             orderCellsTop: true,
             fixedHeader: true,
+
             "columnDefs": [],
 
             initComplete: async function () {
@@ -218,14 +286,13 @@ async function configurarDataTableInsumosModal(data) {
 
                 setTimeout(function () {
                     gridInsumosModal.columns.adjust();
-                }, 150);
+                }, 250);
 
-                let filasSeleccionadas = []; // Array para almacenar las filas seleccionadas
+               
 
                 // Variable para almacenar la última fila seleccionada
                 var ultimaFilaSeleccionada = null;
 
-                // Evento para seleccionar o deseleccionar filas
                 $('#grd_Insumos_Modal tbody').on('click', 'tr', function (event) {
                     var fila = $(this);
 
@@ -269,24 +336,36 @@ async function configurarDataTableInsumosModal(data) {
                         });
                     } else {
                         // Si no se presiona Ctrl/Cmd ni Shift, selecciona solo esta fila
-                        filasSeleccionadas = [fila[0]]; // Reemplazamos la selección con la nueva fila
-                        $('#grd_Insumos_Modal tbody tr').removeClass('selected');
-                        $('#grd_Insumos_Modal tbody tr td').removeClass('selected');
-                        fila.addClass('selected');
-                        $('td', fila).addClass('selected');
+                        if (filasSeleccionadas.length === 1 && filasSeleccionadas.includes(fila[0])) {
+                            // Si ya está seleccionada y es la única fila seleccionada, deseleccionarla
+                            filasSeleccionadas = []; // Vaciar el array
+                            $('#grd_Insumos_Modal tbody tr').removeClass('selected');
+                            $('#grd_Insumos_Modal tbody tr td').removeClass('selected');
+                        } else {
+                            // Reemplazamos la selección con la nueva fila
+                            filasSeleccionadas = [fila[0]];
+                            $('#grd_Insumos_Modal tbody tr').removeClass('selected');
+                            $('#grd_Insumos_Modal tbody tr td').removeClass('selected');
+                            fila.addClass('selected');
+                            $('td', fila).addClass('selected');
+                        }
                     }
 
                     // Actualizar la última fila seleccionada
                     ultimaFilaSeleccionada = fila[0];
                 });
 
+
                 $('#grd_Insumos_Modal tbody').on('dblclick', 'td', async function () {
                     var cell = gridInsumosModal.cell(this);
                     var originalData = cell.data();
+                    if (cell.index() == undefined) {
+                        return;
+                    }
                     var colIndex = cell.index().column;
                     var rowData = gridInsumosModal.row($(this).closest('tr')).data();
 
-                    if (colIndex != 0 && colIndex != 3) {
+                    if (colIndex != 0 && colIndex != 4 && colIndex != 5 && colIndex != 6 && colIndex != 7 && colIndex != 8) {
                         return;
                     }
 
@@ -309,7 +388,7 @@ async function configurarDataTableInsumosModal(data) {
 
 
                     // Si la columna es la de la provincia (por ejemplo, columna 3)
-                    if (colIndex === 3) {
+                    if (colIndex === 4 || colIndex == 6) {
                         var select = $('<select class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
                             .appendTo($(this).empty())
                             .on('change', function () {
@@ -325,14 +404,21 @@ async function configurarDataTableInsumosModal(data) {
                         var result = null;
 
 
-                        result = await listaColoresFilter();
+                        if (colIndex == 4) {
+                            result = await listaColoresFilter();
+                        } else if (colIndex == 6) {
+                            result = await listaEstadosFilter();
+                        }
 
                         result.forEach(function (res) {
                             select.append('<option value="' + res.Id + '">' + res.Nombre + '</option>');
                         });
 
-
-                        select.val(rowData.IdColor);
+                        if (colIndex == 4) {
+                            select.val(rowData.IdColor);
+                        } else if (colIndex == 6) {
+                            select.val(rowData.IdEstado);
+                        }
 
 
                         // Crear los botones de guardar y cancelar
@@ -407,17 +493,10 @@ async function configurarDataTableInsumosModal(data) {
                         // Obtener el valor original de la celda
                         var originalText = gridInsumosModal.cell(trElement, celda).data();
 
-                        if (colIndex === 5) {
-                            var tempDiv = document.createElement('div'); // Crear un div temporal
-                            tempDiv.innerHTML = originalText; // Establecer el HTML de la celda
-                            originalText = tempDiv.textContent.trim(); // Extraer solo el texto
-                            newText = newText.trim();
-                        }
-
-
                         // Actualizar el valor de la fila según la columna editada
-                        if (colIndex === 5) { // Si es la columna de la dirección
-                            rowData.Ubicacion = newText;
+                        if (colIndex === 4) { // Columna de la provincia
+                            rowData.IdColor = newValue;
+                            rowData.Color = newText;
 
                         } else {
                             rowData[gridInsumosModal.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
@@ -479,45 +558,138 @@ async function configurarDataTableInsumosModal(data) {
 
 
 $('#ProductoModalCantidad').on('keyup', function () {
-    // Obtener el color seleccionado
-    var cantidad = $(this).val(); // El valor es el ID del color
+    // Obtener el valor de la cantidad
+    var cantidad = $(this).val();
 
+    // Verificar si hay filas en gridInsumosModal
+    var filasEnGrid = gridInsumosModal.rows().data().length;
 
-    // Actualizar las celdas correspondientes en la tabla
-    $('#grd_Insumos_Modal tbody tr').each(function () {
-        var tr = $(this); // Referencia al <tr> actual
+    // Si no hay filas en el grid, no hacer nada
+    if (filasEnGrid === 0) {
+        return; // Detener la ejecución si no hay filas
+    }
 
-        // Obtener las celdas de "IdColor" (columna oculta) y "Color" (columna visible)
-        var celdaCantidad = tr.find('td').eq(0); // Columna "IdColor" (índice 3, columna oculta)
+    // Verificar si hay filas seleccionadas
+    if (filasSeleccionadas.length > 0) {
+        // Si hay filas seleccionadas, actualizar solo esas
+        filasSeleccionadas.forEach(function (fila) {
+            var tr = $(fila); // Referencia al <tr> actual
+            var rowData = gridInsumosModal.row(tr).data(); // Obtener los datos de la fila
 
+            if (cantidad == '') {
+                cantidad = 1;
+            }
 
-        // Establecer el nuevo valor y el nuevo texto en las celdas
-        celdaCantidad.text(cantidad); // Poner el ID del color en "IdColor"
+            // Actualizar el objeto rowData
+            rowData.Cantidad = parseInt(cantidad);  // Actualizar la cantidad en rowData
 
-    });
+            calcularIVAyGanancia();
+
+            // Actualizar la tabla con el nuevo rowData
+            gridInsumosModal.row(tr).data(rowData).draw();
+        });
+    } else {
+        // Si no hay filas seleccionadas, actualizar todas las filas
+        $('#grd_Insumos_Modal tbody tr').each(function () {
+            var tr = $(this); // Referencia al <tr> actual
+            var rowData = gridInsumosModal.row(tr).data(); // Obtener los datos de la fila
+
+            if (cantidad == '') {
+                cantidad = 1;
+            }
+            // Actualizar el objeto rowData
+            rowData.Cantidad = parseInt(cantidad);  // Actualizar la cantidad en rowData
+
+            calcularIVAyGanancia();
+
+            // Actualizar la tabla con el nuevo rowData
+            gridInsumosModal.row(tr).data(rowData).draw();
+        });
+    }
 });
+
+
 
 $('#Colores').on('change', function () {
     // Obtener el color seleccionado
+
+    // Verificar si hay filas en gridInsumosModal
+    var filasEnGrid = gridInsumosModal.rows().data().length;
+
+    // Si no hay filas en el grid, no hacer nada
+    if (filasEnGrid === 0) {
+        return; // Detener la ejecución si no hay filas
+    }
+
     var idColorSeleccionado = $(this).val(); // El valor es el ID del color
     var colorSeleccionadoTexto = $('#Colores option:selected').text(); // El texto es el nombre del color
 
-    // Actualizar las celdas correspondientes en la tabla
-    $('#grd_Insumos_Modal tbody tr').each(function () {
-        var tr = $(this); // Referencia al <tr> actual
+    // Verificar si hay filas seleccionadas
+    if (filasSeleccionadas.length > 0) {
+        // Si hay filas seleccionadas, actualizar solo esas
+        filasSeleccionadas.forEach(function (fila) {
+            var tr = $(fila); // Referencia al <tr> actual
+            var rowData = gridInsumosModal.row(tr).data(); // Obtener los datos de la fila
 
-        // Obtener las celdas de "IdColor" (columna oculta) y "Color" (columna visible)
-        var celdaIdColor = tr.find('td').eq(4); // Columna "IdColor" (índice 3, columna oculta)
-        var celdaColor = tr.find('td').eq(3); // Columna "Color" (índice 4, columna visible)
+            // Actualizar el objeto rowData
+            rowData.Color = colorSeleccionadoTexto;  // Actualiza el color en rowData
+            rowData.IdColor = idColorSeleccionado;  // Actualiza el ID del color
 
-        // Establecer el nuevo valor y el nuevo texto en las celdas
-        celdaIdColor.text(idColorSeleccionado); // Poner el ID del color en "IdColor"
-        celdaColor.text(colorSeleccionadoTexto); // Poner el nombre del color en "Color"
-    });
+            // Actualizar la tabla con el nuevo rowData
+            gridInsumosModal.row(tr).data(rowData).draw();
+        });
+    } else {
+        // Si no hay filas seleccionadas, actualizar todas las filas
+        $('#grd_Insumos_Modal tbody tr').each(function () {
+            var tr = $(this); // Referencia al <tr> actual
+            var rowData = gridInsumosModal.row(tr).data(); // Obtener los datos de la fila
+
+            // Actualizar el objeto rowData
+            rowData.Color = colorSeleccionadoTexto;  // Actualiza el color en rowData
+            rowData.IdColor = idColorSeleccionado;  // Actualiza el ID del color
+
+            // Actualizar la tabla con el nuevo rowData
+            gridInsumosModal.row(tr).data(rowData).draw();
+        });
+    }
 });
 
 
 
+$('#btnEliminarInsumo').on('click', function () {
+    // Verificar si hay filas seleccionadas
+    if (filasSeleccionadas.length === 0) {
+        alert("No tienes ninguna fila seleccionada.");
+        return;
+    }
+
+    // Verificar cuántas filas están en la tabla
+    var cantidadFilasTotales = gridInsumosModal.data().length;
+    var cantidadFilasSeleccionadas = filasSeleccionadas.length;
+
+    // Verificar si al eliminar las filas seleccionadas se quedaría con menos de una fila
+    if (cantidadFilasTotales - cantidadFilasSeleccionadas < 1) {
+        alert("No puedes eliminar todas las filas. Debe quedar al menos un insumo.");
+        return;
+    }
+
+    // Confirmar eliminación
+    var confirmacion = confirm("¿Deseas eliminar " + cantidadFilasSeleccionadas + " registro(s)?");
+
+    if (confirmacion) {
+        // Eliminar las filas seleccionadas
+        filasSeleccionadas.forEach(function (fila) {
+            var tr = $(fila); // Referencia al <tr> actual
+            var rowData = gridInsumosModal.row(tr).data(); // Obtener los datos de la fila
+
+            // Eliminar la fila de la tabla
+            gridInsumosModal.row(tr).remove().draw();
+        });
+
+        // Limpiar el array de filas seleccionadas
+        filasSeleccionadas = [];
+    }
+});
 
 async function configurarDataTableProductos(data) {
     if (gridProductos == null) {
@@ -532,18 +704,27 @@ async function configurarDataTableProductos(data) {
             scrollCollapse: true,
             searching: false, // 🔹 Esto oculta el campo de búsqueda
             columns: [
+                { data: 'IdProducto', visible: false },
                 { data: 'Nombre' },
+                { data: 'IdCategoria', visible: false },
+                { data: 'Categoria' },
                 { data: 'CostoUnitario' },
                 { data: 'Cantidad' },
+                { data: 'PorcGanancia' },
+                { data: 'Ganancia' },
+                { data: 'PorcIva' },
+                { data: 'IVA' },
                 { data: 'SubTotal' },
+                { data: 'IdColor', visible: false },
+                { data: 'Color' },
                 {
                     data: "Id",
                     render: function (data, type, row) {
                         return `
-                <button class='btn btn-sm btneditar btnacciones' type='button' onclick='editarInsumo(${row.IdInsumo})' title='Editar'>
+                <button class='btn btn-sm btneditar btnacciones' type='button' onclick='editarProducto(${row.IdProducto})' title='Editar'>
                     <i class='fa fa-pencil-square-o fa-lg text-white' aria-hidden='true'></i>
                 </button>
-                <button class='btn btn-sm btneditar btnacciones' type='button' onclick='eliminarInsumo(${row.IdInsumo})' title='Eliminar'>
+                <button class='btn btn-sm btneditar btnacciones' type='button' onclick='eliminarProducto(${row.IdProducto})' title='Eliminar'>
                     <i class='fa fa-trash-o fa-lg text-danger' aria-hidden='true'></i>
                 </button>`;
                     },
@@ -559,7 +740,7 @@ async function configurarDataTableProductos(data) {
                     "render": function (data, type, row) {
                         return formatNumber(data); // Formatear números
                     },
-                    "targets": [1, 3] // Índices de las columnas de números
+                    "targets": [4, 7,9,10] // Índices de las columnas de números
                 },
 
             ],
@@ -588,16 +769,106 @@ async function configurarDataTableProductos(data) {
 }
 
 
-async function cargarDatosProductoModal() {
-    const datosProducto = await ObtenerDatosProductoModal();
-    listaCategorias();
-    listaColores();
-    configurarDataTableProductosModal(datosProducto);
 
+async function guardarProducto() {
+    const IdProducto = document.getElementById('ProductoModalId').value;
+    const NombreProducto = document.getElementById('ProductoModalNombre').value;
+    const IdCategoria = document.getElementById('ProductoModalIdCategoria').value;
+    const Categoria = document.getElementById('ProductoModalCategoria').value;
+    const CostoUnitario = parseFloat(convertirMonedaAFloat(document.getElementById('ProductoModalCostoUnitario').value));
+    const PorcGanancia = document.getElementById('ProductoModalPorcGanancia').value;
+    const Ganancia = parseFloat(convertirMonedaAFloat(document.getElementById('ProductoModalGanancia').value));
+    const PorcIva = document.getElementById('ProductoModalPorcIva').value;
+    const TotalIva = parseFloat(convertirMonedaAFloat(document.getElementById('ProductoModalIva').value));
+    const PrecioVenta = parseFloat(convertirMonedaAFloat(document.getElementById('ProductoModalPrecioVenta').value));
+    const Cantidad = document.getElementById('ProductoModalCantidad').value;
+    const IdColor = document.getElementById('Colores');
+    const Color = IdColor != null ? IdColor.options[IdColor.selectedIndex].text : "";
+
+    if (NombreProducto == "") {
+        errorModal("Debes seleccionar un producto");
+        return false;
+    }
+
+    if (filaSeleccionadaProductos == null) {
+        errorModal("Debes seleccionar un producto");
+        return false;
+    }
+
+    // Verificar si la cantidad está vacía o no es un número
+    if (Cantidad === "" || isNaN(Cantidad) || Cantidad <= 0) {
+        errorModal("Escriba una cantidad valida.")
+        return false; // Detiene la ejecución
+    }
+    
+
+    let i = 0;
+
+    const modal = $('#ProductoModal');
+    const isEditing = modal.attr('data-editing') === 'true';
+    const editId = modal.attr('data-id');
+
+    // Verificar si el producto ya existe en la tabla
+    let productoExistente = false;
+
+        if (!productoExistente) {
+            // Si no existe, agregar un nuevo producto
+            gridProductos.row.add({
+
+                IdProducto: IdProducto,
+                Nombre: NombreProducto,
+                IdCategoria: IdCategoria,
+                Categoria: Categoria,
+                CostoUnitario: CostoUnitario,
+                PorcGanancia: PorcGanancia,
+                Ganancia: Ganancia,
+                PorcIva: PorcIva,
+                IVA: TotalIva,
+                SubTotal: PrecioVenta,
+                Cantidad: Cantidad,
+                IdColor: IdColor,
+                Color: Color
+            }).draw();
+        }
+    
+    limpiarInformacionProducto();
+    // Eliminar el producto agregado de gridProductosModal
+    gridProductosModal.rows().every(function () {
+        gridProductosModal.row(this).remove().draw();
+    });
+
+}
+
+async function cargarDatosProductoModal() {
+
+    await limpiarInformacionProducto();
+    await listaCategorias();
+    await listaColores();
+
+    const datosProducto = await ObtenerDatosProductoModal();
+
+    // Obtener los IdProducto de los productos ya existentes en gridProductos
+    var productosExistentes = gridProductos.rows().data().toArray(); // Obtener los datos actuales en gridProductos
+    var idsExistentes = productosExistentes.map(function (producto) {
+        return parseInt(producto.IdProducto); // Crear un array de Ids de productos existentes en gridProductos
+    });
+
+    // Filtrar los productos que ya están en gridProductos
+    var productosFiltrados = datosProducto.filter(function (producto) {
+        return !idsExistentes.includes(parseInt(producto.Id)); // Excluir productos con IdProducto ya existente
+    });
+
+   
+    
+
+    // Ahora se cargan los datos filtrados (productos que no están en gridProductos)
+    configurarDataTableProductosModal(productosFiltrados);
 }
 
 
 async function ObtenerDatosProductoModal() {
+
+
     const url = `/Productos/Lista`;
     const response = await fetch(url);
     const data = await response.json();
@@ -610,6 +881,27 @@ async function ObtenerInsumosProducto(id) {
     const response = await fetch(url);
     const data = await response.json();
     return data;
+}
+
+
+async function limpiarInformacionProducto() {
+
+    filasSeleccionadas = [];
+    filaSeleccionadaProductos = null;
+
+    if (gridInsumosModal != null) {
+        gridInsumosModal.clear().draw();  // Limpia la tabla
+    }
+
+    document.getElementById("ProductoModalNombre").value = "";
+    document.getElementById("ProductoModalCantidad").value = "";
+    document.getElementById("ProductoModalCategoria").value = "";
+    document.getElementById("ProductoModalCostoUnitario").value = "";
+    document.getElementById("ProductoModalPorcIva").value = "";
+    document.getElementById("ProductoModalPorcGanancia").value = "";
+    document.getElementById("ProductoModalIva").value = "";
+    document.getElementById("ProductoModalGanancia").value = "";
+    document.getElementById("ProductoModalPrecioVenta").value = "";
 }
 
 async function cargarInformacionProducto(id) {
@@ -633,7 +925,9 @@ async function cargarInformacionProducto(id) {
 
 
 
+    document.getElementById("ProductoModalId").value = Producto.Id;
     document.getElementById("ProductoModalNombre").value = Producto.Nombre;
+    document.getElementById("ProductoModalIdCategoria").value = Producto.IdCategoria;
     document.getElementById("ProductoModalCategoria").value = Producto.Categoria;
     document.getElementById("ProductoModalCostoUnitario").value = formatNumber(totalInsumos);
     document.getElementById("ProductoModalPorcIva").value = Producto.PorcIva;
@@ -642,18 +936,55 @@ async function cargarInformacionProducto(id) {
     document.getElementById("ProductoModalGanancia").value = formatNumber(totalGanancia);
     document.getElementById("ProductoModalPrecioVenta").value = formatNumber(Producto.CostoUnitario);
 
-
-
-
-
-
 }
+
+document.getElementById("ProductoModalPorcIva").addEventListener("input", calcularIVAyGanancia);
+document.getElementById("ProductoModalPorcGanancia").addEventListener("input", calcularIVAyGanancia);
+
+function calcularIVAyGanancia() {
+    // Obtener valores y asegurarse de que sean números
+    const totalInsumos = parseFloat(convertirMonedaAFloat(document.getElementById("ProductoModalCostoUnitario").value));
+    const porcIVA = parseFloat(document.getElementById("ProductoModalPorcIva").value) || 0;
+    const porcGanancia = parseFloat(document.getElementById("ProductoModalPorcGanancia").value) || 0;
+    const cantidad = parseFloat(document.getElementById("ProductoModalCantidad").value) || 1;
+
+    // Calcular la ganancia por producto
+    const gananciaUnitario = totalInsumos * (porcGanancia / 100);
+
+    // Calcular el total de ganancia para la cantidad
+    const totalGanancia = gananciaUnitario * cantidad;
+
+    // Calcular el precio con ganancia por unidad
+    const totalConGananciaUnitario = totalInsumos + gananciaUnitario;
+
+    // Calcular el IVA por unidad
+    const totalIVAUnitario = totalConGananciaUnitario * (porcIVA / 100);
+
+    // Calcular el total de IVA para la cantidad
+    const totalIVA = totalIVAUnitario * cantidad;
+
+    // Calcular costo total para la cantidad (incluyendo insumos, ganancia e IVA)
+    const costoTotal = (totalInsumos + gananciaUnitario + totalIVAUnitario) * cantidad;
+
+    // Mostrar resultados formateados
+    document.getElementById("ProductoModalIva").value = formatoMoneda.format(totalIVA);
+    document.getElementById("ProductoModalGanancia").value = formatoMoneda.format(totalGanancia);
+    document.getElementById("ProductoModalPrecioVenta").value = formatoMoneda.format(costoTotal);
+}
+
 
 
 async function anadirProducto() {
     await cargarDatosProductoModal();
     await configurarDataTableInsumosModal(null);
+
+    if (gridInsumosModal != null) {
+        gridInsumosModal.clear().draw();  // Limpia la tabla
+    }
+
     $("#productoModal").modal('show');
+    
+
 
 }
 
@@ -674,4 +1005,15 @@ async function listaClientes() {
         select.appendChild(option);
 
     }
+}
+
+
+function eliminarProducto(id) {
+    gridProductos.rows().every(function (rowIdx, tableLoop, rowLoop) {
+        const data = this.data();
+        if (data.IdProducto == id) {
+            gridProductos.row(rowIdx).remove().draw();
+        }
+    });
+
 }

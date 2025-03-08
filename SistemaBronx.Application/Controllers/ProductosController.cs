@@ -203,7 +203,14 @@ namespace SistemaBronx.Application.Controllers
                     SubTotal = (decimal)p.IdInsumoNavigation.PrecioVenta * p.Cantidad,
                     Categoria = p.IdInsumoNavigation.IdCategoriaNavigation.Nombre,
                     Color = "",
-                    IdColor = 0
+                    IdColor = 0,
+                    IdEstado = 1,
+                    Estado = "Pedir",
+                    Especificacion = "",
+                    Comentarios = "",
+                    IdTipo = p.IdInsumoNavigation.IdTipo,
+                    Tipo = p.IdInsumoNavigation.IdTipoNavigation.Nombre
+
                 }).ToList();
 
 

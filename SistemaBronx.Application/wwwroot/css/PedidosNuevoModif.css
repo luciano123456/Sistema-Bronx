@@ -40,39 +40,55 @@ select option:disabled {
 
 #productoModal .modal-body {
     background: #353c48;
-    
 }
 
 #productoModal .modal-header {
     background: #2a303a;
-    
 }
 
 #productoModal .modal-title {
     color: white;
 }
 
-#grd_Productos_Modal {
-    width: 100%;
-    
+
+/* Estilos solo para #productoModal y sus hijos */
+#productoModal .modal-body {
+    background: #353c48;
 }
 
-    #grd_Productos_Modal tbody {
-        display: block;
-        max-height: 550px;
-        
+#productoModal .modal-header {
+    background: #2a303a;
+}
 
-        
-    }
+#productoModal .modal-title {
+    color: white;
+}
 
-        #grd_Productos_Modal thead,
-        #grd_Productos_Modal tbody tr {
-            display: table;
-            width: 100%;
-            table-layout: fixed; /* Evita que las columnas se deformen */
-        }
+/* Asegúrate de que los otros modales (exitoModal, errorModal, etc.) no se vean afectados */
+#ExitoModal .modal-body,
+#ErrorModal .modal-body,
+#AdvertenciaModal .modal-body {
+    background: white/* color deseado para estos modales */;
+}
+
+#ExitoModal .modal-header,
+#ErrorModal .modal-header,
+#AdvertenciaModal .modal-header {
+    background: white /* color deseado para estos modales */;
+}
+
+#ExitoModal .modal-title,
+#ErrorModal .modal-title,
+#AdvertenciaModal .modal-title {
+    color: white/* color deseado para estos modales */;
+}
+
+/* Los siguientes estilos no afectarán a los demás modales */
 
 
+
+
+   
 
 
 .select2-container {
@@ -85,6 +101,27 @@ select option:disabled {
 
 
 .selected {
-    background-color: #007bff !important; /* Azul Bootstrap */
-    color: white !important;
+    background-color: antiquewhite !important; /* Azul Bootstrap */
+    color: black !important;
 }
+
+
+
+
+/* También aseguramos que los th (encabezados) se alineen bien */
+#grd_Insumos_Modal th {
+    text-align: center; /* Centra todo el texto en la cabecera */
+    vertical-align: middle; /* Centra verticalmente el texto en la cabecera */
+}
+
+
+/* Cambiar color de la "X" y el fondo */
+.custom-close {
+    background-color: #353c48 !important; /* Cambia el color de fondo a rojo */
+
+    border: none !important; /* Elimina el borde por defecto */
+}
+
+    .custom-close:hover {
+        background-color: blue !important; /* Cambia el color de fondo cuando el mouse está encima */
+    }

@@ -92,10 +92,19 @@
                     <table class="display nowrap" id="grd_Productos" style="width:100%">
                         <thead>
                             <tr>
+                                <th hidden>Id Producto</th>
                                 <th>Nombre</th>
-                                <th>Precio</th>
+                                <th hidden>Id Categoria</th>
+                                <th>Categoria</th>
+                                <th>Costo Initario</th>
                                 <th>Cantidad</th>
-                                <th>Total</th>
+                                <th>Porc. Ganancia</th>
+                                <th>Ganancia</th>
+                                <th>Porc. IVA</th>
+                                <th>IVA</th>
+                                <th>Precio Venta</th>
+                                <th hidden>Id Color</th>
+                                <th>Color</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -105,12 +114,6 @@
                     </table>
                     <div class="d-flex justify-content-end mt-3">
                         <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-danger me-2">
-                                <i class="fa fa-trash"></i> Eliminar
-                            </button>
-                            <button type="button" class="btn btn-secondary me-2">
-                                <i class="fa fa-pencil"></i> Modificar
-                            </button>
                             <button type="button" class="btn btn-success" onclick="anadirProducto()">
                                 <i class="fa fa-plus"></i> Añadir
                             </button>
@@ -133,7 +136,8 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" id="productoModalLabel">Añadir Producto</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close custom-close" data-bs-dismiss="modal" aria-label="Close" ></button>
+
                     </div>
                     <div class="modal-body">
                         <div class="container-fluid">
@@ -168,6 +172,7 @@
                                 <!-- Sección derecha: Producto seleccionado -->
                                 <div class="col-md-6">
                                     <h5 class="text-white">Producto seleccionado</h5>
+                                    <input type="text" class="form-control" id="ProductoModalId" hidden>
                                     <div class="row mb-2">
                                         <div class="col-md-8">
                                             <label class="form-label">Nombre</label>
@@ -175,6 +180,7 @@
                                         </div>
                                         <div class="col-md-4">
                                             <label class="form-label">Categoría</label>
+                                            <input type="text" class="form-control" id="ProductoModalIdCategoria" hidden> 
                                             <input type="text" class="form-control" id="ProductoModalCategoria" disabled value="">
                                         </div>
                                     </div>
@@ -187,7 +193,7 @@
                                         </div>
                                         <div class="col-md-4">
                                             <label class="form-label">% Ganancia</label>
-                                            <input type="text" class="form-control" id="ProductoModalPorcGanancia" disabled>
+                                            <input type="text" class="form-control" id="ProductoModalPorcGanancia">
                                         </div>
                                         <div class="col-md-4">
                                             <label class="form-label">Ganancia</label>
@@ -199,7 +205,7 @@
                                     <div class="row mb-2">
                                         <div class="col-md-4">
                                             <label class="form-label">% IVA</label>
-                                            <input type="text" class="form-control" id="ProductoModalPorcIva" disabled>
+                                            <input type="text" class="form-control" id="ProductoModalPorcIva">
                                         </div>
                                         <div class="col-md-4">
                                             <label class="form-label">Total IVA</label>
@@ -229,8 +235,9 @@
 
                                     <!-- Botones -->
                                     <div class="d-flex justify-content-end">
-                                        <button class="btn btn-success me-2">✔ Añadir</button>
-                                        <button class="btn btn-secondary">🔙 Volver</button>
+                                        <button class="btn btn-success me-2" onclick="guardarProducto()">✔ Añadir</button>
+                                        <button class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Close">🔙 Volver</button>
+
                                     </div>
 
                                     <h5 class="text-white">Insumos del producto</h5>
@@ -242,8 +249,14 @@
                                                 <th>Cantidad</th>
                                                 <th>Descripción</th>
                                                 <th>Categoría</th>
+                                                <th hidden>IdColor</th>
                                                 <th>Color</th>
-                                                <th>IdColor</th>
+                                                <th hidden>IdEstado</th>
+                                                <th>Estado</th>
+                                                <th hidden>Tipo</th>
+                                                <th>Tipo</th>
+                                                <th>Especificacion</th>
+                                                <th>Comentarios</th>
                                                 <th hidden></th>
                                             </tr>
                                         </thead>
@@ -252,30 +265,11 @@
                                         </tbody>
                                     </table>
 
-                                   @*  <div class="table-responsive" >
-                                        <table class="table table-striped" id="grd_Insumos_Modal">
-                                            <thead>
-                                                <tr>
-                                                   
-                                                    <th>Cantidad</th>
-                                                    <th>Descripción</th>
-                                                    <th>Categoría</th>
-                                                    <th>Color</th>
-                                                    <th hidden></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                            </tbody>
-                                        </table>
-                                    </div> *@
-
-
                                 </div>
                             </div>
 
                             <div class="d-flex justify-content-end mt-2">
-                                <button class="btn btn-danger me-2">❌ Eliminar</button>
-                                <button class="btn btn-warning">✏ Modificar</button>
+                                <button id="btnEliminarInsumo" class="btn btn-danger me-2">❌ Eliminar</button>
                             </div>
                         </div>
 
