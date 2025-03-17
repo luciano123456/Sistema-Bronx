@@ -7,37 +7,42 @@ namespace SistemaBronx.Application.Models.ViewModels
     {
         public int Id { get; set; }
 
-        public DateTime? Fecha { get; set; }
+        public DateTime Fecha { get; set; }
 
-        public int IdCliente { get; set; }
+        public int? IdCliente { get; set; }
 
-        public DateTime? FechaEntrega { get; set; }
+        public decimal? SubTotal { get; set; }
 
-        public string? NroRemito { get; set; }
+        public int? PorcDescuento { get; set; }
 
-        public decimal? CostoFlete { get; set; }
+        public decimal? ImporteAbonado { get; set; }
+        public decimal? ImporteTotal { get; set; }
 
-        public int IdProveedor { get; set; }
+        public decimal? Saldo { get; set; }
 
-        public int? IdZona { get; set; }
+        public int? IdFormaPago { get; set; }
 
-        public int? IdChofer { get; set; }
+        public int? IdTipo { get; set; }
 
-        public decimal TotalCliente { get; set; }
 
-        public decimal RestanteCliente { get; set; }
+        public int? Finalizado { get; set; }
 
-        public decimal TotalProveedor { get; set; }
+        public string Tipo { get; set; }
+        public string Estado { get; set; }
+        public string FormaPago { get; set; }
+        public string Cliente { get; set; }
+        public string Comentarios { get; set; }
 
-        public decimal RestanteProveedor { get; set; }
 
-        public string? Estado { get; set; }
+        public virtual Cliente? IdClienteNavigation { get; set; }
 
-        public string? Observacion { get; set; }
+        public virtual FormasdePago IdNavigation { get; set; } = null!;
 
-        public virtual Cliente IdClienteNavigation { get; set; } = null!;
+        public virtual PedidosTipo? IdTipoNavigation { get; set; }
 
-        public virtual Proveedor IdProveedorNavigation { get; set; } = null!;
+        public virtual ICollection<PedidosDetalleProceso> PedidosDetalleProcesos { get; set; } = new List<PedidosDetalleProceso>();
+
+        public virtual ICollection<PedidosDetalle> PedidosDetalles { get; set; } = new List<PedidosDetalle>();
 
 
     }

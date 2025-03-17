@@ -132,20 +132,20 @@ async function listaClientes() {
     await configurarDataTable(data);
 }
 
-async function listaProvincias() {
-    const url = `/Clientes/ListaProvincias`;
+async function listaClientesFiltro() {
+    const url = `/Clientes/Lista`;
     const response = await fetch(url);
     const data = await response.json();
 
-    $('#Provincias option').remove();
+    $('#ClientesFiltro option').remove();
 
-    selectProvincias = document.getElementById("Provincias");
+    select = document.getElementById("ClientesFiltro");
 
     for (i = 0; i < data.length; i++) {
         option = document.createElement("option");
         option.value = data[i].Id;
         option.text = data[i].Nombre;
-        selectProvincias.appendChild(option);
+        select.appendChild(option);
 
     }
 }

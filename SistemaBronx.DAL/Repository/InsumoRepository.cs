@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace SistemaBronx.DAL.Repository
 {
-    public class InsumoRepository : IGenericRepository<Insumo>
+    public class InsumoRepository : IInsumoRepository<Insumo>
     {
 
         private readonly SistemaBronxContext _dbcontext;
@@ -103,5 +103,7 @@ namespace SistemaBronx.DAL.Repository
                 return null;
             }
         }
+
+       
     }
 }

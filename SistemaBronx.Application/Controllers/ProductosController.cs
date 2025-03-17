@@ -68,6 +68,25 @@ namespace SistemaBronx.Application.Controllers
             return Ok(lista);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> ListaInsumosProducto(int IdProducto)
+        {
+            var Insumos = await _ProductosService.ObtenerInsumos(IdProducto);
+
+            var lista = Insumos.Select(p => new VMProductoInsumo
+            {
+                Nombre = p.IdInsumoNavigation.Descripcion,
+                Cantidad = p.Cantidad,
+                IdInsumo = p.IdInsumo,
+                IdProducto = p.IdProducto,
+                CostoUnitario = (decimal)p.IdInsumoNavigation.PrecioVenta,
+                SubTotal = (decimal)p.IdInsumoNavigation.PrecioVenta * p.Cantidad
+            }).ToList();
+
+            return Ok(lista);
+        }
+
+
 
 
         [HttpPost]
@@ -168,6 +187,7 @@ namespace SistemaBronx.Application.Controllers
                     IdCategoria = model.IdCategoria,
                     PorcGanancia = model.PorcGanancia,
                     CostoUnitario = model.CostoUnitario,
+                    Categoria = model.IdCategoriaNavigation.Nombre
                 };
 
                 var ProductosInsumos = await _ProductosService.ObtenerInsumos(id);
@@ -180,7 +200,19 @@ namespace SistemaBronx.Application.Controllers
                     IdInsumo = p.IdInsumo,
                     IdProducto = p.IdProducto,
                     CostoUnitario = (decimal)p.IdInsumoNavigation.PrecioVenta,
-                    SubTotal = (decimal)p.IdInsumoNavigation.PrecioVenta * p.Cantidad
+                    SubTotal = (decimal)p.IdInsumoNavigation.PrecioVenta * p.Cantidad,
+                    Categoria = p.IdInsumoNavigation.IdCategoriaNavigation.Nombre,
+                    IdCategoria = p.IdInsumoNavigation.IdCategoriaNavigation.Id,
+                    Color = "",
+                    IdColor = 0,
+                    IdEstado = 1,
+                    Estado = "Pedir",
+                    Especificacion = "",
+                    Comentarios = "",
+                    IdTipo = p.IdInsumoNavigation.IdTipo,
+                    Tipo = p.IdInsumoNavigation.IdTipoNavigation.Nombre,
+                    IdUnidadMedida = p.IdInsumoNavigation.IdUnidadMedida,
+                    IdProveedor = (int)p.IdInsumoNavigation.IdProveedor
                 }).ToList();
 
 

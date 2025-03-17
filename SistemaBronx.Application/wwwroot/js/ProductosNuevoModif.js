@@ -528,8 +528,10 @@ function calcularIVAyGanancia() {
     const porcGanancia = parseFloat(document.getElementById("porcGanancia").value) || 0;
 
     // Calcular valores
-    const totalIVA = (totalInsumos * porcIVA) / 100;
     const totalGanancia = (totalInsumos * porcGanancia) / 100;
+
+    const totalIVA = ((totalGanancia + totalInsumos) * porcIVA) / 100;
+    
 
     // Calcular costo total y redondear a múltiplos de 100
     let costoTotal = totalInsumos + totalGanancia + totalIVA;

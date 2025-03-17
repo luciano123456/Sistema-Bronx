@@ -6,9 +6,9 @@ namespace SistemaBronx.BLL.Service
     public class Insumoservice : IInsumoService
     {
 
-        private readonly IGenericRepository<Insumo> _contactRepo;
+        private readonly IInsumoRepository<Insumo> _contactRepo;
 
-        public Insumoservice(IGenericRepository<Insumo> contactRepo)
+        public Insumoservice(IInsumoRepository<Insumo> contactRepo)
         {
             _contactRepo = contactRepo;
         }
@@ -37,6 +37,7 @@ namespace SistemaBronx.BLL.Service
         {
             return await _contactRepo.ObtenerTodos();
         }
+
 
 
 

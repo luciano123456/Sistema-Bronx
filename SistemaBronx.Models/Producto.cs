@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 
 namespace SistemaBronx.Models;
-
 public partial class Producto
 {
     public int Id { get; set; }
@@ -19,6 +17,10 @@ public partial class Producto
     public decimal CostoUnitario { get; set; }
 
     public virtual ProductosCategoria? IdCategoriaNavigation { get; set; }
+
+    public virtual ICollection<PedidosDetalleProceso> PedidosDetalleProcesos { get; set; } = new List<PedidosDetalleProceso>();
+
+    public virtual ICollection<PedidosDetalle> PedidosDetalles { get; set; } = new List<PedidosDetalle>();
 
     public virtual ICollection<ProductosInsumo> ProductosInsumos { get; set; } = new List<ProductosInsumo>();
 }

@@ -48,7 +48,7 @@ builder.Services.AddScoped<IEstadosUsuariosService, EstadosUsuariosService>();
 builder.Services.AddScoped<ILoginRepository<User>, LoginRepository>();
 builder.Services.AddScoped<ILoginService, LoginService>();
 
-builder.Services.AddScoped<IGenericRepository<Insumo>, InsumoRepository>();
+builder.Services.AddScoped<IInsumoRepository<Insumo>, InsumoRepository>();
 builder.Services.AddScoped<IInsumoService, Insumoservice>();
 
 builder.Services.AddScoped<IGenericRepository<Color>, ColorRepository>();
@@ -71,6 +71,20 @@ builder.Services.AddScoped<IGastoService, GastoService>();
 
 builder.Services.AddScoped<IGenericRepository<ProductosCategoria>, ProductoCategoriaRepository>();
 builder.Services.AddScoped<IProductoCategoriaService, ProductoCategoriaService>();
+
+builder.Services.AddScoped<IGenericRepository<PedidosCategoria>, PedidoCategoriaRepository>();
+builder.Services.AddScoped<IPedidoCategoriaService, PedidoCategoriaService>();
+
+
+builder.Services.AddScoped<IGenericRepository<PedidosTipo>, PedidoTipoRepository>();
+builder.Services.AddScoped<IPedidoTipoService, PedidoTipoService>();
+
+builder.Services.AddScoped<IGenericRepository<PedidosEstado>, PedidoEstadoRepository>();
+builder.Services.AddScoped<IPedidoEstadoService, PedidoEstadoService>();
+
+builder.Services.AddScoped<IPedidosRepository<Pedido>, PedidoRepository>();
+builder.Services.AddScoped<IPedidoService, PedidoService>();
+
 
 
 builder.Services.AddControllersWithViews()
