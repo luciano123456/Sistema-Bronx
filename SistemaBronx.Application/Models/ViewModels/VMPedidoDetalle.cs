@@ -16,10 +16,18 @@ namespace SistemaBronx.Application.Models.ViewModels
 
         public int? IdCategoria { get; set; }
 
-        public decimal? CostoInicial { get; set; }
+        public decimal? CostoUnitario { get; set; }
+        public decimal? PrecioVenta { get; set; }
+        public decimal? IVA { get; set; }
+        public decimal? Ganancia { get; set; }
 
         public int? PorcGanancia { get; set; }
         public int? PorcIva { get; set; }
+
+        public string Nombre { get; set; }
+        public string Categoria { get; set; }
+        public string Color { get; set; }
+
 
         public virtual PedidosCategoria? IdCategoriaNavigation { get; set; }
 

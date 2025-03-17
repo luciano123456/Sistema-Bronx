@@ -207,28 +207,19 @@ public partial class SistemaBronxContext : DbContext
 
         modelBuilder.Entity<Pedido>(entity =>
         {
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.Fecha).HasColumnType("datetime");
+            entity.Property(e => e.ImporteTotal).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.ImporteAbonado).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Saldo).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.SubTotal).HasColumnType("decimal(20, 2)");
-
-            entity.HasOne(d => d.IdNavigation).WithOne(p => p.Pedido)
-                .HasForeignKey<Pedido>(d => d.Id)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Pedidos_FormasdePago");
 
             entity.HasOne(d => d.IdClienteNavigation).WithMany(p => p.Pedidos)
                 .HasForeignKey(d => d.IdCliente)
                 .HasConstraintName("FK_Pedidos_Pedidos");
 
-            entity.HasOne(d => d.IdEstadoNavigation).WithMany(p => p.Pedidos)
-                .HasForeignKey(d => d.IdEstado)
-                .HasConstraintName("FK_Pedidos_Pedidos1");
-
-            entity.HasOne(d => d.IdTipoNavigation).WithMany(p => p.Pedidos)
-                .HasForeignKey(d => d.IdTipo)
-                .HasConstraintName("FK_Pedidos_PedidosTipos");
+            entity.HasOne(d => d.IdFormaPagoNavigation).WithMany(p => p.Pedidos)
+                .HasForeignKey(d => d.IdFormaPago)
+                .HasConstraintName("FK_Pedidos_FormasdePago");
         });
 
         modelBuilder.Entity<PedidosCategoria>(entity =>
@@ -243,7 +234,8 @@ public partial class SistemaBronxContext : DbContext
             entity.ToTable("PedidosDetalle");
 
             entity.Property(e => e.Cantidad).HasColumnType("decimal(20, 2)");
-            entity.Property(e => e.CostoInicial).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.CostoUnitario).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.PrecioVenta).HasColumnType("decimal(20, 2)");
 
             entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.PedidosDetalles)
                 .HasForeignKey(d => d.IdCategoria)
@@ -255,7 +247,6 @@ public partial class SistemaBronxContext : DbContext
 
             entity.HasOne(d => d.IdPedidoNavigation).WithMany(p => p.PedidosDetalles)
                 .HasForeignKey(d => d.IdPedido)
-                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_PedidosDetalle_Pedidos");
 
             entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.PedidosDetalles)

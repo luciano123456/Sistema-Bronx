@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Runtime.Intrinsics.Arm;
 using System.Text;
 using System.Threading.Tasks;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
@@ -22,47 +23,62 @@ namespace SistemaBronx.DAL.Repository
         }
 
 
-        public async Task<bool> Insertar(Pedido pedido, IQueryable<PedidosDetalle> pedidosDetalle, IQueryable<PedidosDetalleProceso> pedidosDetalleProceso)
+        public async Task<bool> Insertar(Pedido pedido, IQueryable<PedidosDetalle> pedidoDetalle, IQueryable<PedidosDetalleProceso> pedidoDetalleProceso)
         {
-
             using var transaction = await _dbcontext.Database.BeginTransactionAsync();
 
             try
             {
-
+                // Insertar el pedido
                 _dbcontext.Pedidos.Add(pedido);
+                await _dbcontext.SaveChangesAsync(); // Guarda el pedido y obtiene el ID
 
-                if (pedidosDetalle != null)
+                // Obtener ID generado
+                int idPedidoGenerado = pedido.Id;
+
+                // Asignar el ID a los detalles
+                foreach (var detalle in pedidoDetalle)
                 {
-                    foreach (var producto in pedidosDetalle)
-                    {
-                        producto.IdPedido = pedido.Id;
+                    detalle.IdPedido = idPedidoGenerado;
+                }
 
-                        _dbcontext.PedidosDetalles.Add(producto);
+                // Insertar detalles
+                if (pedidoDetalle.Any())
+                {
+                    _dbcontext.PedidosDetalles.AddRange(pedidoDetalle);
+                    await _dbcontext.SaveChangesAsync();
+                }
+
+                // Asignar ID a los procesos de detalle
+                foreach (var detalleProceso in pedidoDetalleProceso)
+                {
+                    var detalleRelacionado = pedidoDetalle.FirstOrDefault(d => d.IdProducto == detalleProceso.IdProducto);
+                    if (detalleRelacionado != null)
+                    {
+                        detalleProceso.IdPedido = idPedidoGenerado;
+                        detalleProceso.IdDetalle = detalleRelacionado.Id;
                     }
                 }
 
-                if (pedidosDetalleProceso != null)
+                // Insertar detalles de proceso
+                if (pedidoDetalleProceso.Any())
                 {
-                    foreach (var insumo in pedidosDetalleProceso)
-                    {
-                        insumo.IdPedido = pedido.Id;
-
-                        _dbcontext.PedidosDetalleProcesos.Add(insumo);
-                    }
+                    _dbcontext.PedidosDetalleProcesos.AddRange(pedidoDetalleProceso);
+                    await _dbcontext.SaveChangesAsync();
                 }
 
-                await _dbcontext.SaveChangesAsync();
+                // Confirmar la transacción
                 await transaction.CommitAsync();
-
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
+                // Si algo falla, hacer rollback
                 await transaction.RollbackAsync();
                 return false;
             }
         }
+
 
         public async Task<bool> Actualizar(Pedido pedido, IQueryable<PedidosDetalle> pedidosDetalle, IQueryable<PedidosDetalleProceso> pedidosDetalleProceso)
         {
@@ -92,17 +108,25 @@ namespace SistemaBronx.DAL.Repository
                     .ToList();
                 _dbcontext.PedidosDetalles.RemoveRange(detallesAEliminar);
 
-                // Insertar o actualizar detalles
+
+                // Insertar o actualizar detalles de productos
                 foreach (var detalle in pedidosDetalle)
                 {
-                    var detalleExistente = pedidoExistente.PedidosDetalles.FirstOrDefault(pd => pd.Id == detalle.Id);
+                    var detalleExistente = pedidoExistente.PedidosDetalles.FirstOrDefault(pd => pd.Id > 0 && pd.Id == detalle.Id);
                     if (detalleExistente != null)
                     {
-                        _dbcontext.Entry(detalleExistente).CurrentValues.SetValues(detalle);
+                        // Excluir IdPedido de la actualización
+                        detalleExistente.Cantidad = detalle.Cantidad;
+                        detalleExistente.CostoUnitario = detalle.CostoUnitario;
+                        detalleExistente.PrecioVenta = detalle.PrecioVenta;
+                        detalleExistente.PorcIva = detalle.PorcIva;
+                        detalleExistente.IdCategoria = detalle.IdCategoria;
+                        detalleExistente.IdColor = detalle.IdColor;
+                        detalleExistente.PorcGanancia = detalle.PorcGanancia;
                     }
                     else
                     {
-                        detalle.IdPedido = pedido.Id;
+                        detalle.IdPedido = pedido.Id; // Mantener el IdPedido en inserciones
                         _dbcontext.PedidosDetalles.Add(detalle);
                     }
                 }
@@ -116,17 +140,28 @@ namespace SistemaBronx.DAL.Repository
                     .ToList();
                 _dbcontext.PedidosDetalleProcesos.RemoveRange(procesosAEliminar);
 
-                // Insertar o actualizar procesos
+                // Insertar o actualizar detalles de procesos
                 foreach (var proceso in pedidosDetalleProceso)
                 {
-                    var procesoExistente = pedidoExistente.PedidosDetalleProcesos.FirstOrDefault(pdp => pdp.Id == proceso.Id);
+                    var procesoExistente = pedidoExistente.PedidosDetalleProcesos.FirstOrDefault(pdp => pdp.Id > 0 && pdp.Id == proceso.Id);
                     if (procesoExistente != null)
                     {
-                        _dbcontext.Entry(procesoExistente).CurrentValues.SetValues(proceso);
+                        // Excluir IdPedido e IdPedidoDetalle de la actualización
+                        procesoExistente.Cantidad = proceso.Cantidad;
+                        procesoExistente.IdCategoria = proceso.IdCategoria;
+                        procesoExistente.Comentarios = proceso.Comentarios;
+                        procesoExistente.Descripcion = proceso.Descripcion;
+                        procesoExistente.Especificacion = proceso.Especificacion;
+                        procesoExistente.IdColor = proceso.IdColor;
+                        procesoExistente.FechaActualizacion = DateTime.Now;
+                        procesoExistente.SubTotal = proceso.SubTotal;
+                        procesoExistente.IdEstado = proceso.IdEstado;
+                        procesoExistente.IdTipo = proceso.IdTipo;
+                        procesoExistente.PrecioUnitario = proceso.PrecioUnitario;
                     }
                     else
                     {
-                        proceso.IdPedido = pedido.Id;
+                        proceso.IdPedido = pedido.Id; // Mantener el IdPedido en inserciones
                         _dbcontext.PedidosDetalleProcesos.Add(proceso);
                     }
                 }
@@ -166,14 +201,21 @@ namespace SistemaBronx.DAL.Repository
 
         }
 
-        public async Task<IQueryable<Pedido>> ObtenerPedidos()
+        public async Task<List<Pedido>> ObtenerPedidos(DateTime FechaDesde, DateTime FechaHasta, int IdCliente, string Estado, int Finalizado)
         {
 
             try
             {
-                var pedidos = await _dbcontext.Pedidos.ToListAsync();
 
-                return (IQueryable<Pedido>)pedidos;
+                FechaHasta = FechaHasta.Date.AddDays(1).AddTicks(-1);
+
+                List<Pedido> pedidos = await _dbcontext.Pedidos
+                    .Include(x => x.IdClienteNavigation)
+                    .Include(x => x.IdFormaPagoNavigation)
+                    .Where(x=> x.Fecha >= FechaDesde && x.Fecha <= FechaHasta && (x.IdCliente == IdCliente || IdCliente == -1) && (x.Finalizado == Finalizado || Finalizado == -1) && (x.Saldo <= 0 && Estado == "ENTREGAR" || x.Saldo >= 0 && Estado == "EN PROCESO" || Estado == "TODOS"))
+                    .ToListAsync();
+
+                return pedidos;
 
             }
             catch (Exception ex)
@@ -202,7 +244,7 @@ namespace SistemaBronx.DAL.Repository
         }
 
 
-        public async Task<Dictionary<string, object>> ObtenerPedido(int pedidoId)
+        public async Task<Pedido> ObtenerPedido(int pedidoId)
         {
             var resultado = new Dictionary<string, object>();
 
@@ -210,9 +252,7 @@ namespace SistemaBronx.DAL.Repository
             {
                 var pedido = await _dbcontext.Pedidos
                     .Include(p => p.IdClienteNavigation)
-                    .Include(p => p.IdEstadoNavigation)
-                    .Include(p => p.IdTipoNavigation)
-                    .Include(p => p.IdNavigation) // Formas de Pago
+                    .Include(p => p.IdFormaPagoNavigation) // Formas de Pago
                     .Include(p => p.PedidosDetalles)
                         .ThenInclude(pd => pd.IdProductoNavigation)
                     .Include(p => p.PedidosDetalles)
@@ -227,27 +267,23 @@ namespace SistemaBronx.DAL.Repository
                         .ThenInclude(pdp => pdp.IdCategoriaNavigation)
                     .Include(p => p.PedidosDetalleProcesos)
                         .ThenInclude(pdp => pdp.IdInsumoNavigation)
+                        .Include(p => p.PedidosDetalleProcesos)
+                        .ThenInclude(pdp => pdp.IdTipoNavigation)
                     .Include(p => p.PedidosDetalleProcesos)
                         .ThenInclude(pdp => pdp.IdProveedorNavigation)
+                        .Include(p => p.PedidosDetalleProcesos)
+                        .ThenInclude(pdp => pdp.IdEstadoNavigation)
                     .Include(p => p.PedidosDetalleProcesos)
                         .ThenInclude(pdp => pdp.IdUnidadMedidaNavigation)
                     .FirstOrDefaultAsync(p => p.Id == pedidoId);
 
-                if (pedido == null)
-                {
-                    return null; 
-                }
-
-                resultado.Add("Pedido", pedido);
-                resultado.Add("PedidosDetalle", pedido.PedidosDetalles);
-                resultado.Add("PedidosDetalleProceso", pedido.PedidosDetalleProcesos);
+                return pedido;
             }
             catch (Exception ex)
             {
                 return null;
             }
 
-            return resultado;
         }
 
 

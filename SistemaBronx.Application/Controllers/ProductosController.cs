@@ -202,6 +202,7 @@ namespace SistemaBronx.Application.Controllers
                     CostoUnitario = (decimal)p.IdInsumoNavigation.PrecioVenta,
                     SubTotal = (decimal)p.IdInsumoNavigation.PrecioVenta * p.Cantidad,
                     Categoria = p.IdInsumoNavigation.IdCategoriaNavigation.Nombre,
+                    IdCategoria = p.IdInsumoNavigation.IdCategoriaNavigation.Id,
                     Color = "",
                     IdColor = 0,
                     IdEstado = 1,
@@ -209,8 +210,9 @@ namespace SistemaBronx.Application.Controllers
                     Especificacion = "",
                     Comentarios = "",
                     IdTipo = p.IdInsumoNavigation.IdTipo,
-                    Tipo = p.IdInsumoNavigation.IdTipoNavigation.Nombre
-
+                    Tipo = p.IdInsumoNavigation.IdTipoNavigation.Nombre,
+                    IdUnidadMedida = p.IdInsumoNavigation.IdUnidadMedida,
+                    IdProveedor = (int)p.IdInsumoNavigation.IdProveedor
                 }).ToList();
 
 

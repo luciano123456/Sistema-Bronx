@@ -13,6 +13,9 @@ namespace SistemaBronx.Application.Models.ViewModels
         public int IdColor { get; set; }
         public int IdEstado { get; set; }
         public int IdTipo { get; set; }
+        public int IdCategoria { get; set; }
+        public int IdUnidadMedida { get; set; }
+        public int IdProveedor { get; set; }
 
 
         public string? Especificacion { get; set; }

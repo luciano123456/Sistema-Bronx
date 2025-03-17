@@ -45,14 +45,14 @@ namespace SistemaBronx.BLL.Service
             return await _contactRepo.ObtenerInsumo(IdPedido, IdInsumo);
         }
 
-        public async Task<Dictionary<string, object>> ObtenerPedido(int pedidoId)
+        public async Task<Pedido> ObtenerPedido(int pedidoId)
         {
             return await _contactRepo.ObtenerPedido(pedidoId);
         }
 
-        public async Task<IQueryable<Pedido>> ObtenerPedidos()
+        public async Task<List<Pedido>> ObtenerPedidos(DateTime FechaDesde, DateTime FechaHasta, int IdCliente, string Estado, int Finalizado)
         {
-            return await _contactRepo.ObtenerPedidos();
+            return await _contactRepo.ObtenerPedidos(FechaDesde, FechaHasta, IdCliente, Estado, Finalizado);
         }
 
         public async Task<PedidosDetalle> ObtenerProducto(int IdPedido, int IdProducto)

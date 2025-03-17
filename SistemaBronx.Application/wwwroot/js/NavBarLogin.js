@@ -133,7 +133,7 @@ async function eliminarConfiguracion(id) {
 
     if (resultado) {
         try {
-            const response = await fetch(controllerConfiguracion + "/Eliminar?id=" + id, {
+            const response = await fetch("/" + controllerConfiguracion + "/Eliminar?id=" + id, {
                 method: "DELETE"
             });
 
@@ -156,7 +156,7 @@ async function eliminarConfiguracion(id) {
 
 
 const editarConfiguracion = id => {
-    fetch(controllerConfiguracion + "/EditarInfo?id=" + id)
+    fetch("/" + controllerConfiguracion + "/EditarInfo?id=" + id)
         .then(response => {
             if (!response.ok) throw new Error("Ha ocurrido un error.");
             return response.json();
@@ -196,7 +196,7 @@ function guardarCambiosConfiguracion() {
             "Nombre": $("#txtNombreConfiguracion").val(),
         };
 
-        const url = idConfiguracion === "" ? controllerConfiguracion + "/Insertar" : controllerConfiguracion + "/Actualizar";
+        const url = idConfiguracion === "" ? "/" + controllerConfiguracion + "/Insertar" : "/" + controllerConfiguracion + "/Actualizar";
         const method = idConfiguracion === "" ? "POST" : "PUT";
 
         fetch(url, {

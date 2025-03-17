@@ -54,7 +54,7 @@ function exitoModal(texto) {
 }
 
 function errorModal(texto) {
-    mostrarModalConContador('ErrorModal', texto, 3000);
+    mostrarModalConContador('ErrorModal', texto, 3000000);
 }
 
 function advertenciaModal(texto) {
@@ -142,3 +142,4 @@ function toggleAcciones(id) {
         document.body.appendChild(dropdownClone);
     }
 }
+

@@ -49,7 +49,7 @@ namespace SistemaBronx.DAL.Repository
         }
         public async Task<IQueryable<Color>> ObtenerTodos()
         {
-            IQueryable<Color> query = _dbcontext.Colores;
+            IQueryable<Color> query = _dbcontext.Colores.OrderBy(x=> x.Nombre);
             return await Task.FromResult(query);
         }
 

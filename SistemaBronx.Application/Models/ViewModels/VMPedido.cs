@@ -16,6 +16,7 @@ namespace SistemaBronx.Application.Models.ViewModels
         public int? PorcDescuento { get; set; }
 
         public decimal? ImporteAbonado { get; set; }
+        public decimal? ImporteTotal { get; set; }
 
         public decimal? Saldo { get; set; }
 
@@ -23,13 +24,17 @@ namespace SistemaBronx.Application.Models.ViewModels
 
         public int? IdTipo { get; set; }
 
-        public int? IdEstado { get; set; }
 
         public int? Finalizado { get; set; }
 
-        public virtual Cliente? IdClienteNavigation { get; set; }
+        public string Tipo { get; set; }
+        public string Estado { get; set; }
+        public string FormaPago { get; set; }
+        public string Cliente { get; set; }
+        public string Comentarios { get; set; }
 
-        public virtual PedidosEstado? IdEstadoNavigation { get; set; }
+
+        public virtual Cliente? IdClienteNavigation { get; set; }
 
         public virtual FormasdePago IdNavigation { get; set; } = null!;
 

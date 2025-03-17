@@ -11,5 +11,5 @@ public partial class FormasdePago
 
     public virtual ICollection<Gasto> Gastos { get; set; } = new List<Gasto>();
 
-    public virtual Pedido? Pedido { get; set; }
+    public virtual ICollection<Pedido> Pedidos { get; set; } = new List<Pedido>();
 }

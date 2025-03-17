@@ -36,6 +36,12 @@ namespace SistemaBronx.Application.Models.ViewModels
         public decimal? SubTotal { get; set; }
 
         public string? Comentarios { get; set; }
+        public string? Insumo { get; set; }
+        public string? Producto { get; set; }
+        public string? Tipo { get; set; }
+        public string? Categoria { get; set; }
+        public string? Color { get; set; }
+        public string? Estado { get; set; }
 
         public int? IdEstado { get; set; }
 
