@@ -20,6 +20,11 @@ namespace SistemaBronx.BLL.Service
             return await _contactRepo.Actualizar(pedido, pedidosDetalle, pedidosDetalleProceso);
         }
 
+        public async Task<bool> ActualizarDetalleProceso(PedidosDetalleProceso pedidosDetalleProceso)
+        {
+            return await _contactRepo.ActualizarDetalleProceso(pedidosDetalleProceso);
+        }
+
         public async Task<bool> EliminarInsumo(int IdPedido, int IdInsumo)
         {
             return await _contactRepo.EliminarInsumo(IdPedido, IdInsumo);
@@ -43,6 +48,11 @@ namespace SistemaBronx.BLL.Service
         public async Task<PedidosDetalleProceso> ObtenerInsumo(int IdPedido, int IdInsumo)
         {
             return await _contactRepo.ObtenerInsumo(IdPedido, IdInsumo);
+        }
+
+        public async Task<List<PedidosDetalleProceso>> ObtenerDetalleProcesos()
+        {
+            return await _contactRepo.ObtenerDetalleProcesos();
         }
 
         public async Task<Pedido> ObtenerPedido(int pedidoId)

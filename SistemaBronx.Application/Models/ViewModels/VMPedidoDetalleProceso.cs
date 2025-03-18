@@ -30,6 +30,7 @@ namespace SistemaBronx.Application.Models.ViewModels
         public int? IdProveedor { get; set; }
 
         public string? Especificacion { get; set; }
+        public string? Proveedor { get; set; }
 
         public decimal? PrecioUnitario { get; set; }
 
