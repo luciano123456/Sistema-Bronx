@@ -14,7 +14,7 @@ namespace SistemaBronx.Application.Models.ViewModels
         public string FormaPago { get; set; }
         public string Categoria { get; set; }
 
-        public decimal? Iva { get; set; }
+        public decimal? PorcIva { get; set; }
 
         public decimal ImporteTotal { get; set; }
 

@@ -35,7 +35,7 @@ namespace SistemaBronx.Application.Controllers
             var lista = Gastos.Select(c => new VMGasto
             {
                 Id = c.Id,
-                Iva = c.Iva,
+                PorcIva = c.PorcIva,
                 ImporteTotal = c.ImporteTotal,
                 Comentarios = c.Comentarios,
                 ImporteAbonado = c.ImporteAbonado,
@@ -99,7 +99,7 @@ namespace SistemaBronx.Application.Controllers
                 ImporteAbonado = model.ImporteAbonado,
                 ImporteTotal = model.ImporteTotal,
                 SubtotalNeto = model.SubtotalNeto,
-                Iva = model.Iva,
+                PorcIva = model.PorcIva,
             };
 
             bool respuesta = await _GastoService.Insertar(Gasto);
@@ -121,7 +121,7 @@ namespace SistemaBronx.Application.Controllers
                 ImporteAbonado = model.ImporteAbonado,
                 ImporteTotal = model.ImporteTotal,
                 SubtotalNeto = model.SubtotalNeto,
-                Iva = model.Iva,
+                PorcIva = model.PorcIva,
             };
 
             bool respuesta = await _GastoService.Actualizar(Gasto);
