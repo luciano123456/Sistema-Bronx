@@ -140,7 +140,7 @@ public partial class SistemaBronxContext : DbContext
             entity.Property(e => e.Fecha).HasColumnType("datetime");
             entity.Property(e => e.ImporteAbonado).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.ImporteTotal).HasColumnType("decimal(20, 2)");
-            entity.Property(e => e.Iva).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.PorcIva).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Saldo).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.SubtotalNeto).HasColumnType("decimal(20, 2)");
 

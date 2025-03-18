@@ -13,7 +13,7 @@ public partial class Gasto
 
     public int IdFormadePago { get; set; }
 
-    public decimal? Iva { get; set; }
+    public decimal? PorcIva { get; set; }
 
     public decimal ImporteTotal { get; set; }
 

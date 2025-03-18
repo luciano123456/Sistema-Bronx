@@ -16,9 +16,11 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
 
+
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
     <link href="~/css/Gastos.css" rel="stylesheet" />
+  
 }
 
 <div class="container-fluid mt-5">
@@ -136,17 +138,22 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="txtImporteTotal" class="lblNombreInput">Importe Total</label>
+                        <label for="txtImporteTotal" class="lblNombreInput">Importe Bruto</label>
                         <input type="text" class="input-nuevomodif" id="txtImporteTotal">
                     </div>
 
                     <div class="form-group">
-                        <label for="txtIva" class="lblNombreInput">IVA</label>
-                        <input type="number" class="input-nuevomodif" id="txtIva">
+                        <label for="txtPorcIva" class="lblNombreInput">Porc. Iva</label>
+                        <input type="number" class="input-nuevomodif" id="txtPorcIva">
                     </div>
 
                     <div class="form-group">
-                        <label for="txtSubtotalNeto" class="lblNombreInput">SubTotal</label>
+                        <label for="txtIva" class="lblNombreInput">IVA</label>
+                        <input type="text" class="input-nuevomodif" id="txtIva" disabled>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="txtSubtotalNeto" class="lblNombreInput">Importe Neto</label>
                         <input type="text" class="input-nuevomodif" id="txtSubtotalNeto" disabled>
                     </div>
 
