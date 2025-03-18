@@ -1876,7 +1876,12 @@ async function guardarCambios() {
                 console.log("Respuesta del servidor:", dataJson);
                 const mensaje = idPedido === "" ? "Pedido registrado correctamente" : "Pedido modificado correctamente";
                 exitoModal(mensaje);
-                window.location.href = "/Pedidos";
+                if (localStorage.getItem("RedireccionFabricaciones") == 1){
+                    window.location.href = "../../Fabricaciones";
+                    localStorage.removeItem("RedireccionFabricaciones");
+                } else {
+                    window.location.href = "/Pedidos";
+                }
 
             })
             .catch(error => {

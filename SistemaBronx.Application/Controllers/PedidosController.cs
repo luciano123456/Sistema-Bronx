@@ -183,6 +183,44 @@ namespace SistemaBronx.Application.Controllers
         }
 
 
+        [HttpPut]
+        public async Task<IActionResult> ActualizarDetalleProceso([FromBody] VMPedidoDetalleProceso model)
+        {
+            try
+            {
+
+                PedidosDetalleProceso pedidoDetalleProceso = new PedidosDetalleProceso();
+
+                if (model != null)
+                {
+                        
+                    
+                        pedidoDetalleProceso.Cantidad = model.Cantidad;
+                        pedidoDetalleProceso.Id = model.Id;
+                        pedidoDetalleProceso.Comentarios = model.Comentarios;
+                        pedidoDetalleProceso.Descripcion = model.Descripcion;
+                        pedidoDetalleProceso.Especificacion = model.Especificacion;
+                        pedidoDetalleProceso.IdColor = model.IdColor;
+                        pedidoDetalleProceso.FechaActualizacion = DateTime.Now; // Se actualiza la fecha de modificación
+                        pedidoDetalleProceso.IdEstado = model.IdEstado;
+                }
+
+                // Llamar al servicio para actualizar los datos en la base de datos
+                var resultado = await _PedidosService.ActualizarDetalleProceso(pedidoDetalleProceso);
+
+                if (!resultado)
+                {
+                    return BadRequest("Error al actualizar el pedido y sus detalles");
+                }
+
+                return Ok(new { valor = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Error al actualizar el pedido: " + ex.Message);
+            }
+        }
+
         [HttpGet]
         public async Task<IActionResult> Lista(DateTime FechaDesde, DateTime FechaHasta, int IdCliente, string Estado, int Finalizado)
         {

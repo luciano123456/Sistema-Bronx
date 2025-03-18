@@ -384,6 +384,7 @@ async function configurarDataTable(data) {
 
         $('#grd_Gastos tbody').on('dblclick', 'td', async function () {
             var cell = gridGastos.cell(this);
+            if(originalData == undefined) return
             var originalData = cell.data();
             var colIndex = cell.index().column;
             var rowData = gridGastos.row($(this).closest('tr')).data();
@@ -759,7 +760,7 @@ function configurarOpcionesColumnas() {
             // Asegúrate de que la columna esté visible si el valor es 'true'
             grid.column(index).visible(isChecked);
 
-            const columnName = index != 3 ? col.data : "Direccion";
+            const columnName = col.data;
 
             // Ahora agregamos el checkbox, asegurándonos de que se marque solo si 'isChecked' es 'true'
             container.append(`

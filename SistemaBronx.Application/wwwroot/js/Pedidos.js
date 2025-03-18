@@ -72,7 +72,7 @@ async function listaPedidos(FechaDesde, FechaHasta, IdCliente, Estado, Finalizad
 }
 
 
-function editarProducto(id) {
+function editarPedido(id) {
     // Redirige a la vista 'PedidoNuevoModif' con el parámetro id
     window.location.href = '/Pedidos/NuevoModif/' + id;
 }
@@ -288,7 +288,7 @@ async function configurarDataTable(data) {
                 // Doble clic para ejecutar la función editarPedido(id)
                 $('#grd_Pedidos tbody').on('dblclick', 'tr', function () {
                     var id = gridPedidos.row(this).data().Id; // Obtener el ID de la fila seleccionada
-                    editarProducto(id); // Llamar a la función de editar
+                    editarPedido(id); // Llamar a la función de editar
                 });
 
                 let filaSeleccionada = null; // Variable para almacenar la fila seleccionada
