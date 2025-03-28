@@ -4,6 +4,7 @@ let gridProductosModal = null;
 let gridInsumosModal = null;
 let isEditing = false;
 let filasSeleccionadas = []; // Array para almacenar las filas seleccionadas
+let filaSeleccionadaInsumos = []; // Array para almacenar las filas seleccionadas
 let filaSeleccionadaProductos = null; // Variable para almacenar la fila seleccionada
 const IdPedido = document.getElementById('IdPedido').value;
 
@@ -11,6 +12,11 @@ const IdPedido = document.getElementById('IdPedido').value;
 
 
 $(document).ready(async function () {
+
+
+    $('#txtNombreClienteModal').on('input', function () {
+        validarCamposCliente()
+    });
 
     $('#exitoModal, #ErrorModal, #AdvertenciaModal').on('shown.bs.modal', function () {
         $('.modal').css('z-index', 1057); // Baja el z-index de todos los modales
@@ -22,7 +28,7 @@ $(document).ready(async function () {
     });
 
 
-    $("#Categorias").select2({
+    $("#Categorias, #Colores").select2({
         dropdownParent: $("#productoModal"), // Asegura que el dropdown se muestre dentro del modal
         width: "100%",
         placeholder: "Selecciona una opción",
@@ -122,6 +128,7 @@ async function insertarDatosPedido(datosPedido) {
 
     document.getElementById("IdPedido").value = datosPedido.pedido.Id;
     document.getElementById("Clientes").value = parseInt(datosPedido.pedido.IdCliente);
+    document.getElementById("Telefono").value = datosPedido.pedido.Telefono;
     document.getElementById("Fecha").value = moment(datosPedido.pedido.Fecha, 'YYYY-MM-DD').format('YYYY-MM-DD');
     document.getElementById("Formasdepago").value = parseInt(datosPedido.pedido.IdFormaPago);
     document.getElementById("ImporteTotal").value = datosPedido.pedido.ImporteTotal;
@@ -691,6 +698,17 @@ $('#ProductoModalCantidad').on('keyup', function () {
     }
 });
 
+$('#Clientes').on('change', async function () {
+    var IdCliente = document.getElementById("Clientes").value;
+    await cargarDatosCliente(IdCliente);
+});
+
+async function cargarDatosCliente(idCliente) {
+    const datosCliente = await ObtenerDatosCliente(idCliente);
+
+    document.getElementById("Telefono").value = datosCliente.Telefono;
+    }
+
 $('#Colores').on('change', function () {
     // Obtener el color seleccionado
 
@@ -908,6 +926,65 @@ async function configurarDataTableInsumos(data) {
 
                 configurarOpcionesColumnasInsumos();
 
+                var ultimaFilaSeleccionada = null;
+
+                $('#grd_Insumos tbody').on('click', 'tr', function (event) {
+                    var fila = $(this);
+
+                    // Verificar si se está presionando Ctrl (o Cmd en Mac)
+                    var ctrlPresionado = event.ctrlKey || event.metaKey; // Ctrl en Windows/Linux, Cmd en Mac
+                    // Verificar si se está presionando Shift
+                    var shiftPresionado = event.shiftKey;
+
+                    if (ctrlPresionado) {
+                        // Si se presiona Ctrl/Cmd, agregar o quitar la fila de la selección
+                        var index = filaSeleccionadaInsumos.indexOf(fila[0]);
+
+                        if (index === -1) {
+                            // Si no está seleccionada, agregarla
+                            filaSeleccionadaInsumos.push(fila[0]);
+                            fila.addClass('selected');
+                            $('td', fila).addClass('selected');
+                        } else {
+                            // Si ya está seleccionada, quitarla
+                            filaSeleccionadaInsumos.splice(index, 1);
+                            fila.removeClass('selected');
+                            $('td', fila).removeClass('selected');
+                        }
+                    } else if (shiftPresionado && ultimaFilaSeleccionada) {
+                        // Si se presiona Shift, seleccionar todas las filas entre la última fila seleccionada y la fila actual
+                        var filas = $('#grd_Insumos tbody tr');
+                        var indexActual = filas.index(fila);
+                        var indexUltima = filas.index(ultimaFilaSeleccionada);
+
+                        // Determinar el rango de filas a seleccionar
+                        var inicio = Math.min(indexActual, indexUltima);
+                        var fin = Math.max(indexActual, indexUltima);
+
+                        // Seleccionar todas las filas en el rango
+                        filas.slice(inicio, fin + 1).each(function () {
+                            if (!filaSeleccionadaInsumos.includes(this)) {
+                                filaSeleccionadaInsumos.push(this);
+                                $(this).addClass('selected');
+                                $('td', this).addClass('selected');
+                            }
+                        });
+                    } else {
+                        // ✅ Si NO se presiona Ctrl ni Shift, limpiar todo y seleccionar solo la nueva fila
+                        if (!fila.hasClass('selected') || filaSeleccionadaInsumos.length == 1) {
+                            filaSeleccionadaInsumos = [fila[0]]; // Reiniciar selección
+                            $('#grd_Insumos tbody tr').removeClass('selected');
+                            $('#grd_Insumos tbody tr td').removeClass('selected');
+                            fila.addClass('selected');
+                            $('td', fila).addClass('selected');
+                        }
+
+                    }
+
+                    // Actualizar la última fila seleccionada
+                    ultimaFilaSeleccionada = fila[0];
+                });
+
                 $('#grd_Insumos tbody').on('dblclick', 'td', async function () {
                     var cell = gridInsumos.cell(this);
                     var originalData = cell.data();
@@ -977,7 +1054,7 @@ async function configurarDataTableInsumos(data) {
                         var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
                             var selectedValue = select.val();
                             var selectedText = select.find('option:selected').text();
-                            saveEdit(colIndex, gridInsumos.row($(this).closest('tr')).data(), selectedText, selectedValue, $(this).closest('tr'));
+                            saveEdit(colIndex, selectedText, selectedValue);
                         });
 
                         var cancelButton = $('<i class="fa fa-times text-danger"></i>').on('click', cancelEdit);
@@ -1009,7 +1086,7 @@ async function configurarDataTableInsumos(data) {
                             })
                             .on('keydown', function (e) {
                                 if (e.key === 'Enter') {
-                                    saveEdit(colIndex, gridInsumos.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                                    saveEdit(colIndex, input.val(), input.val());
                                 } else if (e.key === 'Escape') {
                                     cancelEdit();
                                 }
@@ -1018,7 +1095,7 @@ async function configurarDataTableInsumos(data) {
 
                         var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
                             if (!$(this).prop('disabled')) { // Solo guardar si el botón no está deshabilitado
-                                saveEdit(colIndex, gridInsumos.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                                saveEdit(colIndex, input.val(), input.val());
                             }
                         });
 
@@ -1031,48 +1108,107 @@ async function configurarDataTableInsumos(data) {
                     }
 
 
-                    // Función para guardar los cambios
-                    function saveEdit(colIndex, rowData, newText, newValue, trElement) {
-                        // Obtener el nombre de la propiedad basado en el dataSrc
+                    // Función para guardar los cambios con el parpadeo en las filas seleccionadas
+                    async function saveEdit(colIndex, newText, newValue) {
+                        // Asegurarnos de que las filas seleccionadas se guardan una por una
+                        for (let i = 0; i < filaSeleccionadaInsumos.length; i++) {
+                            const rowElement = filaSeleccionadaInsumos[i];
 
+                            // Obtener los datos de la fila usando gridFabricaciones.row()
+                            let rowData = gridInsumos.row($(rowElement)).data(); // Aquí obtenemos los datos de la fila seleccionada
 
-                        // Convertir el índice de columna (data index) al índice visible
-                        var visibleIndex = gridInsumos.column(colIndex).index('visible');
+                            // Obtener la celda editada de la fila seleccionada
+                            const celda = $(rowElement).find('td').eq(colIndex);
 
-                        // Obtener la celda visible y aplicar la clase blinking
-                        var celda = $(trElement).find('td').eq(visibleIndex);
+                            // Actualizar el valor de la fila según la columna editada
+                            if (colIndex === 13) { // Columna de la provincia
+                                rowData.IdColor = newValue;
+                                rowData.Color = newText;
+                            } else if (colIndex === 17) { // Columna de la provincia
+                                rowData.IdEstado = newValue;
+                                rowData.Estado = newText;
+                            } else {
+                                rowData[gridInsumos.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
+                            }
 
-                        // Obtener el valor original de la celda
-                        var originalText = gridInsumos.cell(trElement, celda).data();
+                            // Actualizar la celda específica en la tabla
+                            gridInsumos.cell(rowElement, colIndex).data(newText).draw();
 
-                        // Actualizar el valor de la fila según la columna editada
-                        if (colIndex === 13) { // Columna de la provincia
-                            rowData.IdColor = newValue;
-                            rowData.Color = newText;
-                        } else if (colIndex === 17) { // Columna de la provincia
-                            rowData.IdEstado = newValue;
-                            rowData.Estado = newText;
-                        } else {
-                            rowData[gridInsumos.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
+                            // Añadir la clase de parpadeo a la celda
+                            celda.addClass('blinking');
+
+                            try {
+        
+
+                                // Remover el parpadeo después de 3 segundos solo en la celda editada
+                                setTimeout(function () {
+                                    $(rowElement).find('td').eq(colIndex).removeClass('blinking');
+                                }, 3000);
+
+                            } catch (error) {
+                                console.error(`Error guardando la fila ${i + 1}:`, error);
+                            }
                         }
 
-                        // Actualizar la fila en la tabla con los nuevos datos
-                        gridInsumos.row(trElement).data(rowData).draw();
-
-                        // Aplicar el parpadeo solo si el texto cambió
-                        if (originalText !== newText) {
-                            celda.addClass('blinking'); // Aplicar la clase 'blinking' a la celda que fue editada
-                        }
-
+                        // **Eliminar la clase 'selected' de las filas seleccionadas después de guardar**
+                        $(filaSeleccionadaInsumos).each(function (index, rowElement) {
+                            $(rowElement).removeClass('selected');
+                            $(rowElement).find('td').removeClass('selected');
+                        });
 
                         // Desactivar el modo de edición
                         isEditing = false;
 
-                        // Remover la clase blinking después de 3 segundos
-                        setTimeout(function () {
-                            celda.removeClass('blinking');
-                        }, 3000);
+                        // Limpiar las filas seleccionadas después de guardar
+                        filaSeleccionadaInsumos = [];
                     }
+
+                    //// Función para guardar los cambios con el parpadeo en las filas
+                    //async function saveEdit(colIndex, rowData, newText, newValue, trElement) {
+                    //    // Obtener el nombre de la propiedad basado en el dataSrc
+                    //    var visibleIndex = gridInsumos.column(colIndex).index('visible');
+
+                    //    // Obtener la celda visible y aplicar la clase blinking
+                    //    var celda = $(trElement).find('td').eq(visibleIndex);
+
+                    //    // Obtener el valor original de la celda
+                    //    var originalText = gridInsumos.cell(trElement, visibleIndex).data();
+
+                    //    // Actualizar el valor de la fila según la columna editada
+                    //    if (colIndex === 13) { // Columna de la provincia
+                    //        rowData.IdColor = newValue;
+                    //        rowData.Color = newText;
+                    //    } else if (colIndex === 17) { // Columna de la provincia
+                    //        rowData.IdEstado = newValue;
+                    //        rowData.Estado = newText;
+                    //    } else {
+                    //        rowData[gridInsumos.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
+                    //    }
+
+                    //    // Actualizar la fila en la tabla con los nuevos datos
+                    //    gridInsumos.row(trElement).data(rowData).draw();
+
+                    //    // Aplicar el parpadeo solo si el texto cambió
+                    //    if (originalText !== newText) {
+                    //        celda.addClass('blinking'); // Aplicar la clase 'blinking' a la celda que fue editada
+                    //    }
+
+                    //    try {
+ 
+
+                    //        // Remover el parpadeo después de 3 segundos solo en la celda editada
+                    //        setTimeout(function () {
+                    //            celda.removeClass('blinking');
+                    //        }, 3000);
+
+                    //    } catch (error) {
+                    //        console.error("Error guardando la fila:", error);
+                    //    }
+
+                    //    // Desactivar el modo de edición
+                    //    isEditing = false;
+                    //}
+
 
 
 
@@ -1285,6 +1421,14 @@ async function cargarDatosProductoModal() {
 
     // Ahora se cargan los datos filtrados (productos que no están en gridProductos)
     configurarDataTableProductosModal(productosFiltrados);
+}
+
+
+async function ObtenerDatosCliente(id) {
+    const url = `/Clientes/EditarInfo?Id=${id}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    return data;
 }
 
 async function ObtenerDatosProductoModal() {
@@ -1541,6 +1685,11 @@ async function listaClientes() {
     $('#Clientes option').remove();
 
     select = document.getElementById("Clientes");
+
+    option = document.createElement("option");
+    option.value = -1;
+    option.text = "Seleccionar";
+    select.appendChild(option);
 
     for (i = 0; i < data.length; i++) {
         option = document.createElement("option");
@@ -1898,6 +2047,14 @@ function isValidPedido() {
     var cantidadFilas = $('#grd_Productos').DataTable().rows().count();
     var saldo = parseFloat(convertirMonedaAFloat($("#Saldo").val()));
     const IdPedido = document.getElementById('IdPedido').value;
+    const IdCliente = document.getElementById('Clientes').value;
+
+    if (IdCliente == -1) {
+        errorModal("Para crear un pedido, debes seleccionar un cliente.");
+        return false;
+    }
+
+   
 
     if (cantidadFilas <= 0) {
         if (IdPedido == "") {
@@ -1915,4 +2072,93 @@ function isValidPedido() {
 
 
     return true;
+}
+
+function nuevoCliente() {
+    limpiarModalCliente();
+    listaProvincias();
+    $('#modalEdicionCliente').modal('show');
+    $("#btnGuardar").text("Registrar");
+    $("#modalEdicionLabel").text("Nuevo Cliente");
+    $('#lblNombreClienteModal').css('color', 'red');
+    $('#txtNombreClienteModal').css('border-color', 'red');
+}
+
+function limpiarModalCliente() {
+    const campos = ["IdClienteModal", "NombreClienteModal", "TelefonoClienteModal", "DireccionClienteModal", "IdProvinciaClienteModal", "LocalidadClienteModal", "DniClienteModal"];
+    campos.forEach(campo => {
+        $(`#txt${campo}`).val("");
+    });
+
+    $("#lblNombre, #txtNombre").css("color", "").css("border-color", "");
+}
+
+
+async function listaProvincias() {
+    const url = `/Clientes/ListaProvincias`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    $('#ProvinciasClienteModal option').remove();
+
+    selectProvincias = document.getElementById("ProvinciasClienteModal");
+
+    for (i = 0; i < data.length; i++) {
+        option = document.createElement("option");
+        option.value = data[i].Id;
+        option.text = data[i].Nombre;
+        selectProvincias.appendChild(option);
+
+    }
+}
+
+function guardarCambiosCliente() {
+    if (validarCamposCliente()) {
+        const idCliente = $("#txtIdClienteModal").val();
+        const nuevoModelo = {
+            "Id": idCliente !== "" ? idCliente : 0,
+            "Nombre": $("#txtNombreClienteModal").val(),
+            "Telefono": $("#txtTelefonoClienteModal").val(),
+            "Direccion": $("#txtDireccionClienteModal").val(),
+            "IdProvincia": $("#ProvinciasClienteModal").val(),
+            "Localidad": $("#txtLocalidadClienteModal").val(),
+            "DNI": $("#txtDniClienteModal").val()
+        };
+
+        const url = "/Clientes/Insertar";
+        const method = "POST";
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8'
+            },
+            body: JSON.stringify(nuevoModelo)
+        })
+            .then(response => {
+                if (!response.ok) throw new Error(response.statusText);
+                return response.json();
+            })
+            .then(dataJson => {
+                const mensaje = "Cliente registrado correctamente";
+                $('#modalEdicionCliente').modal('hide');
+                exitoModal(mensaje);
+                listaClientes();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    } else {
+        errorModal('Debes completar los campos requeridos');
+    }
+}
+
+function validarCamposCliente() {
+    const nombre = $("#txtNombreClienteModal").val();
+    const camposValidos = nombre !== "";
+
+    $("#lblNombreClienteModal").css("color", camposValidos ? "" : "red");
+    $("#txtNombreClienteModal").css("border-color", camposValidos ? "" : "red");
+
+    return camposValidos;
 }

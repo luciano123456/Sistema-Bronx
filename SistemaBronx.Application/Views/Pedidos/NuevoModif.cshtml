@@ -38,96 +38,44 @@
 <div class="container mt-5 ">
 
 
+    <div class="card mb-4">
+        <div class="card-body">
+            <h3 class="card-title">Datos del Pedido</h3>
+            <input type="text" class="input-nuevo" id="IdPedido" name="IdPedido" hidden>
+            <div class="form-container">
+                <div class="form-group">
+                    <label for="Fecha">Fecha</label>
+                    <input type="date" class="input-nuevo" id="Fecha" name="Fecha">
+                </div>
 
-    <!-- Pestañas -->
-    <ul class="nav nav-tabs pestaniasDatos" id="myTab" role="tablist">
+                <div class="form-group">
+                    <label class="lblfiltro">Cliente</label>
+                    <div class="d-flex align-items-center">
+                        <!-- Input -->
+                        <select id="Clientes" name="select" class="input-nuevomodif select-modal-personalizado" style="flex-grow: 1;">
+                            <option value="" selected>Cliente</option>
+                        </select>
 
-
-
-        <li class="nav-item" role="presentation">
-            <a class="nav-link active" id="pedido-tab" data-bs-toggle="tab" href="#pedido" role="tab" aria-controls="pedido" aria-selected="true">Datos del Pedido</a>
-        </li>
-    </ul>
-
-    <!-- Contenido de las pestañas -->
-    <div class="tab-content mt-4" id="myTabContent">
-
-
-        <div class="tab-pane fade show active" id="pedido" role="tabpanel" aria-labelledby="pedido-tab">
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h3 class="card-title">Datos del Pedido</h3>
-                    <input type="text" class="input-nuevo" id="IdPedido" name="IdPedido" hidden>
-                    <div class="form-container">
-                        <div class="form-group">
-                            <label for="Fecha">Fecha</label>
-                            <input type="date" class="input-nuevo" id="Fecha" name="Fecha">
-                        </div>
-
-                        <div class="form-group" style="margin-top: -0.9vh">
-                            <label class="lblfiltro">Cliente</label>
-                            <select id="Clientes" name="select" class="input-nuevomodif select-modal-personalizado mt-2">
-                                <option value="" selected>Cliente</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group" style="margin-top: -0.15vh">
-                            <label for="ImporteTotal">Importe Total</label>
-                            <input type="text" class="input-nuevo" id="ImporteTotal" name="ImporteTotal" disabled>
-                        </div>
-
-                        <div class="form-group" style="margin-top: -0.15vh">
-                            <label for="PorcDesc">% Desc.</label>
-                            <input type="number" class="input-nuevo" id="PorcDesc" name="PorcDesc">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="Descuento">Descuento</label>
-                            <input type="text" class="input-nuevo" id="Descuento" name="Descuento" disabled>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="ImporteAbonado">Sub Total</label>
-                            <input type="text" class="input-nuevo" id="SubTotal" name="Subtotal" disabled>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="ImporteAbonado">Importe Abonado</label>
-                            <input type="text" class="input-nuevo" id="ImporteAbonado" name="ImporteAbonado">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="Saldo">Saldo</label>
-                            <input type="text" class="input-nuevo" id="Saldo" name="Saldo" disabled>
-                        </div>
-
-                        <div class="form-group" style="margin-top: -0.9vh">
-                            <label class="lblfiltro">Forma de pago</label>
-                            <select id="Formasdepago" name="select" class="input-nuevomodif select-modal-personalizado mt-2">
-                                <option value="" selected>Forma de pago</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="Comentarios">Comentarios</label>
-                            <input type="text" class="input-nuevo" id="Comentarios" name="Comentarios">
-                        </div>
+                        <!-- Botón de búsqueda a la derecha -->
+                        <button type="button" class="btn btn-default" onclick="nuevoCliente()"
+                                style="margin-left: 8px; background-color: #198754; padding: 6px 10px; border-radius: 4px;">
+                            <i class="fa fa-plus-circle" style="color: white; font-size: 1em;"></i>
+                        </button>
                     </div>
+                </div>
 
-                    <!-- Contenedor para alinear el switch a la derecha -->
-                    <div class="d-flex justify-content-end mt-3">
-                        <div class="form-check form-switch d-flex align-items-center">
-                            <label class="form-check-label" style="margin-right:4rem" for="Finalizado">Finalizado</label>
-                            <input class="form-check-input" type="checkbox" id="Finalizado">
-                        </div>
-                    </div>
 
+             
+
+                <div class="form-group">
+                    <label for="Telefono">Telefono</label>
+                    <input type="text" class="input-nuevo" id="Telefono" name="Telefono" disabled>
 
                 </div>
             </div>
         </div>
-
     </div>
+
 
     <!-- Pestañas -->
     <ul class="nav nav-tabs" id="myTab" role="tablist">
@@ -232,11 +180,128 @@
             </div>
         </div>
 
+       
+                <div class="card mb-4">
+                    <div class="card-body mt-3">
+                        <h3 class="card-title">Datos Generales</h3>
+                        <div class="form-container">
+                            
+
+                            <div class="form-group">
+                                <label for="ImporteTotal">Importe Total</label>
+                                <input type="text" class="input-nuevo" id="ImporteTotal" name="ImporteTotal" disabled>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="PorcDesc">% Desc.</label>
+                                <input type="number" class="input-nuevo" id="PorcDesc" name="PorcDesc">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="Descuento">Descuento</label>
+                                <input type="text" class="input-nuevo" id="Descuento" name="Descuento" disabled>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="ImporteAbonado">Sub Total</label>
+                                <input type="text" class="input-nuevo" id="SubTotal" name="Subtotal" disabled>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="ImporteAbonado">Importe Abonado</label>
+                                <input type="text" class="input-nuevo" id="ImporteAbonado" name="ImporteAbonado">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="Saldo">Saldo</label>
+                                <input type="text" class="input-nuevo" id="Saldo" name="Saldo" disabled>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="lblfiltro">Forma de pago</label>
+                                <select id="Formasdepago" name="select" class="input-nuevomodif select-modal-personalizado mt-2">
+                                    <option value="" selected>Forma de pago</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="Comentarios">Comentarios</label>
+                                <input type="text" class="input-nuevo" id="Comentarios" name="Comentarios">
+                            </div>
+                        </div>
+
+                        <!-- Contenedor para alinear el switch a la derecha -->
+                        <div class="d-flex justify-content-end mt-3">
+                            <div class="form-check form-switch d-flex align-items-center">
+                                <label class="form-check-label" style="margin-right:4rem" for="Finalizado">Finalizado</label>
+                                <input class="form-check-input" type="checkbox" id="Finalizado">
+                            </div>
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+
+      
+
+
         <button type="submit" id="btnNuevoModificar" class="btn btn-primary mt-3" onclick="guardarCambios()">Registrar</button>
 
 
 
+    <div class="modal fade" id="modalEdicionCliente" tabindex="-1" role="dialog" aria-labelledby="modalEdicionLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalEdicionLabel">Nuevo Cliente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="form-group" hidden>
+                            <label for="txtIdCliente" class="lblNombreInput">ID</label>
+                            <input type="text" class="input-nuevomodif" id="txtIdClienteModal" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label id="lblNombreClienteModal" for="txtNombre" class="lblNombreInput">Nombre (*)</label>
+                            <input type="text" class="input-nuevomodif" id="txtNombreClienteModal" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="txtTelefono" class="lblNombreInput">Teléfono</label>
+                            <input type="text" class="input-nuevomodif" id="txtTelefonoClienteModal">
+                        </div>
+                        <div class="form-group">
+                            <label for="txtDireccion" class="lblNombreInput">Dirección</label>
+                            <input type="text" class="input-nuevomodif" id="txtDireccionClienteModal">
+                        </div>
+                        <div class="form-group">
+                            <label for="txtProvincia" class="lblNombreInput">Provincia</label>
+                            <select id="ProvinciasClienteModal" name="select" class="input-nuevomodif select-modal-personalizado mt-2">
+                                <option value="" selected>Provincias</option>
+                            </select>
+                        </div>
 
+                        <div class="form-group mt-4">
+                            <label for="txtLocalidad" class="lblNombreInput">Localidad</label>
+                            <input type="text" class="input-nuevomodif" id="txtLocalidadClienteModal">
+                        </div>
+                        <div class="form-group">
+                            <label for="txtDni" class="lblNombreInput">DNI/CUIT</label>
+                            <input type="text" class="input-nuevomodif" id="txtDniClienteModal">
+                        </div>
+
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" id="btnGuardar" class="btn btn-warning" onclick="guardarCambiosCliente()">Registrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
         <!-- Modal -->
         <div class="modal fade" id="productoModal" tabindex="-1" aria-labelledby="productoModalLabel" aria-hidden="true">
@@ -393,28 +458,31 @@
 
 
 
+
                     </div>
 
 
 
+              
 
 
+                    @section Scripts {
 
-@section Scripts {
-
-<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-
-
-<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
-
-<script src="~/js/utils/moment.js"></script>
-<script src="~/js/pedidosnuevomodif.js">
-
-<script src="~/js/site.js"></script>
-
-}
+                        <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 
 
-<script>
-var pedidoData = @Html.Raw(Json.Serialize(ViewBag.Data ?? new { }));
-</script>
+                        <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+
+                        <script src="~/js/utils/moment.js"></script>
+                        <script src="~/js/pedidosnuevomodif.js?v=1.0">
+
+                            <script src="~/js/site.js"></script>
+
+                    }
+
+
+                    <script>
+                        var pedidoData = @Html.Raw(Json.Serialize(ViewBag.Data ?? new { }));
+                    </script>
+
+

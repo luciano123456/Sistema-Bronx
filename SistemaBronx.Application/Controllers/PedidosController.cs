@@ -274,12 +274,13 @@ namespace SistemaBronx.Application.Controllers
                     IdCliente = pedido.IdCliente,
                     IdFormaPago = pedido.IdFormaPago,
                     Cliente = pedido.IdClienteNavigation != null ? pedido.IdClienteNavigation.Nombre : "",
+                    Telefono = pedido.IdClienteNavigation != null ? pedido.IdClienteNavigation.Telefono : "",
                     PorcDescuento = pedido.PorcDescuento,
                     ImporteAbonado = pedido.ImporteAbonado,
                     ImporteTotal = pedido.ImporteTotal,
                     Comentarios = pedido.Comentarios,
                     Estado = "Pendiente",
-                   
+                    
                 };
 
                 List<VMPedidoDetalle> pedidoDetalle = new List<VMPedidoDetalle>();

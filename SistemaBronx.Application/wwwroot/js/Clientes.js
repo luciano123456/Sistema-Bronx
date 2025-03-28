@@ -594,3 +594,23 @@ function configurarOpcionesColumnas() {
 }
 
 
+
+
+
+async function listaProvincias() {
+    const url = `/Clientes/ListaProvincias`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    $('#Provincias option').remove();
+
+    selectProvincias = document.getElementById("Provincias");
+
+    for (i = 0; i < data.length; i++) {
+        option = document.createElement("option");
+        option.value = data[i].Id;
+        option.text = data[i].Nombre;
+        selectProvincias.appendChild(option);
+
+    }
+}

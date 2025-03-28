@@ -1,0 +1,4 @@
+table.dataTable.display tbody tr.selected td {
+    background-color: antiquewhite !important;
+    color: black !important;
+}

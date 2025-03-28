@@ -68,10 +68,8 @@ public partial class SistemaBronxContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-        //=> optionsBuilder.UseSqlServer("Server=DESKTOP-3MT5F5F; Database=Sistema_Bronx; Integrated Security=true; Trusted_Connection=True; Encrypt=False");\
-        => optionsBuilder.UseSqlServer("Server=200.73.140.119; Database=Sistema_Bronx; Integrated Security=true; Trusted_Connection=True; Encrypt=False");
-
-
+    //=> optionsBuilder.UseSqlServer("Server=DESKTOP-3MT5F5F; Database=Sistema_Bronx; Integrated Security=true; Trusted_Connection=True; Encrypt=False");
+    => optionsBuilder.UseSqlServer("Server=200.73.140.119; Database=Sistema_Bronx; User Id=PcJuan; Password=juan; Encrypt=False");
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Cliente>(entity =>
@@ -209,9 +207,12 @@ public partial class SistemaBronxContext : DbContext
 
         modelBuilder.Entity<Pedido>(entity =>
         {
+            entity.Property(e => e.Comentarios)
+                .HasMaxLength(500)
+                .IsUnicode(false);
             entity.Property(e => e.Fecha).HasColumnType("datetime");
-            entity.Property(e => e.ImporteTotal).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.ImporteAbonado).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.ImporteTotal).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Saldo).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.SubTotal).HasColumnType("decimal(20, 2)");
 
@@ -249,6 +250,7 @@ public partial class SistemaBronxContext : DbContext
 
             entity.HasOne(d => d.IdPedidoNavigation).WithMany(p => p.PedidosDetalles)
                 .HasForeignKey(d => d.IdPedido)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_PedidosDetalle_Pedidos");
 
             entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.PedidosDetalles)
@@ -295,6 +297,7 @@ public partial class SistemaBronxContext : DbContext
 
             entity.HasOne(d => d.IdPedidoNavigation).WithMany(p => p.PedidosDetalleProcesos)
                 .HasForeignKey(d => d.IdPedido)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_PedidosDetalleProcesos_Pedidos");
 
             entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.PedidosDetalleProcesos)
