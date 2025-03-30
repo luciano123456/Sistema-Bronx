@@ -285,7 +285,8 @@ public partial class SistemaBronxContext : DbContext
 
             entity.HasOne(d => d.IdDetalleNavigation).WithMany(p => p.PedidosDetalleProcesos)
                 .HasForeignKey(d => d.IdDetalle)
-                .HasConstraintName("FK_PedidosDetalleProcesos_PedidosDetalle");
+                .HasConstraintName("FK_PedidosDetalleProcesos_PedidosDetalle")
+                .OnDelete(DeleteBehavior.Restrict); 
 
             entity.HasOne(d => d.IdEstadoNavigation).WithMany(p => p.PedidosDetalleProcesos)
                 .HasForeignKey(d => d.IdEstado)

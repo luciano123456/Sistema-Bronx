@@ -51,6 +51,7 @@ namespace SistemaBronx.Application.Controllers
                     IdProveedor = detalleProceso.IdProveedor,
                     Proveedor = detalleProceso.IdProveedorNavigation.Nombre,
                     Categoria = detalleProceso.IdCategoriaNavigation.Nombre,
+                    IdDetalle = detalleProceso.IdDetalle
                 }).ToList();
 
                 return Ok(lista);

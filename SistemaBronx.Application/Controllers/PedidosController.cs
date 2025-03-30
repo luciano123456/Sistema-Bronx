@@ -51,6 +51,7 @@ namespace SistemaBronx.Application.Controllers
                 {
                     pedidoDetalle = model.PedidosDetalles.Select(detalle => new PedidosDetalle
                     {
+                        Id = detalle.Id, // Si el ID existe, actualizarlo; si no, insertarlo
                         Cantidad = detalle.Cantidad,
                         CostoUnitario = detalle.CostoUnitario ?? 0,
                         PrecioVenta = detalle.PrecioVenta ?? 0,
@@ -62,17 +63,20 @@ namespace SistemaBronx.Application.Controllers
                     }).ToList();
                 }
 
+                // Actualizar Detalles de Insumos
                 if (model.PedidosDetalleProcesos != null && model.PedidosDetalleProcesos.Any())
                 {
                     pedidoDetalleProceso = model.PedidosDetalleProcesos.Select(detalleProceso => new PedidosDetalleProceso
                     {
+                        Id = detalleProceso.Id, // Si el ID existe, actualizarlo; si no, insertarlo
+                        IdDetalle = detalleProceso.IdDetalle, // Si el ID existe, actualizarlo; si no, insertarlo
                         Cantidad = detalleProceso.Cantidad,
                         IdCategoria = detalleProceso.IdCategoria,
                         Comentarios = detalleProceso.Comentarios,
                         Descripcion = detalleProceso.Descripcion,
                         Especificacion = detalleProceso.Especificacion,
                         IdColor = detalleProceso.IdColor,
-                        FechaActualizacion = detalleProceso.FechaActualizacion,
+                        FechaActualizacion = DateTime.Now, // Se actualiza la fecha de modificación
                         SubTotal = detalleProceso.SubTotal ?? 0,
                         IdEstado = detalleProceso.IdEstado,
                         IdTipo = detalleProceso.IdTipo,
@@ -148,6 +152,7 @@ namespace SistemaBronx.Application.Controllers
                     pedidoDetalleProceso = model.PedidosDetalleProcesos.Select(detalleProceso => new PedidosDetalleProceso
                     {
                         Id = detalleProceso.Id, // Si el ID existe, actualizarlo; si no, insertarlo
+                        IdDetalle = detalleProceso.IdDetalle, // Si el ID existe, actualizarlo; si no, insertarlo
                         Cantidad = detalleProceso.Cantidad,
                         IdCategoria = detalleProceso.IdCategoria,
                         Comentarios = detalleProceso.Comentarios,

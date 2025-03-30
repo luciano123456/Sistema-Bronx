@@ -4,16 +4,18 @@ let filasSeleccionadas = []; // Array para almacenar las filas seleccionadas
 
 const columnConfig = [
     { index: 0, filterType: 'text' },
-    { index: 1, filterType: 'select', fetchDataFunc: listaProductosFilter },
-    { index: 2, filterType: 'text' }, // Columna con un filtro de selección (de provincias)
-    { index: 3, filterType: 'text' }, // Columna con un filtro de selección (de provincias)
-    { index: 4, filterType: 'text', filterType: 'select', fetchDataFunc: listaColoresFilter },
-    { index: 5, filterType: 'text', filterType: 'select', fetchDataFunc: listaEstadosFilter },
-    { index: 6, filterType: 'text' },
-    { index: 7, filterType: 'text' },
-    { index: 8, filterType: 'text', filterType: 'select', fetchDataFunc: listaCategoriasFilter },
+    { index: 1, filterType: 'text' },
+    { index: 2, filterType: 'text' },
+    { index: 3, filterType: 'select', fetchDataFunc: listaProductosFilter },
+    { index: 4, filterType: 'text' }, // Columna con un filtro de selección (de provincias)
+    { index: 5, filterType: 'text' }, // Columna con un filtro de selección (de provincias)
+    { index: 6, filterType: 'text', filterType: 'select', fetchDataFunc: listaColoresFilter },
+    { index: 7, filterType: 'text', filterType: 'select', fetchDataFunc: listaEstadosFilter },
+    { index: 8, filterType: 'text' },
     { index: 9, filterType: 'text' },
-    { index: 10, filterType: 'text' },
+    { index: 10, filterType: 'text', filterType: 'select', fetchDataFunc: listaCategoriasFilter },
+    { index: 11, filterType: 'select', fetchDataFunc: listaProveedoresFilter },
+    { index: 12, filterType: 'text' },
 ];
 
 
@@ -42,8 +44,9 @@ async function configurarDataTable(data) {
                 lengthMenu: "Anzeigen von _MENU_ Einträgen",
                 url: "//cdn.datatables.net/plug-ins/2.0.7/i18n/es-MX.json"
             },
-            scrollX: "100px",
+            scrollX: true,
             scrollCollapse: true,
+            pageLength: 50,
             columns: [
                 {
 
@@ -68,6 +71,8 @@ async function configurarDataTable(data) {
 
                 },
                 
+                { data: 'IdPedido', name:"Pedido" },
+                { data: 'IdDetalle' },
                 { data: 'Producto' },
                 { data: 'Insumo' },
                 { data: 'Cantidad' },
@@ -114,7 +119,8 @@ async function configurarDataTable(data) {
                 'pageLength'
             ],
             orderCellsTop: true,
-            fixedHeader: true,
+            fixedHeader: false,
+
 
             initComplete: async function () {
                 var api = this.api();
@@ -270,7 +276,7 @@ async function configurarDataTable(data) {
             var colIndex = cell.index().column;
             var rowData = gridFabricaciones.row($(this).closest('tr')).data();
 
-            if (colIndex == 0 || colIndex == 1 || colIndex == 2 || colIndex == 8  || colIndex == 9 || colIndex == 10) {
+            if (colIndex == 0 || colIndex == 1 || colIndex == 2 || colIndex == 3 || colIndex == 4 ||  colIndex == 9 || colIndex == 10) {
                 return;
             }
 
@@ -293,7 +299,7 @@ async function configurarDataTable(data) {
 
 
             // Si la columna es la de la provincia (por ejemplo, columna 3)
-            if (colIndex === 4 || colIndex == 5) {
+            if (colIndex === 6 || colIndex == 7) {
                 var select = $('<select class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
                     .appendTo($(this).empty())
                     .on('change', function () {
@@ -309,9 +315,9 @@ async function configurarDataTable(data) {
                 var result = null;
 
 
-                if (colIndex == 4) {
+                if (colIndex == 6) {
                     result = await listaColoresFilter();
-                } else if (colIndex == 5) {
+                } else if (colIndex == 7) {
                     result = await listaEstadosFilter();
                 }
 
@@ -319,9 +325,9 @@ async function configurarDataTable(data) {
                     select.append('<option value="' + res.Id + '">' + res.Nombre + '</option>');
                 });
 
-                if (colIndex == 4) {
+                if (colIndex == 6) {
                     select.val(rowData.IdColor);
-                } else if (colIndex == 5) {
+                } else if (colIndex == 7) {
                     select.val(rowData.IdEstado);
                 }
 
@@ -348,7 +354,7 @@ async function configurarDataTable(data) {
                     .on('input', function () {
                         var saveBtn = $(this).siblings('.fa-check'); // Botón de guardar
 
-                        if (colIndex === 3) { // Validar solo si es la columna 0
+                        if (colIndex === 4) { // Validar solo si es la columna 0
                             if ($(this).val().trim() === "") {
                                 $(this).css('border-bottom', '2px solid red'); // Borde rojo
                                 saveBtn.css('opacity', '0.5'); // Desactivar botón de guardar visualmente
@@ -396,10 +402,10 @@ async function configurarDataTable(data) {
                     const celda = $(rowElement).find('td').eq(colIndex);
 
                     // Actualizar los datos en la fila según la columna editada
-                    if (colIndex === 4) {
+                    if (colIndex === 6) {
                         rowData.IdColor = newValue;
                         rowData.Color = newText;
-                    } else if (colIndex === 5) {
+                    } else if (colIndex === 7) {
                         rowData.IdEstado = parseInt(newValue);
                         rowData.Estado = newText;
                     } else {
@@ -503,14 +509,23 @@ function configurarOpcionesColumnas() {
     container.empty(); // Limpia el contenedor
 
     columnas.forEach((col, index) => {
-        if (col.data && !col.data.includes("Id")) { // Solo agregar columnas que no sean "Id"
+        if (col.data && col.data != "Id" && index != 12) { // Solo agregar columnas que no sean "Id"
             // Recupera el valor guardado en localStorage, si existe. Si no, inicializa en 'false' para no estar marcado.
             const isChecked = savedConfig && savedConfig[`col_${index}`] !== undefined ? savedConfig[`col_${index}`] : true;
 
             // Asegúrate de que la columna esté visible si el valor es 'true'
             grid.column(index).visible(isChecked);
 
-            const columnName = index != 3 ? col.data : "Direccion";
+
+            let columnName;
+
+            if (col.data == "IdPedido") {
+                columnName = "Pedido";
+            } else if (col.data == "IdDetalle") {
+                columnName = "Detalle";
+            } else {
+                columnName = col.data;
+            }
 
             // Ahora agregamos el checkbox, asegurándonos de que se marque solo si 'isChecked' es 'true'
             container.append(`
@@ -629,5 +644,18 @@ async function listaCategorias() {
         select.appendChild(option);
 
     }
+
+}
+
+
+async function listaProveedoresFilter() {
+    const url = `/Proveedores/Lista`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    return data.map(dto => ({
+        Id: dto.Id,
+        Nombre: dto.Nombre
+    }));
 
 }

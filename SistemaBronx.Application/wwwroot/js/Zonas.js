@@ -229,7 +229,7 @@ async function configurarDataTable(data) {
                 }
             ],
             orderCellsTop: true,
-            fixedHeader: true,
+            fixedHeader: false,
             initComplete: async function () {
                 var api = this.api();
 

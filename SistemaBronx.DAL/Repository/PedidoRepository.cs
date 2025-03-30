@@ -24,67 +24,71 @@ namespace SistemaBronx.DAL.Repository
         }
 
 
-        public async Task<bool> Insertar(Pedido pedido, IQueryable<PedidosDetalle> pedidoDetalle, IQueryable<PedidosDetalleProceso> pedidoDetalleProceso)
+        public async Task<bool> Insertar(Pedido pedido, IQueryable<PedidosDetalle> pedidosDetalle, IQueryable<PedidosDetalleProceso> pedidosDetalleProceso)
         {
             using var transaction = await _dbcontext.Database.BeginTransactionAsync();
-
             try
             {
-                // Insertar el pedido
+
+                // Insertamos el pedido y guardamos cambios para obtener su ID
                 _dbcontext.Pedidos.Add(pedido);
-                await _dbcontext.SaveChangesAsync(); // Guarda el pedido y obtiene el ID
+                await _dbcontext.SaveChangesAsync();
 
-                // Obtener ID generado
-                int idPedidoGenerado = pedido.Id;
+                var idMapping = new Dictionary<int, int>(); // 🔹 Mapeo de ID temporal a ID real
 
-                // Asignar el ID a los detalles
-                foreach (var detalle in pedidoDetalle)
+                // **Registrar PedidosDetalle**
+                foreach (var detalle in pedidosDetalle)
                 {
-                    detalle.IdPedido = idPedidoGenerado;
+                    int idTemporal = detalle.Id; // Guardamos el ID original
+
+                    detalle.Id = 0; // Permitimos que la base de datos genere el ID
+                    detalle.IdPedido = pedido.Id; // Asociamos al nuevo pedido
+                    _dbcontext.PedidosDetalles.Add(detalle);
+                    await _dbcontext.SaveChangesAsync(); // 🔹 Guardamos para obtener los IDs reales
+                    idMapping[idTemporal] = detalle.Id;
                 }
 
-                // Insertar detalles
-                if (pedidoDetalle.Any())
-                {
-                    _dbcontext.PedidosDetalles.AddRange(pedidoDetalle);
-                    await _dbcontext.SaveChangesAsync();
-                }
+               
 
-                // Asignar ID a los procesos de detalle
-                foreach (var detalleProceso in pedidoDetalleProceso)
+       
+
+                // **Registrar PedidosDetalleProceso**
+                foreach (var proceso in pedidosDetalleProceso)
                 {
-                    var detalleRelacionado = pedidoDetalle.FirstOrDefault(d => d.IdProducto == detalleProceso.IdProducto);
-                    if (detalleRelacionado != null)
+                    proceso.IdPedido = pedido.Id; // Asociamos al nuevo pedido
+
+                    // 🔹 Buscar el ID real del detalle asociado
+                    if (proceso.IdDetalle.HasValue && idMapping.TryGetValue(proceso.IdDetalle.Value, out int idReal))
                     {
-                        detalleProceso.IdPedido = idPedidoGenerado;
-                        detalleProceso.IdDetalle = detalleRelacionado.Id;
+                        proceso.IdDetalle = idReal; // Asignamos el nuevo ID real del detalle
                     }
+                    else
+                    {
+                        throw new Exception($"No se encontró un IdDetalle válido para el proceso con IdDetalle={proceso.IdDetalle}");
+                    }
+
+                    proceso.Id = 0; // Permitimos que la base de datos genere el ID
+                    _dbcontext.PedidosDetalleProcesos.Add(proceso);
                 }
 
-                // Insertar detalles de proceso
-                if (pedidoDetalleProceso.Any())
-                {
-                    _dbcontext.PedidosDetalleProcesos.AddRange(pedidoDetalleProceso);
-                    await _dbcontext.SaveChangesAsync();
-                }
-
-                // Confirmar la transacción
+                await _dbcontext.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Si algo falla, hacer rollback
                 await transaction.RollbackAsync();
+                Console.WriteLine($"Error en la transacción: {ex.Message}");
                 return false;
             }
         }
 
 
+
+
         public async Task<bool> Actualizar(Pedido pedido, IQueryable<PedidosDetalle> pedidosDetalle, IQueryable<PedidosDetalleProceso> pedidosDetalleProceso)
         {
             using var transaction = await _dbcontext.Database.BeginTransactionAsync();
-
             try
             {
                 var pedidoExistente = await _dbcontext.Pedidos
@@ -92,32 +96,22 @@ namespace SistemaBronx.DAL.Repository
                     .Include(p => p.PedidosDetalleProcesos)
                     .FirstOrDefaultAsync(p => p.Id == pedido.Id);
 
-                if (pedidoExistente == null)
-                {
-                    return false; // El pedido no existe
-                }
+                if (pedidoExistente == null) return false; // El pedido no existe
 
-                // Actualizar datos del pedido
                 _dbcontext.Entry(pedidoExistente).CurrentValues.SetValues(pedido);
 
                 // **Actualizar PedidosDetalle**
                 var idsProductos = pedidosDetalle.Select(pd => pd.Id).ToList();
-
-                // Eliminar detalles que ya no están en la lista
-                var detallesAEliminar = pedidoExistente.PedidosDetalles
-                    .Where(pd => !idsProductos.Contains(pd.Id))
-                    .ToList();
+                var detallesAEliminar = pedidoExistente.PedidosDetalles.Where(pd => !idsProductos.Contains(pd.Id)).ToList();
                 _dbcontext.PedidosDetalles.RemoveRange(detallesAEliminar);
 
-                var detallesGuardados = new List<PedidosDetalle>();
+                var idMapping = new Dictionary<int, int>(); // 🔹 Mapear ID temporal a ID real
 
-                // Insertar o actualizar detalles de productos
                 foreach (var detalle in pedidosDetalle)
                 {
                     var detalleExistente = pedidoExistente.PedidosDetalles.FirstOrDefault(pd => pd.Id > 0 && pd.Id == detalle.Id);
                     if (detalleExistente != null)
                     {
-                        // Excluir IdPedido de la actualización
                         detalleExistente.Cantidad = detalle.Cantidad;
                         detalleExistente.CostoUnitario = detalle.CostoUnitario;
                         detalleExistente.PrecioVenta = detalle.PrecioVenta;
@@ -128,30 +122,25 @@ namespace SistemaBronx.DAL.Repository
                     }
                     else
                     {
-                        detalle.IdPedido = pedido.Id; // Mantener el IdPedido en inserciones
+                        int idTemporal = detalle.Id; // Guardamos el ID que viene
+                        detalle.Id = 0; // Permitimos que la base de datos genere el ID
+                        detalle.IdPedido = pedido.Id;
                         _dbcontext.PedidosDetalles.Add(detalle);
-                        detallesGuardados.Add(detalle);
+                        await _dbcontext.SaveChangesAsync(); // 🔹 Guardamos para obtener el ID real
+                        idMapping[idTemporal] = detalle.Id; // Mapeamos el ID temporal al real
                     }
                 }
 
-                await _dbcontext.SaveChangesAsync(); // Guardar detalles para obtener sus IDs
-
                 // **Actualizar PedidosDetalleProceso**
                 var idsProcesos = pedidosDetalleProceso.Select(pdp => pdp.Id).ToList();
-
-                // Eliminar procesos que ya no están en la lista
-                var procesosAEliminar = pedidoExistente.PedidosDetalleProcesos
-                    .Where(pdp => !idsProcesos.Contains(pdp.Id))
-                    .ToList();
+                var procesosAEliminar = pedidoExistente.PedidosDetalleProcesos.Where(pdp => !idsProcesos.Contains(pdp.Id)).ToList();
                 _dbcontext.PedidosDetalleProcesos.RemoveRange(procesosAEliminar);
 
-                // Insertar o actualizar detalles de procesos
                 foreach (var proceso in pedidosDetalleProceso)
                 {
                     var procesoExistente = pedidoExistente.PedidosDetalleProcesos.FirstOrDefault(pdp => pdp.Id > 0 && pdp.Id == proceso.Id);
                     if (procesoExistente != null)
                     {
-                        // Excluir IdPedido e IdPedidoDetalle de la actualización
                         procesoExistente.Cantidad = proceso.Cantidad;
                         procesoExistente.IdCategoria = proceso.IdCategoria;
                         procesoExistente.Comentarios = proceso.Comentarios;
@@ -166,14 +155,15 @@ namespace SistemaBronx.DAL.Repository
                     }
                     else
                     {
-                        proceso.IdPedido = pedido.Id; // Mantener el IdPedido en inserciones
+                        proceso.IdPedido = pedido.Id;
 
-                        // Buscar el detalle correspondiente
-                        var detalleRelacionado = detallesGuardados.FirstOrDefault(d => d.IdProducto == proceso.IdProducto); // Ajusta según la relación real
-                        if (detalleRelacionado != null)
+                        // 🔹 Buscar el ID real en el diccionario
+                        if (proceso.IdDetalle.HasValue && idMapping.TryGetValue(proceso.IdDetalle.Value, out int idReal))
                         {
-                            proceso.IdDetalle = detalleRelacionado.Id;
+                            proceso.IdDetalle = idReal; // Asignamos el nuevo ID real
+                            proceso.Id = 0;
                         }
+
 
                         _dbcontext.PedidosDetalleProcesos.Add(proceso);
                     }
@@ -181,15 +171,15 @@ namespace SistemaBronx.DAL.Repository
 
                 await _dbcontext.SaveChangesAsync();
                 await transaction.CommitAsync();
-
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
                 return false;
             }
         }
+
 
         public async Task<bool> ActualizarDetalleProceso(PedidosDetalleProceso pedidosDetalleProceso)
         {

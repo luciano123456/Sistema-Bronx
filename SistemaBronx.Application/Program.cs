@@ -22,7 +22,7 @@ builder.Services.AddDbContext<SistemaBronxContext>(options =>
 builder.Services.AddRazorPages().AddRazorRuntimeCompilation();
 
 // Registrar repositorios y servicios
-builder.Services.AddScoped<IGenericRepository<Cliente>, ClienteRepository>();
+builder.Services.AddScoped<IClienteRepository<Cliente>, ClienteRepository>();
 builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddScoped<IProvinciaRepository<Provincia>, ProvinciaRepository>();
 builder.Services.AddScoped<IProvinciaService, ProvinciaService>();

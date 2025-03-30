@@ -55,7 +55,7 @@ function validarCampos() {
 }
 
 function nuevoPedido() {
-    window.location.href = '/Pedidos/NuevoModif';
+    window.location.href = '/Pedidos/NuevoModif/0';
 }
 
 
@@ -114,6 +114,7 @@ async function configurarDataTable(data) {
             },
             scrollX: "100px",
             scrollCollapse: true,
+            pageLength: 50,
             columns: [
                 {
                     data: "Id",
@@ -138,6 +139,7 @@ async function configurarDataTable(data) {
                     orderable: false,
                     searchable: false,
                 },
+                { data: 'Id' },
                 { data: 'Fecha' },
                 { data: 'Cliente' },
                 { data: 'ImporteTotal' },
@@ -198,14 +200,14 @@ async function configurarDataTable(data) {
                 'pageLength'
             ],
             orderCellsTop: true,
-            fixedHeader: true,
+            fixedHeader: false,
 
             "columnDefs": [
                 {
                     "render": function (data, type, row) {
                         return formatNumber(data); // Formatear números
                     },
-                    "targets": [3,5,6,7] // Índices de las columnas de números
+                    "targets": [4,6,7,8] // Índices de las columnas de números
                 },
                 {
                     "render": function (data, type, row) {
@@ -214,7 +216,7 @@ async function configurarDataTable(data) {
                             return date.toLocaleDateString('es-ES'); // Formato: 'DD/MM/YYYY'
                         }
                     },
-                    "targets": [1] // Índices de las columnas de fechas
+                    "targets": [2] // Índices de las columnas de fechas
                 },
                 
             ],
@@ -273,6 +275,7 @@ async function configurarDataTable(data) {
                 });
 
                 $('.filters th').eq(0).html(''); // Limpiar la última columna si es necesario
+                $('.filters th').eq(12).html(''); // Limpiar la última columna si es necesario
 
                 configurarOpcionesColumnas();
 

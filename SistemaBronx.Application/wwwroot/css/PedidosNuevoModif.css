@@ -247,3 +247,22 @@ select2 option:disabled {
 }
 
 
+
+
+
+@media (max-width: 768px) {
+    #productoModal .modal-dialog {
+        max-width: 100%;
+        margin: 0;
+    }
+
+    #productoModal .modal-content {
+        height: 100vh;
+        border-radius: 0;
+    }
+
+    #productoModal .modal-body {
+        max-height: calc(100vh - 120px); /* Ajustar según altura del header/footer */
+        overflow-y: auto;
+    }
+}
