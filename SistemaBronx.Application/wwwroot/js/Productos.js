@@ -129,7 +129,15 @@ async function listaProductos() {
 function editarProducto(id) {
     // Redirige a la vista 'PedidoNuevoModif' con el parámetro id
     window.location.href = '/Productos/NuevoModif/' + id;
+    localStorage.removeItem("DuplicarProducto");
 }
+
+function duplicarProducto(id) {
+    // Redirige a la vista 'PedidoNuevoModif' con el parámetro id
+    window.location.href = '/Productos/NuevoModif/' + id;
+    localStorage.setItem("DuplicarProducto", true);
+}
+
 
 async function eliminarProducto(id) {
     let resultado = window.confirm("¿Desea eliminar el Producto?");
@@ -167,6 +175,7 @@ async function configurarDataTable(data) {
                 url: "//cdn.datatables.net/plug-ins/2.0.7/i18n/es-MX.json"
             },
             scrollX: "100px",
+            pageLength: 50,
             scrollCollapse: true,
             columns: [
                 {
@@ -185,6 +194,9 @@ async function configurarDataTable(data) {
                         </button>
                         <button class='btn btn-sm btneliminar' type='button' onclick='eliminarProducto(${data})' title='Eliminar'>
                             <i class='fa fa-trash-o fa-lg text-danger' aria-hidden='true'></i> Eliminar
+                        </button>
+                        <button class='btn btn-sm btneliminar' type='button' onclick='duplicarProducto(${data})' title='Duplicar'>
+                            <i class='fa fa-clone fa-lg text-warning' aria-hidden='true'></i> Duplicar
                         </button>
                     </div>
                 </div>`;
@@ -232,7 +244,7 @@ async function configurarDataTable(data) {
                 'pageLength'
             ],
             orderCellsTop: true,
-            fixedHeader: true,
+            fixedHeader: false,
 
             "columnDefs": [
                 {

@@ -84,7 +84,13 @@ async function insertarDatosProducto(datos) {
     document.getElementById("porcIVA").value = datos.PorcIva;
     document.getElementById("porcGanancia").value = datos.PorcGanancia;
 
-    document.getElementById("btnNuevoModificar").textContent = "Guardar";
+    duplicarProducto = localStorage.getItem("DuplicarProducto");
+
+    if (duplicarProducto == 'true') {
+        document.getElementById("btnNuevoModificar").textContent = "Registrar";
+    } else {
+        document.getElementById("btnNuevoModificar").textContent = "Guardar";
+    }
 
     await calcularDatosProducto ();
 }
@@ -136,7 +142,7 @@ async function configurarDataTable(data) {
                 }
             ],
             orderCellsTop: true,
-            fixedHeader: true,
+            fixedHeader: false,
             "columnDefs": [
 
                 {
@@ -490,7 +496,7 @@ async function cargarInsumosModal(IdUnidadNegocio, insumosEnTabla, insumoSelecci
 function eliminarInsumo(id) {
     gridInsumos.rows().every(function (rowIdx, tableLoop, rowLoop) {
         const data = this.data();
-        if (data.IdInsumo == id) {
+        if (data != null && data.IdInsumo == id) {
             gridInsumos.row(rowIdx).remove().draw();
         }
     });
@@ -549,7 +555,14 @@ document.getElementById("porcGanancia").addEventListener("input", calcularIVAyGa
 
 
 function guardarCambios() {
-    const idProducto = $("#IdProducto").val();
+    let idProducto = $("#IdProducto").val();
+
+    duplicarProducto = localStorage.getItem("DuplicarProducto");
+
+    if (duplicarProducto == 'true') {
+        idProducto = "";
+    }
+
 
     if (validarCampos()) {
 
@@ -558,7 +571,7 @@ function guardarCambios() {
             grd.rows().every(function () {
                 const insumo = this.data();
                 const insumoJson = {
-                    "IdProducto": idProducto != "" ? idProducto : 0,
+                    "IdProducto": idProducto != ""  ? idProducto : 0,
                     "IdInsumo": parseInt(insumo.IdInsumo),
                     "Id": insumo.Id != "" ? insumo.Id : 0,
                     "Nombre": insumo.Nombre,
@@ -590,9 +603,10 @@ function guardarCambios() {
         };
 
         // Definir la URL y el método para el envío
-        const url = idProducto === "" ? "/Productos/Insertar" : "/Productos/Actualizar";
+        const url = idProducto === ""  ? "/Productos/Insertar" : "/Productos/Actualizar";
         const method = idProducto === "" ? "POST" : "PUT";
 
+   
         console.log(JSON.stringify(nuevoModelo))
 
         // Enviar los datos al servidor
@@ -609,10 +623,16 @@ function guardarCambios() {
                 return response.json();
             })
             .then(dataJson => {
+                if (duplicarProducto == 'true') {
+                    localStorage.removeItem("DuplicarProducto");
+                }
+
                 console.log("Respuesta del servidor:", dataJson);
                 const mensaje = idProducto === "" ? "Producto registrado correctamente" : "Pedido modificado correctamente";
                 exitoModal(mensaje);
                 window.location.href = "/Productos/Index";
+
+
 
             })
             .catch(error => {

@@ -4,13 +4,20 @@ let gridProductosModal = null;
 let gridInsumosModal = null;
 let isEditing = false;
 let filasSeleccionadas = []; // Array para almacenar las filas seleccionadas
+let filaSeleccionadaInsumos = []; // Array para almacenar las filas seleccionadas
 let filaSeleccionadaProductos = null; // Variable para almacenar la fila seleccionada
+let facturaCliente = null;
 const IdPedido = document.getElementById('IdPedido').value;
 
 
 
 
 $(document).ready(async function () {
+
+
+    $('#txtNombreClienteModal').on('input', function () {
+        validarCamposCliente()
+    });
 
     $('#exitoModal, #ErrorModal, #AdvertenciaModal').on('shown.bs.modal', function () {
         $('.modal').css('z-index', 1057); // Baja el z-index de todos los modales
@@ -22,7 +29,7 @@ $(document).ready(async function () {
     });
 
 
-    $("#Categorias").select2({
+    $("#Categorias, #Colores").select2({
         dropdownParent: $("#productoModal"), // Asegura que el dropdown se muestre dentro del modal
         width: "100%",
         placeholder: "Selecciona una opción",
@@ -108,12 +115,12 @@ $(document).ready(async function () {
 });
 
 async function cargarDatosPedido(id) {
-    $("#tituloPedido").text("Editar Pedido");
+    $("#tituloPedido").text(`Editar Pedido ${id}`);
     const datosPedido = await ObtenerDatosPedido(id);
     await configurarDataTableProductos(datosPedido.PedidoDetalle);
     await configurarDataTableInsumos(datosPedido.PedidoDetalleProceso);
     await insertarDatosPedido(datosPedido);
-    
+
 
 }
 
@@ -122,6 +129,7 @@ async function insertarDatosPedido(datosPedido) {
 
     document.getElementById("IdPedido").value = datosPedido.pedido.Id;
     document.getElementById("Clientes").value = parseInt(datosPedido.pedido.IdCliente);
+    document.getElementById("Telefono").value = datosPedido.pedido.Telefono;
     document.getElementById("Fecha").value = moment(datosPedido.pedido.Fecha, 'YYYY-MM-DD').format('YYYY-MM-DD');
     document.getElementById("Formasdepago").value = parseInt(datosPedido.pedido.IdFormaPago);
     document.getElementById("ImporteTotal").value = datosPedido.pedido.ImporteTotal;
@@ -170,21 +178,27 @@ async function listaColoresFilter() {
 async function listaColores() {
     const data = await listaColoresFilter();
 
-    $('#Colores option').remove();
+    $('#Colores option').remove(); // Eliminar opciones existentes
 
-    select = document.getElementById("Colores");
+    let select = document.getElementById("Colores");
 
-    for (i = 0; i < data.length; i++) {
+    // Agregar opción "Seleccionar"
+    let option = document.createElement("option");
+    option.value = -1;
+    option.text = "Seleccionar";
+    select.appendChild(option);
+
+    // Agregar opciones de colores
+    for (let i = 0; i < data.length; i++) {
         option = document.createElement("option");
         option.value = data[i].Id;
         option.text = data[i].Nombre;
         select.appendChild(option);
-
     }
 
-
+    // 🔹 Asegurar que el valor por defecto sea "-1"
+    select.value = "-1";
 }
-
 
 
 async function listaCategoriasFilter() {
@@ -243,7 +257,7 @@ async function configurarDataTableProductosModal(data) {
 
             ],
             orderCellsTop: true,
-            fixedHeader: true,
+            fixedHeader: false,
             "columnDefs": [
 
                 {
@@ -342,12 +356,12 @@ async function configurarDataTableInsumosModal(data, editando) {
                 { data: 'IdUnidadMedida', visible: false },
                 { data: 'IdProveedor', visible: false },
                 { data: 'IdProducto', visible: false },
-                { data: 'IdInsumo', visible: false},
+                { data: 'IdInsumo', visible: false },
                 { data: 'Id', visible: false },
             ],
 
             orderCellsTop: true,
-            fixedHeader: true,
+            fixedHeader: false,
 
             "columnDefs": [
 
@@ -691,6 +705,25 @@ $('#ProductoModalCantidad').on('keyup', function () {
     }
 });
 
+$('#Clientes').on('change', async function () {
+    var IdCliente = document.getElementById("Clientes").value;
+    await cargarDatosCliente(IdCliente);
+});
+
+async function cargarDatosCliente(idCliente) {
+    const datosCliente = await ObtenerDatosCliente(idCliente);
+
+    document.getElementById("Telefono").value = datosCliente.Telefono;
+}
+
+async function cargarDatosClienteRegistrado(idCliente) {
+    const datosCliente = await ObtenerDatosCliente(idCliente);
+
+    document.getElementById("Telefono").value = datosCliente.Telefono;
+    $('#Clientes').val(datosCliente.Id).trigger('change');
+
+}
+
 $('#Colores').on('change', function () {
     // Obtener el color seleccionado
 
@@ -803,7 +836,7 @@ async function configurarDataTableProductos(data) {
                   <button class='btn btn-sm btneditar btnacciones' type='button' onclick='editarProducto(${JSON.stringify(row)})' title='Editar'>
                     <i class='fa fa-pencil-square-o fa-lg text-white' aria-hidden='true'></i>
                 </button>
-                <button class='btn btn-sm btneditar btnacciones' type='button' onclick='eliminarProducto(${row.IdProducto})' title='Eliminar'>
+                <button class='btn btn-sm btneditar btnacciones' type='button' onclick='eliminarProducto(${row.Id})' title='Eliminar'>
                     <i class='fa fa-trash-o fa-lg text-danger' aria-hidden='true'></i>
                 </button>`;
                     },
@@ -812,7 +845,7 @@ async function configurarDataTableProductos(data) {
                 }
             ],
             orderCellsTop: true,
-            fixedHeader: true,
+            fixedHeader: false,
             "columnDefs": [
 
                 {
@@ -879,16 +912,16 @@ async function configurarDataTableInsumos(data) {
                     data: "Id",
                     render: function (data, type, row) {
                         return `
-                <button class='btn btn-sm btneditar btnacciones' type='button' onclick='eliminarInsumo(${row.IdInsumo},${row.IdProducto})' title='Eliminar'>
-                    <i class='fa fa-trash-o fa-lg text-danger' aria-hidden='true'></i>
-                </button>`;
+  <button class='btn btn-sm btneditar btnacciones' type='button' onclick='eliminarInsumo(${data})' title='Eliminar'>
+      <i class='fa fa-trash-o fa-lg text-danger' aria-hidden='true'></i>
+  </button>`;
                     },
                     orderable: true,
                     searchable: true,
                 }
             ],
             orderCellsTop: true,
-            fixedHeader: true,
+            fixedHeader: false,
             "columnDefs": [
 
                 {
@@ -907,6 +940,65 @@ async function configurarDataTableInsumos(data) {
                 $('.filters th').eq(0).html(''); // Limpiar la última columna si es necesario
 
                 configurarOpcionesColumnasInsumos();
+
+                var ultimaFilaSeleccionada = null;
+
+                $('#grd_Insumos tbody').on('click', 'tr', function (event) {
+                    var fila = $(this);
+
+                    // Verificar si se está presionando Ctrl (o Cmd en Mac)
+                    var ctrlPresionado = event.ctrlKey || event.metaKey; // Ctrl en Windows/Linux, Cmd en Mac
+                    // Verificar si se está presionando Shift
+                    var shiftPresionado = event.shiftKey;
+
+                    if (ctrlPresionado) {
+                        // Si se presiona Ctrl/Cmd, agregar o quitar la fila de la selección
+                        var index = filaSeleccionadaInsumos.indexOf(fila[0]);
+
+                        if (index === -1) {
+                            // Si no está seleccionada, agregarla
+                            filaSeleccionadaInsumos.push(fila[0]);
+                            fila.addClass('selected');
+                            $('td', fila).addClass('selected');
+                        } else {
+                            // Si ya está seleccionada, quitarla
+                            filaSeleccionadaInsumos.splice(index, 1);
+                            fila.removeClass('selected');
+                            $('td', fila).removeClass('selected');
+                        }
+                    } else if (shiftPresionado && ultimaFilaSeleccionada) {
+                        // Si se presiona Shift, seleccionar todas las filas entre la última fila seleccionada y la fila actual
+                        var filas = $('#grd_Insumos tbody tr');
+                        var indexActual = filas.index(fila);
+                        var indexUltima = filas.index(ultimaFilaSeleccionada);
+
+                        // Determinar el rango de filas a seleccionar
+                        var inicio = Math.min(indexActual, indexUltima);
+                        var fin = Math.max(indexActual, indexUltima);
+
+                        // Seleccionar todas las filas en el rango
+                        filas.slice(inicio, fin + 1).each(function () {
+                            if (!filaSeleccionadaInsumos.includes(this)) {
+                                filaSeleccionadaInsumos.push(this);
+                                $(this).addClass('selected');
+                                $('td', this).addClass('selected');
+                            }
+                        });
+                    } else {
+                        // ✅ Si NO se presiona Ctrl ni Shift, limpiar todo y seleccionar solo la nueva fila
+                        if (!fila.hasClass('selected') || filaSeleccionadaInsumos.length == 1) {
+                            filaSeleccionadaInsumos = [fila[0]]; // Reiniciar selección
+                            $('#grd_Insumos tbody tr').removeClass('selected');
+                            $('#grd_Insumos tbody tr td').removeClass('selected');
+                            fila.addClass('selected');
+                            $('td', fila).addClass('selected');
+                        }
+
+                    }
+
+                    // Actualizar la última fila seleccionada
+                    ultimaFilaSeleccionada = fila[0];
+                });
 
                 $('#grd_Insumos tbody').on('dblclick', 'td', async function () {
                     var cell = gridInsumos.cell(this);
@@ -977,7 +1069,7 @@ async function configurarDataTableInsumos(data) {
                         var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
                             var selectedValue = select.val();
                             var selectedText = select.find('option:selected').text();
-                            saveEdit(colIndex, gridInsumos.row($(this).closest('tr')).data(), selectedText, selectedValue, $(this).closest('tr'));
+                            saveEdit(colIndex, selectedText, selectedValue);
                         });
 
                         var cancelButton = $('<i class="fa fa-times text-danger"></i>').on('click', cancelEdit);
@@ -1009,7 +1101,7 @@ async function configurarDataTableInsumos(data) {
                             })
                             .on('keydown', function (e) {
                                 if (e.key === 'Enter') {
-                                    saveEdit(colIndex, gridInsumos.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                                    saveEdit(colIndex, input.val(), input.val());
                                 } else if (e.key === 'Escape') {
                                     cancelEdit();
                                 }
@@ -1018,7 +1110,7 @@ async function configurarDataTableInsumos(data) {
 
                         var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
                             if (!$(this).prop('disabled')) { // Solo guardar si el botón no está deshabilitado
-                                saveEdit(colIndex, gridInsumos.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                                saveEdit(colIndex, input.val(), input.val());
                             }
                         });
 
@@ -1031,48 +1123,107 @@ async function configurarDataTableInsumos(data) {
                     }
 
 
-                    // Función para guardar los cambios
-                    function saveEdit(colIndex, rowData, newText, newValue, trElement) {
-                        // Obtener el nombre de la propiedad basado en el dataSrc
+                    // Función para guardar los cambios con el parpadeo en las filas seleccionadas
+                    async function saveEdit(colIndex, newText, newValue) {
+                        // Asegurarnos de que las filas seleccionadas se guardan una por una
+                        for (let i = 0; i < filaSeleccionadaInsumos.length; i++) {
+                            const rowElement = filaSeleccionadaInsumos[i];
+
+                            // Obtener los datos de la fila usando gridFabricaciones.row()
+                            let rowData = gridInsumos.row($(rowElement)).data(); // Aquí obtenemos los datos de la fila seleccionada
+
+                            // Obtener la celda editada de la fila seleccionada
+                            const celda = $(rowElement).find('td').eq(colIndex);
+
+                            // Actualizar el valor de la fila según la columna editada
+                            if (colIndex === 13) { // Columna de la provincia
+                                rowData.IdColor = newValue;
+                                rowData.Color = newText;
+                            } else if (colIndex === 17) { // Columna de la provincia
+                                rowData.IdEstado = newValue;
+                                rowData.Estado = newText;
+                            } else {
+                                rowData[gridInsumos.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
+                            }
+
+                            // Actualizar la celda específica en la tabla
+                            gridInsumos.cell(rowElement, colIndex).data(newText).draw();
+
+                            // Añadir la clase de parpadeo a la celda
+                            celda.addClass('blinking');
+
+                            try {
 
 
-                        // Convertir el índice de columna (data index) al índice visible
-                        var visibleIndex = gridInsumos.column(colIndex).index('visible');
+                                // Remover el parpadeo después de 3 segundos solo en la celda editada
+                                setTimeout(function () {
+                                    $(rowElement).find('td').eq(colIndex).removeClass('blinking');
+                                }, 3000);
 
-                        // Obtener la celda visible y aplicar la clase blinking
-                        var celda = $(trElement).find('td').eq(visibleIndex);
-
-                        // Obtener el valor original de la celda
-                        var originalText = gridInsumos.cell(trElement, celda).data();
-
-                        // Actualizar el valor de la fila según la columna editada
-                        if (colIndex === 13) { // Columna de la provincia
-                            rowData.IdColor = newValue;
-                            rowData.Color = newText;
-                        } else if (colIndex === 17) { // Columna de la provincia
-                            rowData.IdEstado = newValue;
-                            rowData.Estado = newText;
-                        } else {
-                            rowData[gridInsumos.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
+                            } catch (error) {
+                                console.error(`Error guardando la fila ${i + 1}:`, error);
+                            }
                         }
 
-                        // Actualizar la fila en la tabla con los nuevos datos
-                        gridInsumos.row(trElement).data(rowData).draw();
-
-                        // Aplicar el parpadeo solo si el texto cambió
-                        if (originalText !== newText) {
-                            celda.addClass('blinking'); // Aplicar la clase 'blinking' a la celda que fue editada
-                        }
-
+                        // **Eliminar la clase 'selected' de las filas seleccionadas después de guardar**
+                        $(filaSeleccionadaInsumos).each(function (index, rowElement) {
+                            $(rowElement).removeClass('selected');
+                            $(rowElement).find('td').removeClass('selected');
+                        });
 
                         // Desactivar el modo de edición
                         isEditing = false;
 
-                        // Remover la clase blinking después de 3 segundos
-                        setTimeout(function () {
-                            celda.removeClass('blinking');
-                        }, 3000);
+                        // Limpiar las filas seleccionadas después de guardar
+                        filaSeleccionadaInsumos = [];
                     }
+
+                    //// Función para guardar los cambios con el parpadeo en las filas
+                    //async function saveEdit(colIndex, rowData, newText, newValue, trElement) {
+                    //    // Obtener el nombre de la propiedad basado en el dataSrc
+                    //    var visibleIndex = gridInsumos.column(colIndex).index('visible');
+
+                    //    // Obtener la celda visible y aplicar la clase blinking
+                    //    var celda = $(trElement).find('td').eq(visibleIndex);
+
+                    //    // Obtener el valor original de la celda
+                    //    var originalText = gridInsumos.cell(trElement, visibleIndex).data();
+
+                    //    // Actualizar el valor de la fila según la columna editada
+                    //    if (colIndex === 13) { // Columna de la provincia
+                    //        rowData.IdColor = newValue;
+                    //        rowData.Color = newText;
+                    //    } else if (colIndex === 17) { // Columna de la provincia
+                    //        rowData.IdEstado = newValue;
+                    //        rowData.Estado = newText;
+                    //    } else {
+                    //        rowData[gridInsumos.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
+                    //    }
+
+                    //    // Actualizar la fila en la tabla con los nuevos datos
+                    //    gridInsumos.row(trElement).data(rowData).draw();
+
+                    //    // Aplicar el parpadeo solo si el texto cambió
+                    //    if (originalText !== newText) {
+                    //        celda.addClass('blinking'); // Aplicar la clase 'blinking' a la celda que fue editada
+                    //    }
+
+                    //    try {
+
+
+                    //        // Remover el parpadeo después de 3 segundos solo en la celda editada
+                    //        setTimeout(function () {
+                    //            celda.removeClass('blinking');
+                    //        }, 3000);
+
+                    //    } catch (error) {
+                    //        console.error("Error guardando la fila:", error);
+                    //    }
+
+                    //    // Desactivar el modo de edición
+                    //    isEditing = false;
+                    //}
+
 
 
 
@@ -1107,6 +1258,8 @@ async function guardarProducto() {
     const Cantidad = document.getElementById('ProductoModalCantidad').value;
     const IdColor = document.getElementById('Colores');
     const Color = IdColor != null ? IdColor.options[IdColor.selectedIndex].text : "";
+
+    const detalleId = (Date.now() % 1000000) * 100 + Math.floor(Math.random() * 100);//IDENTIFICADOR UNICO EN BASE AL TIEMPO
 
 
     const editando = IdProductoEditando != "" ? true : false;
@@ -1157,19 +1310,19 @@ async function guardarProducto() {
         // Si estamos editando, solo actualizamos la fila correspondiente
         gridProductos.rows().every(function () {
             const data = this.data();
-            if (parseInt(data.IdProducto) == parseInt(IdProductoEditando)) {
+            if (parseInt(data.Id) == parseInt(IdProductoEditando)) {
                 data.Nombre = NombreProducto,
-                data.IdCategoria = IdCategoria,
-                data.Categoria = Categoria,
-                data.CostoUnitario = CostoUnitario,
-                data.PorcGanancia = PorcGanancia,
-                data.Ganancia = Ganancia,
-                data.PorcIva = PorcIva,
-                data.IVA = TotalIva,
-                data.PrecioVenta = PrecioVenta,
-                data.Cantidad = Cantidad,
-                data.IdColor = IdColor.value,
-                data.Color = Color
+                    data.IdCategoria = IdCategoria,
+                    data.Categoria = Categoria,
+                    data.CostoUnitario = CostoUnitario,
+                    data.PorcGanancia = PorcGanancia,
+                    data.Ganancia = Ganancia,
+                    data.PorcIva = PorcIva,
+                    data.IVA = TotalIva,
+                    data.PrecioVenta = PrecioVenta,
+                    data.Cantidad = Cantidad,
+                    data.IdColor = IdColor.value,
+                    data.Color = Color
 
                 this.data(data).draw();
 
@@ -1202,7 +1355,7 @@ async function guardarProducto() {
     } else if (!productoExistente) {
         // Si no existe, agregar un nuevo producto
         gridProductos.row.add({
-            Id: 0,
+            Id: detalleId,
             IdProducto: IdProducto,
             Nombre: NombreProducto,
             IdCategoria: IdCategoria,
@@ -1223,8 +1376,8 @@ async function guardarProducto() {
             // Agregar la fila a la tabla de insumos principal
             gridInsumos.row.add({
                 // Mapea las propiedades según tu estructura
-                IdDetalle: 0,
-                Id: 0,
+                IdDetalle: detalleId,
+                Id: (Date.now() % 1000000) * 100 + Math.floor(Math.random() * 100),
                 IdProducto: IdProducto,
                 Producto: NombreProducto,
                 Cantidad: insumoData.Cantidad,
@@ -1250,11 +1403,9 @@ async function guardarProducto() {
     }
 
     limpiarInformacionProducto();
+    $('#Colores').val('-1').trigger('change');
     // Eliminar el producto agregado de gridProductosModal
     if (!editando) {
-        gridProductosModal.rows().every(function () {
-            gridProductosModal.row(this).remove().draw();
-        });
     } else {
         $('#productoModal').modal('hide');
 
@@ -1272,19 +1423,16 @@ async function cargarDatosProductoModal() {
 
     const datosProducto = await ObtenerDatosProductoModal();
 
-    // Obtener los IdProducto de los productos ya existentes en gridProductos
-    var productosExistentes = gridProductos.rows().data().toArray(); // Obtener los datos actuales en gridProductos
-    var idsExistentes = productosExistentes.map(function (producto) {
-        return parseInt(producto.IdProducto); // Crear un array de Ids de productos existentes en gridProductos
-    });
-
-    // Filtrar los productos que ya están en gridProductos
-    var productosFiltrados = datosProducto.filter(function (producto) {
-        return !idsExistentes.includes(parseInt(producto.Id)); // Excluir productos con IdProducto ya existente
-    });
-
     // Ahora se cargan los datos filtrados (productos que no están en gridProductos)
-    configurarDataTableProductosModal(productosFiltrados);
+    configurarDataTableProductosModal(datosProducto);
+}
+
+
+async function ObtenerDatosCliente(id) {
+    const url = `/Clientes/EditarInfo?Id=${id}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    return data;
 }
 
 async function ObtenerDatosProductoModal() {
@@ -1321,6 +1469,13 @@ async function limpiarInformacionProducto() {
     document.getElementById("ProductoModalIva").value = "";
     document.getElementById("ProductoModalGanancia").value = "";
     document.getElementById("ProductoModalPrecioVenta").value = "";
+    $('#grd_Productos_Modal tbody tr').removeClass('selected');
+    $('#grd_Productos_Modal tbody tr td').removeClass('selected');
+
+    // Resetear las filas seleccionadas
+    filasSeleccionadas = [];
+    ultimaFilaSeleccionada = null;
+
 }
 
 async function cargarInformacionProducto(id) {
@@ -1400,7 +1555,7 @@ async function editarProducto(producto) {
     await listaColores();
 
     if (rowData) {
-        var insumosData = gridInsumos.rows().data().toArray().filter(row => row.IdProducto === producto.IdProducto);
+        var insumosData = gridInsumos.rows().data().toArray().filter(row => row.IdDetalle === producto.Id);
 
         var transformedData = insumosData.map(function (row) {
             return {
@@ -1432,7 +1587,7 @@ async function editarProducto(producto) {
         $("#columnaProductoSeleccionado").addClass("col-md-12");
 
 
-        $('#ProductoEditandoModalId').val(rowData.IdProducto);
+        $('#ProductoEditandoModalId').val(rowData.Id);
         $('#ProductoModalNombre').val(rowData.Nombre);
         $('#ProductoModalIdCategoria').val(rowData.IdCategoria);
         $('#ProductoModalCategoria').val(rowData.Categoria);
@@ -1457,7 +1612,7 @@ async function editarProducto(producto) {
         $("#productoModal").modal('show');
 
         $("#productoModal .modal-title").text("Editar Producto");
-       
+
         $("#btnGuardarProducto").text("✔ Guardar");
 
 
@@ -1500,7 +1655,7 @@ async function anadirProducto() {
     await cargarDatosProductoModal();
     await configurarDataTableInsumosModal(null, false);
 
-   
+
 
     if (gridInsumosModal != null) {
         gridInsumosModal.clear().draw();  // Limpia la tabla
@@ -1542,6 +1697,11 @@ async function listaClientes() {
 
     select = document.getElementById("Clientes");
 
+    option = document.createElement("option");
+    option.value = -1;
+    option.text = "Seleccionar";
+    select.appendChild(option);
+
     for (i = 0; i < data.length; i++) {
         option = document.createElement("option");
         option.value = data[i].Id;
@@ -1557,7 +1717,7 @@ function eliminarProducto(id) {
 
     rowsProductos.forEach(rowIdx => {
         let data = gridProductos.row(rowIdx).data();
-        if (data != null && data.IdProducto == id) {
+        if (data != null && data.Id == id) {
             gridProductos.row(rowIdx).remove();
         }
     });
@@ -1565,7 +1725,7 @@ function eliminarProducto(id) {
 
     rowsInsumos.forEach(rowIdx => {
         let data = gridInsumos.row(rowIdx).data();
-        if (data != null && data.IdProducto == id) {
+        if (data != null && data.IdDetalle == id) {
             gridInsumos.row(rowIdx).remove();
         }
     });
@@ -1575,40 +1735,40 @@ function eliminarProducto(id) {
 }
 
 
-function eliminarInsumo(id, idProducto) {
-
-    // Eliminar el insumo y obtener su IdProducto
+function eliminarInsumo(Id) {
+    var idDetalle = 0;
+    // Eliminar el insumo con el Id correspondiente
     gridInsumos.rows().every(function (rowIdx, tableLoop, rowLoop) {
+
+
         const data = this.data();
-        if (data != null && data.IdInsumo == id && data.IdProducto == idProducto) {
-            idProducto = data.IdProducto; // Guardamos el IdProducto antes de eliminar
+        if (data != null && data.Id == Id) {
+            idDetalle = data.IdDetalle;
             gridInsumos.row(rowIdx).remove();
         }
     });
     gridInsumos.draw(); // Redibujar después de eliminar insumo
 
     // Verificar si quedan insumos para ese producto
-    if (idProducto !== null) {
-        let tieneInsumos = false;
+    let tieneInsumos = false;
 
-        gridInsumos.rows().every(function (rowIdx, tableLoop, rowLoop) {
+    gridInsumos.rows().every(function (rowIdx, tableLoop, rowLoop) {
+        const data = this.data();
+        if (data.IdDetalle == idDetalle) {
+            tieneInsumos = true;
+            return false; // Salimos del loop si encontramos al menos un insumo
+        }
+    });
+
+    // Si el producto ya no tiene insumos, eliminarlo
+    if (!tieneInsumos) {
+        gridProductos.rows().every(function (rowIdx, tableLoop, rowLoop) {
             const data = this.data();
-            if (data.IdProducto == idProducto) {
-                tieneInsumos = true;
-                return false; // Salimos del loop si encontramos al menos un insumo
+            if (data && data.Id == idDetalle) {
+                gridProductos.row(rowIdx).remove();
             }
         });
-
-        // Si el producto ya no tiene insumos, eliminarlo
-        if (!tieneInsumos) {
-            gridProductos.rows().every(function (rowIdx, tableLoop, rowLoop) {
-                const data = this.data();
-                if (data && data.IdProducto == idProducto) {
-                    gridProductos.row(rowIdx).remove();
-                }
-            });
-            gridProductos.draw();
-        }
+        gridProductos.draw();
     }
 }
 
@@ -1787,7 +1947,7 @@ async function guardarCambios() {
             gridProductos.rows().every(function () {
                 const producto = this.data();
                 const productoJson = {
-                    "Id": idPedido != "" ? producto.Id : 0,
+                    "Id": producto.Id,
                     "IdProducto": parseInt(producto.IdProducto),
                     "IdCategoria": parseInt(producto.IdCategoria),
                     "CostoUnitario": parseFloat(producto.CostoUnitario),
@@ -1823,6 +1983,7 @@ async function guardarCambios() {
                     "IdColor": parseInt(insumo.IdColor),
                     "IdTipo": parseInt(insumo.IdTipo),
                     "IdEstado": parseInt(insumo.IdEstado),
+                    "IdDetalle": parseInt(insumo.IdDetalle),
                     "IdProveedor": parseInt(insumo.IdProveedor),
                     "IdUnidadMedida": parseInt(insumo.IdUnidadMedida),
                     "Especificacion": insumo.Especificacion,
@@ -1876,7 +2037,7 @@ async function guardarCambios() {
                 console.log("Respuesta del servidor:", dataJson);
                 const mensaje = idPedido === "" ? "Pedido registrado correctamente" : "Pedido modificado correctamente";
                 exitoModal(mensaje);
-                if (localStorage.getItem("RedireccionFabricaciones") == 1){
+                if (localStorage.getItem("RedireccionFabricaciones") == 1) {
                     window.location.href = "../../Fabricaciones";
                     localStorage.removeItem("RedireccionFabricaciones");
                 } else {
@@ -1898,6 +2059,14 @@ function isValidPedido() {
     var cantidadFilas = $('#grd_Productos').DataTable().rows().count();
     var saldo = parseFloat(convertirMonedaAFloat($("#Saldo").val()));
     const IdPedido = document.getElementById('IdPedido').value;
+    const IdCliente = document.getElementById('Clientes').value;
+
+    if (IdCliente == -1) {
+        errorModal("Para crear un pedido, debes seleccionar un cliente.");
+        return false;
+    }
+
+
 
     if (cantidadFilas <= 0) {
         if (IdPedido == "") {
@@ -1915,4 +2084,288 @@ function isValidPedido() {
 
 
     return true;
+}
+
+function nuevoCliente() {
+    limpiarModalCliente();
+    listaProvincias();
+    $('#modalEdicionCliente').modal('show');
+    $("#btnGuardar").text("Registrar");
+    $("#modalEdicionLabel").text("Nuevo Cliente");
+    $('#lblNombreClienteModal').css('color', 'red');
+    $('#txtNombreClienteModal').css('border-color', 'red');
+}
+
+function limpiarModalCliente() {
+    const campos = ["IdClienteModal", "NombreClienteModal", "TelefonoClienteModal", "DireccionClienteModal", "IdProvinciaClienteModal", "LocalidadClienteModal", "DniClienteModal"];
+    campos.forEach(campo => {
+        $(`#txt${campo}`).val("");
+    });
+
+    $("#lblNombre, #txtNombre").css("color", "").css("border-color", "");
+}
+
+
+async function listaProvincias() {
+    const url = `/Clientes/ListaProvincias`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    $('#ProvinciasClienteModal option').remove();
+
+    selectProvincias = document.getElementById("ProvinciasClienteModal");
+
+    for (i = 0; i < data.length; i++) {
+        option = document.createElement("option");
+        option.value = data[i].Id;
+        option.text = data[i].Nombre;
+        selectProvincias.appendChild(option);
+
+    }
+}
+
+async function guardarCambiosCliente() {
+    if (validarCamposCliente()) {
+        const idCliente = $("#txtIdClienteModal").val();
+        const nuevoModelo = {
+            "Id": idCliente !== "" ? idCliente : 0,
+            "Nombre": $("#txtNombreClienteModal").val(),
+            "Telefono": $("#txtTelefonoClienteModal").val(),
+            "Direccion": $("#txtDireccionClienteModal").val(),
+            "IdProvincia": $("#ProvinciasClienteModal").val(),
+            "Localidad": $("#txtLocalidadClienteModal").val(),
+            "DNI": $("#txtDniClienteModal").val()
+        };
+
+        const url = "/Clientes/Insertar";
+        const method = "POST";
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8'
+            },
+            body: JSON.stringify(nuevoModelo)
+        })
+            .then(response => {
+                if (!response.ok) throw new Error(response.statusText);
+                return response.json();
+            })
+            .then(async dataJson => {
+                if (dataJson.valor > 0) {
+                    const mensaje = "Cliente registrado correctamente";
+                    $('#modalEdicionCliente').modal('hide');
+                    exitoModal(mensaje);
+                    await listaClientes();
+                    cargarDatosClienteRegistrado(dataJson.valor)
+                } else {
+                    errorModal("Ha ocurrido un error al registrar el cliente.")
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    } else {
+        errorModal('Debes completar los campos requeridos');
+    }
+}
+
+function validarCamposCliente() {
+    const nombre = $("#txtNombreClienteModal").val();
+    const camposValidos = nombre !== "";
+
+    $("#lblNombreClienteModal").css("color", camposValidos ? "" : "red");
+    $("#txtNombreClienteModal").css("border-color", camposValidos ? "" : "red");
+
+    return camposValidos;
+}
+
+function generarDatosPDF() {
+
+    let cliente = $("#Clientes").select2("data")[0].text
+    let idCliente = $("#Clientes").val();
+
+    var cantidadFilasTotales = gridProductos.data().length;
+
+    if (!idCliente || idCliente == '-1') {
+        errorModal("Para imprimir un pedido debes seleccionar un cliente.");
+        return;
+    }
+
+
+    // Verificar si al eliminar las filas seleccionadas se quedaría con menos de una fila
+    if (cantidadFilasTotales < 1) {
+        errorModal("No puedes imprimir un remito sin al menos un producto.");
+        return;
+    }
+
+    
+
+    var datosPedidoJson =
+    {
+        IdPedido: document.getElementById("IdPedido").value,
+        Cliente: cliente,// Obtener el texto seleccionado de la lista de categorías
+        Fecha: document.getElementById("Fecha").value,
+        ImporteTotal: document.getElementById("ImporteTotal").value,
+        PorcDesc: document.getElementById("PorcDesc").value,
+        Descuento: document.getElementById("Descuento").value,
+        SubTotal: document.getElementById("SubTotal").value,
+        ImporteAbonado: document.getElementById("ImporteAbonado").value,
+        Telefono: document.getElementById("Telefono").value,
+        Saldo: document.getElementById("Saldo").value,
+    };
+
+
+    var productos = [];
+    gridProductos.rows().every(function () {
+        let producto = this.data();
+        productos.push(producto)
+    });
+
+
+    var datos = {
+        Pedido: datosPedidoJson,
+        Productos: productos
+    }
+
+    factura = generarRemitoPDF(datos);
+    facturaCliente = cliente;
+    descargarFacturaPDF(datos, factura);
+}
+
+
+
+function obtenerUrlCompleta(rutaRelativa) {
+    const path = window.location.origin + rutaRelativa.replace("~", ""); // Construye la URL completa
+    return path;
+}
+
+function generarRemitoPDF(datos) {
+    const doc = new jsPDF();
+
+    const logoElement = document.getElementById("logoImpresion1");
+    doc.addImage(logoElement, 'PNG', 0, 0, 100, 0);
+
+    const logoElement2 = document.getElementById("logoImpresion2");
+    doc.addImage(logoElement2, 'PNG', 95, 10, 70, 0);
+
+    if (datos.Pedido.IdPedido != "") {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.text("N° REMITO", 172, 15);
+
+        doc.setFontSize(20);
+        doc.text(`${datos.Pedido.IdPedido}`, 178, 25);
+    }
+
+    doc.setFontSize(10);
+    doc.text(`Nombre: ${datos.Pedido.Cliente}`, 110, 35);
+    doc.text(`Telefono: ${datos.Pedido.Telefono}`, 110, 42);
+    doc.text(`Fecha: ${moment(datos.Pedido.Fecha, "YYYY-MM-DD").format("DD/MM/YYYY")}`, 110, 49);
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.5);
+    doc.line(14, 52, 194, 52);
+
+    const columns = ["C", "Producto", "Precio C/IVA", "Subtotal C/IVA"];
+    const rows = datos.Productos.map((item, i) => [
+        item.Cantidad,
+        item.Nombre,
+        formatNumber(item.CostoUnitario),
+        formatNumber(item.CostoUnitario * item.Cantidad)
+    ]);
+
+    doc.autoTable({
+        startY: 55,
+        head: [columns],
+        body: rows,
+        theme: 'grid',
+        styles: { fontSize: 10 },
+        headStyles: {
+            fillColor: [0, 0, 0],
+            textColor: 255,
+            halign: 'center'
+        },
+        columnStyles: {
+            0: { halign: 'center', cellWidth: 10 },
+            1: { cellWidth: 90 },
+            2: { halign: 'right', cellWidth: 40 },
+            3: { halign: 'right', cellWidth: 40 }
+        }
+    });
+
+    let y = doc.lastAutoTable.finalY + 10;
+    const pageHeight = doc.internal.pageSize.height;
+    const boxHeight = 45;
+    const marginBottom = 30;
+
+    // Si no entra el bloque de totales + pie, crear nueva página
+    if (y + boxHeight + marginBottom > pageHeight) {
+        doc.addPage();
+        y = 20; // posición inicial en nueva página
+    }
+
+    const boxX = 14;
+    const boxY = y - 5;
+    const boxWidth = 180;
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.5);
+    doc.rect(boxX, boxY, boxWidth, boxHeight);
+
+    const total = datos.Pedido.ImporteTotal || 0;
+    const descuento = datos.Pedido.PorcDesc || 0;
+    const totalDescuento = datos.Pedido.Descuento || 0;
+    const importeTotal = datos.Pedido.SubTotal || 0;
+    const abonado = datos.Pedido.ImporteAbonado || 0;
+    const saldo = datos.Pedido.Saldo ?? importeTotal - abonado;
+
+    doc.setFontSize(10);
+    const labels = [
+        "Importe total con IVA:",
+        "Descuento %:",
+        "Total descuento:",
+        "Importe total:",
+        "Importe abonado :",
+        "Saldo:"
+    ];
+    const valores = [
+        total,
+        `${descuento}%`,
+        totalDescuento,
+        importeTotal,
+        datos.Pedido.ImporteAbonado,
+        datos.Pedido.Saldo
+    ];
+
+    labels.forEach((label, i) => {
+        const yPos = y + i * 7;
+        doc.text(label, boxX + 100, yPos);
+        doc.text(valores[i], boxX + 145, yPos, { align: "right" });
+    });
+
+    // Pie dinámico: debajo del recuadro de totales
+    const pieY = boxY + boxHeight + 10;
+
+    doc.setFontSize(10);
+    doc.text(`Telefono: 11-6507-5229`, 15, pieY);
+    doc.text(`Mail: admin@bronxdecor.com.ar`, 15, pieY + 5);
+    doc.text(`BRONX CONCEPT`, 160, pieY);
+    return doc;
+}
+
+
+function descargarFacturaPDF(datos, facturaPDF) {
+
+    let msjpedido = "";
+
+    if (datos.Pedido.IdPedido == "") {
+        msjpedido = ""
+    } else {
+        msjpedido = `Nº ${datos.Pedido.IdPedido} `
+    }
+
+    titulo = `Pedido ${msjpedido}Cliente ${facturaCliente} ${datos.Pedido.ImporteTotal}`
+
+    facturaPDF.save(`${titulo}.pdf`);
 }

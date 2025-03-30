@@ -31,6 +31,7 @@ namespace SistemaBronx.Application.Models.ViewModels
         public string Estado { get; set; }
         public string FormaPago { get; set; }
         public string Cliente { get; set; }
+        public string Telefono { get; set; }
         public string Comentarios { get; set; }
 
 

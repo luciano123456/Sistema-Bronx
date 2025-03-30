@@ -11,7 +11,7 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace SistemaBronx.DAL.Repository
 {
-    public class ClienteRepository : IGenericRepository<Cliente>
+    public class ClienteRepository : IClienteRepository<Cliente>
     {
 
         private readonly SistemaBronxContext _dbcontext;
@@ -35,12 +35,19 @@ namespace SistemaBronx.DAL.Repository
             return true;
         }
 
-        public async Task<bool> Insertar(Cliente model)
+        public async Task<int> Insertar(Cliente model)
         {
-            _dbcontext.Clientes.Add(model);
-            await _dbcontext.SaveChangesAsync();
-            return true;
+            try
+            {
+                _dbcontext.Clientes.Add(model);
+                await _dbcontext.SaveChangesAsync();
+                return model.Id;
+            } catch (Exception ex)
+            {
+                return 0;
+            }
         }
+
 
         public async Task<Cliente> Obtener(int id)
         {

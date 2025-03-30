@@ -16,7 +16,7 @@ const columnConfig = [
     { index: 5, filterType: 'select', fetchDataFunc: listaTiposFilter }, // Columna con un filtro de selección
     { index: 6, filterType: 'select', fetchDataFunc: listaCategoriasFilter }, // Columna con un filtro de selección
     { index: 7, filterType: 'select', fetchDataFunc: listaUnidadesDeMedidasFilter }, // Columna con un filtro de selección
-    { index: 8, filterType: 'text' },
+    { index: 8, filterType: 'select', fetchDataFunc: listaProveedoresFilter },
     { index: 9, filterType: 'text' },
 
 ];
@@ -334,7 +334,17 @@ async function listaTipos() {
     }
 }
 
+async function listaProveedoresFilter() {
+    const url = `/Proveedores/Lista`;
+    const response = await fetch(url);
+    const data = await response.json();
 
+    return data.map(dto => ({
+        Id: dto.Id,
+        Nombre: dto.Nombre
+    }));
+
+}
 
 async function listaCategoriasFilter() {
     const url = `/InsumosCategorias/Lista`;
@@ -446,6 +456,7 @@ async function configurarDataTable(data) {
             },
             scrollX: "100px",
             scrollCollapse: true,
+            pageLength: 50,
             columns: [
                 {
                     data: "Id",
@@ -527,7 +538,7 @@ async function configurarDataTable(data) {
                 }
             ],
             orderCellsTop: true,
-            fixedHeader: true,
+            fixedHeader: false,
 
             initComplete: async function () {
                 var api = this.api();
@@ -1020,7 +1031,7 @@ async function cargarDataTableProveedores(data) {
 
         ],
         orderCellsTop: true,
-        fixedHeader: true,
+        fixedHeader: false,
 
         initComplete: async function () {
             setTimeout(function () {

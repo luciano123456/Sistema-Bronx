@@ -6,9 +6,9 @@ namespace SistemaBronx.BLL.Service
     public class ClienteService : IClienteService
     {
 
-        private readonly IGenericRepository<Cliente> _contactRepo;
+        private readonly IClienteRepository<Cliente> _contactRepo;
 
-        public ClienteService(IGenericRepository<Cliente> contactRepo)
+        public ClienteService(IClienteRepository<Cliente> contactRepo)
         {
             _contactRepo = contactRepo;
         }
@@ -22,7 +22,7 @@ namespace SistemaBronx.BLL.Service
             return await _contactRepo.Eliminar(id);
         }
 
-        public async Task<bool> Insertar(Cliente model)
+        public async Task<int> Insertar(Cliente model)
         {
             return await _contactRepo.Insertar(model);
         }

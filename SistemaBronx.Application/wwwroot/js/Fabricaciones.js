@@ -1,18 +1,21 @@
 ﻿let gridFabricaciones;
 let isEditing = false;
+let filasSeleccionadas = []; // Array para almacenar las filas seleccionadas
 
 const columnConfig = [
     { index: 0, filterType: 'text' },
     { index: 1, filterType: 'text' },
-    { index: 2, filterType: 'text' }, // Columna con un filtro de selección (de provincias)
-    { index: 3, filterType: 'text' }, // Columna con un filtro de selección (de provincias)
-    { index: 4, filterType: 'text', filterType: 'select', fetchDataFunc: listaColoresFilter },
-    { index: 5, filterType: 'text', filterType: 'select', fetchDataFunc: listaEstadosFilter },
-    { index: 6, filterType: 'text' },
-    { index: 7, filterType: 'text' },
-    { index: 8, filterType: 'text', filterType: 'select', fetchDataFunc: listaCategoriasFilter },
+    { index: 2, filterType: 'text' },
+    { index: 3, filterType: 'select', fetchDataFunc: listaProductosFilter },
+    { index: 4, filterType: 'text' }, // Columna con un filtro de selección (de provincias)
+    { index: 5, filterType: 'text' }, // Columna con un filtro de selección (de provincias)
+    { index: 6, filterType: 'text', filterType: 'select', fetchDataFunc: listaColoresFilter },
+    { index: 7, filterType: 'text', filterType: 'select', fetchDataFunc: listaEstadosFilter },
+    { index: 8, filterType: 'text' },
     { index: 9, filterType: 'text' },
-    { index: 10, filterType: 'text' },
+    { index: 10, filterType: 'text', filterType: 'select', fetchDataFunc: listaCategoriasFilter },
+    { index: 11, filterType: 'select', fetchDataFunc: listaProveedoresFilter },
+    { index: 12, filterType: 'text' },
 ];
 
 
@@ -41,8 +44,9 @@ async function configurarDataTable(data) {
                 lengthMenu: "Anzeigen von _MENU_ Einträgen",
                 url: "//cdn.datatables.net/plug-ins/2.0.7/i18n/es-MX.json"
             },
-            scrollX: "100px",
+            scrollX: true,
             scrollCollapse: true,
+            pageLength: 50,
             columns: [
                 {
 
@@ -67,6 +71,8 @@ async function configurarDataTable(data) {
 
                 },
                 
+                { data: 'IdPedido', name:"Pedido" },
+                { data: 'IdDetalle' },
                 { data: 'Producto' },
                 { data: 'Insumo' },
                 { data: 'Cantidad' },
@@ -113,7 +119,8 @@ async function configurarDataTable(data) {
                 'pageLength'
             ],
             orderCellsTop: true,
-            fixedHeader: true,
+            fixedHeader: false,
+
 
             initComplete: async function () {
                 var api = this.api();
@@ -188,6 +195,78 @@ async function configurarDataTable(data) {
             },
         });
 
+        // Variable para almacenar la última fila seleccionada
+        var ultimaFilaSeleccionada = null;
+        var dobleclick = false;
+
+        $('#grd_Fabricaciones tbody').on('dblclick', 'tr', function (event) {
+            dobleclick = true;
+        });
+
+        $('#grd_Fabricaciones tbody').on('click', 'tr', function (event) {
+            var fila = $(this);
+
+            // Verificar si se está presionando Ctrl (o Cmd en Mac)
+            var ctrlPresionado = event.ctrlKey || event.metaKey; // Ctrl en Windows/Linux, Cmd en Mac
+            // Verificar si se está presionando Shift
+            var shiftPresionado = event.shiftKey;
+
+            if (ctrlPresionado) {
+                // Si se presiona Ctrl/Cmd, agregar o quitar la fila de la selección
+                var index = filasSeleccionadas.indexOf(fila[0]);
+
+                if (index === -1) {
+                    // Si no está seleccionada, agregarla
+                    filasSeleccionadas.push(fila[0]);
+                    fila.addClass('selected');
+                    $('td', fila).addClass('selected');
+                } else {
+                    // Si ya está seleccionada, quitarla
+                    filasSeleccionadas.splice(index, 1);
+                    fila.removeClass('selected');
+                    $('td', fila).removeClass('selected');
+                }
+            } else if (shiftPresionado && ultimaFilaSeleccionada) {
+                // Si se presiona Shift, seleccionar todas las filas entre la última fila seleccionada y la fila actual
+                var filas = $('#grd_Fabricaciones tbody tr');
+                var indexActual = filas.index(fila);
+                var indexUltima = filas.index(ultimaFilaSeleccionada);
+
+                // Determinar el rango de filas a seleccionar
+                var inicio = Math.min(indexActual, indexUltima);
+                var fin = Math.max(indexActual, indexUltima);
+
+                // Seleccionar todas las filas en el rango
+                filas.slice(inicio, fin + 1).each(function () {
+                    if (!filasSeleccionadas.includes(this)) {
+                        filasSeleccionadas.push(this);
+                        $(this).addClass('selected');
+                        $('td', this).addClass('selected');
+                    }
+                });
+            } else {
+                // ✅ Si NO se presiona Ctrl ni Shift, limpiar todo y seleccionar solo la nueva fila
+                if (!fila.hasClass('selected') || filasSeleccionadas.length == 1) {
+                    filasSeleccionadas = [fila[0]]; // Reiniciar selección
+                    $('#grd_Fabricaciones tbody tr').removeClass('selected');
+                    $('#grd_Fabricaciones tbody tr td').removeClass('selected');
+                    fila.addClass('selected');
+                    $('td', fila).addClass('selected');
+                }
+                
+            }
+
+            // Actualizar la última fila seleccionada
+            ultimaFilaSeleccionada = fila[0];
+        });
+
+        // ✅ PREVENIR QUE AL HACER DOBLE CLIC SE DESMARQUEN TODAS LAS FILAS
+        $('#grd_Fabricaciones tbody').on('dblclick', 'tr', function () {
+            // Acá puedes poner la acción de cambiar el estado sin modificar la selección
+            console.log("Doble clic en fila. Manteniendo selección.");
+        });
+
+
         $('#grd_Fabricaciones tbody').on('dblclick', 'td', async function () {
             var cell = gridFabricaciones.cell(this);
             var originalData = cell.data();
@@ -197,7 +276,7 @@ async function configurarDataTable(data) {
             var colIndex = cell.index().column;
             var rowData = gridFabricaciones.row($(this).closest('tr')).data();
 
-            if (colIndex == 0 || colIndex == 1 || colIndex == 2 || colIndex == 8  || colIndex == 9 || colIndex == 10) {
+            if (colIndex == 0 || colIndex == 1 || colIndex == 2 || colIndex == 3 || colIndex == 4 ||  colIndex == 9 || colIndex == 10) {
                 return;
             }
 
@@ -220,7 +299,7 @@ async function configurarDataTable(data) {
 
 
             // Si la columna es la de la provincia (por ejemplo, columna 3)
-            if (colIndex === 4 || colIndex == 5) {
+            if (colIndex === 6 || colIndex == 7) {
                 var select = $('<select class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
                     .appendTo($(this).empty())
                     .on('change', function () {
@@ -236,9 +315,9 @@ async function configurarDataTable(data) {
                 var result = null;
 
 
-                if (colIndex == 4) {
+                if (colIndex == 6) {
                     result = await listaColoresFilter();
-                } else if (colIndex == 5) {
+                } else if (colIndex == 7) {
                     result = await listaEstadosFilter();
                 }
 
@@ -246,9 +325,9 @@ async function configurarDataTable(data) {
                     select.append('<option value="' + res.Id + '">' + res.Nombre + '</option>');
                 });
 
-                if (colIndex == 4) {
+                if (colIndex == 6) {
                     select.val(rowData.IdColor);
-                } else if (colIndex == 5) {
+                } else if (colIndex == 7) {
                     select.val(rowData.IdEstado);
                 }
 
@@ -257,7 +336,7 @@ async function configurarDataTable(data) {
                 var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
                     var selectedValue = select.val();
                     var selectedText = select.find('option:selected').text();
-                    saveEdit(colIndex, gridFabricaciones.row($(this).closest('tr')).data(), selectedText, selectedValue, $(this).closest('tr'));
+                    saveEdit(colIndex, selectedText, selectedValue);
                 });
 
                 var cancelButton = $('<i class="fa fa-times text-danger"></i>').on('click', cancelEdit);
@@ -275,7 +354,7 @@ async function configurarDataTable(data) {
                     .on('input', function () {
                         var saveBtn = $(this).siblings('.fa-check'); // Botón de guardar
 
-                        if (colIndex === 3) { // Validar solo si es la columna 0
+                        if (colIndex === 4) { // Validar solo si es la columna 0
                             if ($(this).val().trim() === "") {
                                 $(this).css('border-bottom', '2px solid red'); // Borde rojo
                                 saveBtn.css('opacity', '0.5'); // Desactivar botón de guardar visualmente
@@ -289,7 +368,7 @@ async function configurarDataTable(data) {
                     })
                     .on('keydown', function (e) {
                         if (e.key === 'Enter') {
-                            saveEdit(colIndex, gridInsumos.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                            saveEdit(colIndex, input.val(), input.val());
                         } else if (e.key === 'Escape') {
                             cancelEdit();
                         }
@@ -298,7 +377,7 @@ async function configurarDataTable(data) {
 
                 var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
                     if (!$(this).prop('disabled')) { // Solo guardar si el botón no está deshabilitado
-                        saveEdit(colIndex, gridFabricaciones.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                        saveEdit(colIndex, input.val(), input.val());
                     }
                 });
 
@@ -310,52 +389,69 @@ async function configurarDataTable(data) {
                 input.focus();
             }
 
+            // Función para guardar los cambios con el parpadeo en las filas seleccionadas
+            async function saveEdit(colIndex, newText, newValue) {
+                // Asegurarnos de que las filas seleccionadas se guardan una por una
+                for (let i = 0; i < filasSeleccionadas.length; i++) {
+                    const rowElement = filasSeleccionadas[i];
 
-            // Función para guardar los cambios
-            function saveEdit(colIndex, rowData, newText, newValue, trElement) {
-                // Obtener el nombre de la propiedad basado en el dataSrc
+                    // Obtener los datos de la fila usando gridFabricaciones.row()
+                    let rowData = gridFabricaciones.row($(rowElement)).data(); // Aquí obtenemos los datos de la fila seleccionada
 
+                    // Obtener la celda editada de la fila seleccionada
+                    const celda = $(rowElement).find('td').eq(colIndex);
 
-                // Convertir el índice de columna (data index) al índice visible
-                var visibleIndex = gridFabricaciones.column(colIndex).index('visible');
+                    // Actualizar los datos en la fila según la columna editada
+                    if (colIndex === 6) {
+                        rowData.IdColor = newValue;
+                        rowData.Color = newText;
+                    } else if (colIndex === 7) {
+                        rowData.IdEstado = parseInt(newValue);
+                        rowData.Estado = newText;
+                    } else {
+                        let header = gridFabricaciones.column(colIndex).header().textContent;
+                        rowData[header] = newText;
+                    }
 
-                // Obtener la celda visible y aplicar la clase blinking
-                var celda = $(trElement).find('td').eq(visibleIndex);
+                    // Actualizar la celda específica en la tabla
+                    gridFabricaciones.cell(rowElement, colIndex).data(newText).draw();
 
-                // Obtener el valor original de la celda
-                var originalText = gridFabricaciones.cell(trElement, celda).data();
+                    // Añadir la clase de parpadeo a la celda
+                    celda.addClass('blinking');
 
-                // Actualizar el valor de la fila según la columna editada
-                if (colIndex === 4) { // Columna de la provincia
-                    rowData.IdColor = newValue;
-                    rowData.Color = newText;
-                } else if (colIndex === 5) { // Columna de la provincia
-                    rowData.IdEstado = newValue;
-                    rowData.Estado = newText;
-                } else {
-                    rowData[gridFabricaciones.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
+                    try {
+                        // Enviar los datos al servidor y esperar que se complete el guardado antes de continuar
+                        await guardarCambiosFila(rowData); // Usamos los datos de la fila seleccionada
+                        console.log(`Fila ${i + 1} guardada exitosamente`);
+
+                        // Remover el parpadeo después de 3 segundos solo en la celda editada
+                        setTimeout(function () {
+                            $(rowElement).find('td').eq(colIndex).removeClass('blinking');
+                        }, 3000);
+
+                    } catch (error) {
+                        console.error(`Error guardando la fila ${i + 1}:`, error);
+                    }
                 }
 
-                // Actualizar la fila en la tabla con los nuevos datos
-                gridFabricaciones.row(trElement).data(rowData).draw();
-
-                // Aplicar el parpadeo solo si el texto cambió
-                if (originalText !== newText) {
-                    celda.addClass('blinking'); // Aplicar la clase 'blinking' a la celda que fue editada
-                }
-
-
-                // Enviar los datos al servidor
-                guardarCambiosFila(rowData);
+                // **Eliminar la clase 'selected' de las filas seleccionadas después de guardar**
+                $(filasSeleccionadas).each(function (index, rowElement) {
+                    $(rowElement).removeClass('selected');
+                    $(rowElement).find('td').removeClass('selected');
+                });
 
                 // Desactivar el modo de edición
                 isEditing = false;
 
-                // Remover la clase blinking después de 3 segundos
-                setTimeout(function () {
-                    celda.removeClass('blinking');
-                }, 3000);
+                // Limpiar las filas seleccionadas después de guardar
+                filasSeleccionadas = [];
             }
+
+
+
+
+
+
 
 
 
@@ -384,8 +480,10 @@ async function guardarCambiosFila(rowData) {
         });
 
         if (response.ok) {
+            return true;
         } else {
             errorModal('Ha ocurrido un error al guardar los datos...')
+            return false;
         }
     } catch (error) {
         console.error('Error de red:', error);
@@ -411,14 +509,23 @@ function configurarOpcionesColumnas() {
     container.empty(); // Limpia el contenedor
 
     columnas.forEach((col, index) => {
-        if (col.data && !col.data.includes("Id")) { // Solo agregar columnas que no sean "Id"
+        if (col.data && col.data != "Id" && index != 12) { // Solo agregar columnas que no sean "Id"
             // Recupera el valor guardado en localStorage, si existe. Si no, inicializa en 'false' para no estar marcado.
             const isChecked = savedConfig && savedConfig[`col_${index}`] !== undefined ? savedConfig[`col_${index}`] : true;
 
             // Asegúrate de que la columna esté visible si el valor es 'true'
             grid.column(index).visible(isChecked);
 
-            const columnName = index != 3 ? col.data : "Direccion";
+
+            let columnName;
+
+            if (col.data == "IdPedido") {
+                columnName = "Pedido";
+            } else if (col.data == "IdDetalle") {
+                columnName = "Detalle";
+            } else {
+                columnName = col.data;
+            }
 
             // Ahora agregamos el checkbox, asegurándonos de que se marque solo si 'isChecked' es 'true'
             container.append(`
@@ -454,6 +561,18 @@ function editarPedido(id) {
 
 async function listaEstadosFilter() {
     const url = `/PedidosEstados/Lista`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    return data.map(x => ({
+        Id: x.Id,
+        Nombre: x.Nombre
+    }));
+
+}
+
+async function listaProductosFilter() {
+    const url = `/Productos/Lista`;
     const response = await fetch(url);
     const data = await response.json();
 
@@ -525,5 +644,18 @@ async function listaCategorias() {
         select.appendChild(option);
 
     }
+
+}
+
+
+async function listaProveedoresFilter() {
+    const url = `/Proveedores/Lista`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    return data.map(dto => ({
+        Id: dto.Id,
+        Nombre: dto.Nombre
+    }));
 
 }

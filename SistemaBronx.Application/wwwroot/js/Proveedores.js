@@ -183,6 +183,7 @@ async function configurarDataTable(data) {
             },
             scrollX: "100px",
             scrollCollapse: true,
+            pageLength: 50,
             columns: [
                 {
                     data: "Id",
@@ -255,7 +256,7 @@ async function configurarDataTable(data) {
                 'pageLength'
             ],
             orderCellsTop: true,
-            fixedHeader: true,
+            fixedHeader: false,
 
             initComplete: async function () {
                 var api = this.api();

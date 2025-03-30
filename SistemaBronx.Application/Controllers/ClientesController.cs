@@ -82,7 +82,7 @@ namespace SistemaBronx.Application.Controllers
                 Dni = model.Dni
             };
 
-            bool respuesta = await _clienteService.Insertar(cliente);
+            int respuesta = await _clienteService.Insertar(cliente);
 
             return Ok(new { valor = respuesta });
         }

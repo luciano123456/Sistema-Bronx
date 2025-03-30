@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 
 namespace SistemaBronx.Models;
+
 public partial class ProductosInsumo
 {
     public int Id { get; set; }
