@@ -2,3 +2,191 @@ table.dataTable.display tbody tr.selected td {
     background-color: antiquewhite !important;
     color: black !important;
 }
+
+
+.container, .container-fluid, .container-lg, .container-md, .container-sm, .container-xl, .container-xxl {
+     margin-right: auto; 
+     margin-left: 10px; 
+}
+
+
+html, body {
+  
+}
+
+.container-fluid {
+    width: 97vw;
+}
+
+.card-body {
+    overflow-x: scroll;
+}
+
+#grd_Fabricaciones {
+    width: 100% !important;
+    table-layout: auto;
+}
+
+
+/* Estilo base para la lista */
+#listadoProveedores {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 0;
+    font-size: 1rem;
+  
+
+    
+}
+
+    /* Estilo de cada proveedor como "fila" */
+    #listadoProveedores a {
+        display: block;
+        padding: 10px 15px;
+        text-decoration: none;
+        color: #ffffff;
+        background-color: #2b2f3a;
+        border-bottom: 1px solid #444;
+        transition: background-color 0.2s ease;
+    }
+
+        /* Estilo fila impar (1, 3, 5...) */
+        #listadoProveedores a:nth-child(odd) {
+            background-color: #2a2e38; /* un poco más claro */
+        }
+
+
+        /* Hover */
+        #listadoProveedores a:hover {
+            background-color: #3a3f4d;
+            color: #ffffff;
+        }
+
+        /* Seleccionado */
+        #listadoProveedores a.selected {
+            background-color: #f5f5dc !important; /* Beige */
+            color: #000 !important;
+            font-weight: bold;
+        }
+
+
+
+
+.estiloproveedores {
+    background: #323844 !important;
+    height: 100%; /* importante */
+  
+    display: flex;
+    flex-direction: column;
+    margin-top: 7px;
+    border-radius: 3px 3px 3px 3px;
+    scrollbar-width: thin;
+    scrollbar-color: #495057 #1f222b;
+}
+
+.row.g-0 {
+    align-items: stretch; /* iguala altura entre columnas */
+    min-height: 100vh; /* hace que se expanda al alto completo de la pantalla */
+}
+
+
+@media (max-width: 767px) {
+    .estiloproveedores {
+        width: 98% !important;
+        margin-left: 7px !important;
+        max-height: 30vh;
+       
+    }
+
+    .container-fluid {
+        width: 90vw;
+    }
+
+    .card-body {
+        overflow-x: auto;
+    }
+
+    #grd_Fabricaciones {
+        width: 85% !important;
+        table-layout: auto;
+    }
+
+    /* Estilo base para la lista */
+    #listadoProveedores {
+        max-height: 18vh;
+    }
+}
+
+
+
+
+
+/* Estilo para la fila seleccionada */
+table.dataTable.display tbody tr.seleccionada,
+table.dataTable.display tbody tr.seleccionada td {
+    background-color: #065f8c !important;
+    color: white !important;
+}
+
+
+/* Proveedor seleccionado + hover */
+#listadoProveedores a.proveedor-activo.hover-intenso {
+    background-color: #ec971f !important; /* más oscuro que #f0ad4e */
+    color: white;
+}
+
+/* Fabricaciones del proveedor hovered + seleccionado */
+#grd_Fabricaciones tr.hover-intenso,
+#grd_Fabricaciones td.hover-intenso {
+    background-color: #c97c11 !important; /* tono más oscuro del hover */
+}
+
+
+#grd_Fabricaciones tr,
+#grd_Fabricaciones td {
+    transition: background-color 1.7s  ease-in-out;
+}
+
+/* Hover verde */
+#grd_Fabricaciones tr.hover-verde,
+#grd_Fabricaciones td.hover-verde {
+    background-color: #f0ad4e !important; /* Verde claro */
+}
+
+/* Selección beige */
+#grd_Fabricaciones tr.seleccionada,
+#grd_Fabricaciones td.seleccionada {
+    background-color: #fff3cd !important;
+}
+
+/* Fila del proveedor seleccionado en la lista */
+#listadoProveedores a.proveedor-activo {
+    background-color: #f0ad4e !important; /* Color tipo naranja claro */
+    color: black;
+    font-weight: bold;
+}
+
+
+
+/* Fila seleccionada del proveedor en el listado */
+#listadoProveedores a.proveedor-activo {
+    background-color: #f0ad4e !important; /* naranja claro */
+    color: black;
+    font-weight: bold;
+}
+
+
+tbody, td, tfoot, th, thead, tr {
+    border-style: none;
+}
+
+.estiloproveedores,
+.col-md-9 {
+    display: flex;
+    flex-direction: column;
+}
+
+#listadoProveedores {
+    flex: 1; /* que tome todo el alto posible */
+    overflow-y: auto; /* para que tenga scroll si hay muchos proveedores */
+}

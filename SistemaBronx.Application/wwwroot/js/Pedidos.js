@@ -30,7 +30,7 @@ $(document).ready(() => {
 
 
 
-    listaPedidos(document.getElementById("txtFechaDesde").value, document.getElementById("txtFechaHasta").value ,-1, "TODOS", -1);
+    listaPedidos(document.getElementById("txtFechaDesde").value, document.getElementById("txtFechaHasta").value ,-1, "TODOS", 0);
 
     $('#txtNombre, #txtCodigo').on('input', function () {
         validarCampos()
@@ -337,14 +337,14 @@ function configurarOpcionesColumnas() {
     container.empty(); // Limpia el contenedor
 
     columnas.forEach((col, index) => {
-        if (col.data && col.data !== "Id") { // Solo agregar columnas que no sean "Id"
+        if (col.data && col.data != "Id" || index == 1) { // Solo agregar columnas que no sean "Id"
             // Recupera el valor guardado en localStorage, si existe. Si no, inicializa en 'false' para no estar marcado.
             const isChecked = savedConfig && savedConfig[`col_${index}`] !== undefined ? savedConfig[`col_${index}`] : true;
 
             // Asegúrate de que la columna esté visible si el valor es 'true'
             grid.column(index).visible(isChecked);
 
-            const columnName = col.data;
+            const columnName = index == 1 ? "NroPedido" : col.data;
 
             // Ahora agregamos el checkbox, asegurándonos de que se marque solo si 'isChecked' es 'true'
             container.append(`

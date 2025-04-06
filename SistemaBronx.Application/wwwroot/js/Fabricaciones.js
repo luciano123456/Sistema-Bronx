@@ -199,6 +199,10 @@ async function configurarDataTable(data) {
         var ultimaFilaSeleccionada = null;
         var dobleclick = false;
 
+        gridFabricaciones.on('draw', function () {
+            ajustarAlturaProveedores();
+        });
+
         $('#grd_Fabricaciones tbody').on('dblclick', 'tr', function (event) {
             dobleclick = true;
         });
@@ -658,4 +662,129 @@ async function listaProveedoresFilter() {
         Nombre: dto.Nombre
     }));
 
+}
+
+
+async function cargarListadoProveedores() {
+    const listado = document.getElementById('listadoProveedores');
+    listado.innerHTML = ''; // limpiar anterior
+
+    const proveedores = await listaProveedoresFilter();
+
+
+    proveedores.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'mb-2';
+        div.innerHTML = `<a href="#" onclick="seleccionarProveedor(${p.id})">${p.Nombre}</a>`;
+        listado.appendChild(div);
+    });
+}
+
+function seleccionarProveedor(id) {
+    console.log("Proveedor seleccionado:", id);
+    // Acá podés cargar los detalles en la tabla, por ejemplo
+}
+
+// Llamar esta función al cargar la página
+window.onload = cargarListadoProveedores;
+
+
+document.getElementById('buscarProveedor').addEventListener('input', function () {
+    const filtro = this.value.toLowerCase();
+    const proveedores = document.querySelectorAll('#listadoProveedores > div');
+
+    proveedores.forEach(function (prov) {
+        const texto = prov.textContent.toLowerCase();
+        prov.style.display = texto.includes(filtro) ? '' : 'none';
+    });
+});
+
+let proveedoresSeleccionados = [];
+
+$(document).on("click", "#listadoProveedores a", function (e) {
+    e.preventDefault(); // <--- ESTO evita que se suba la pantalla
+    const proveedor = $(this).text().trim();
+    const tabla = $('#grd_Fabricaciones').DataTable();
+    const index = proveedoresSeleccionados.indexOf(proveedor);
+
+    $("#grd_Fabricaciones tbody tr").removeClass("hover-intenso");
+    $("#grd_Fabricaciones tbody td").removeClass("hover-intenso");
+    $("#grd_Fabricaciones tbody tr").removeClass("hover-verde");
+    $("#grd_Fabricaciones tbody td").removeClass("hover-verde");
+
+    if (index !== -1) {
+        // Ya estaba seleccionado, lo saco
+        proveedoresSeleccionados.splice(index, 1);
+        $(this).removeClass("proveedor-activo");
+    } else {
+        // No estaba seleccionado, lo agrego
+       
+        proveedoresSeleccionados.push(proveedor);
+        $(this).addClass("proveedor-activo");
+    }
+
+    if (proveedoresSeleccionados.length === 0) {
+        tabla.column(11).search('').draw();
+    } else {
+        // Armo expresión regex OR
+        const filtroRegex = proveedoresSeleccionados.map(p => `^${p}$`).join('|');
+        tabla.column(11).search(filtroRegex, true, false).draw();
+    }
+});
+
+
+$(document).on("mouseenter", "#listadoProveedores a", function () {
+    if (proveedoresSeleccionados.length > 0) return;
+
+    const proveedorHover = $(this).text().trim();
+
+    $('#grd_Fabricaciones tbody tr').each(function () {
+        const tdProveedor = $(this).find("td").eq(11);
+        if (tdProveedor.text().trim() === proveedorHover) {
+            $(this).addClass("hover-verde");
+            $(this).find("td").addClass("hover-verde");
+        }
+    });
+});
+
+
+// Mouse enter sobre proveedor seleccionado
+$(document).on("mouseenter", "#listadoProveedores a.proveedor-activo", function () {
+    const proveedor = $(this).text().trim();
+
+    if (proveedoresSeleccionados.length < 2) return;
+
+    // Aplicar clase visual más intensa en el listado
+    $(this).addClass("hover-intenso");
+
+    // Resaltar en la tabla
+    $('#grd_Fabricaciones tbody tr').each(function () {
+        const tdProveedor = $(this).find("td").eq(11);
+        if (tdProveedor.text().trim() === proveedor) {
+            $(this).addClass("hover-intenso");
+            $(this).find("td").addClass("hover-intenso");
+        }
+    });
+});
+
+// Mouse leave, limpiar clases de hover-intenso
+$(document).on("mouseleave", "#listadoProveedores a.proveedor-activo", function () {
+    $(this).removeClass("hover-intenso");
+    $("#grd_Fabricaciones tbody tr").removeClass("hover-intenso");
+    $("#grd_Fabricaciones tbody td").removeClass("hover-intenso");
+});
+
+
+$(document).on("mouseleave", "#listadoProveedores a", function () {
+    $("#grd_Fabricaciones tbody tr").removeClass("hover-verde");
+    $("#grd_Fabricaciones tbody td").removeClass("hover-verde");
+});
+
+
+function ajustarAlturaProveedores() {
+    let tabla = document.querySelector('#grd_Fabricaciones');
+    if (tabla) {
+        let alturaTabla = tabla.offsetHeight + 168;
+        document.querySelector('#listadoProveedores').style.height = alturaTabla + 'px';
+    }
 }
