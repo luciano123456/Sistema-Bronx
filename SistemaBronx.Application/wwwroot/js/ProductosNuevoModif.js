@@ -16,6 +16,7 @@ $(document).ready(() => {
 
     listaCategorias();
 
+   
 
     if (ProductoData && ProductoData > 0) {
         cargarDatosProducto()
@@ -35,8 +36,6 @@ $(document).ready(() => {
         validarCampos()
     });
 
-   
-    validarCampos()
 
     $("#Categorias").select2({
         width: "100%",
@@ -50,6 +49,10 @@ $(document).ready(() => {
         placeholder: "Selecciona una opción",
         allowClear: false
     });
+   
+    validarCampos()
+
+  
 })
 
 
@@ -83,6 +86,19 @@ async function insertarDatosProducto(datos) {
     document.getElementById("Categorias").value = datos.IdCategoria;
     document.getElementById("porcIVA").value = datos.PorcIva;
     document.getElementById("porcGanancia").value = datos.PorcGanancia;
+
+    $("#Categorias").select2({
+        width: "100%",
+        placeholder: "Selecciona una opción",
+        allowClear: false
+    });
+
+    $("#insumoSelect").select2({
+        width: "100%",
+        dropdownParent: $("#insumosModal"), // Asegura que el dropdown se muestre dentro del modal
+        placeholder: "Selecciona una opción",
+        allowClear: false
+    });
 
     duplicarProducto = localStorage.getItem("DuplicarProducto");
 
@@ -278,7 +294,8 @@ async function obtenerInsumosUnidadNegocio() {
     return data.map(x => ({
         Id: x.Id,
         Nombre: x.Descripcion,
-        CostoUnitario: x.PrecioCosto
+        CostoUnitario: x.PrecioCosto,
+        Proveedor: x.Proveedor
     }));
 
 }
@@ -309,6 +326,7 @@ async function anadirInsumo() {
     const precioInput = $("#precioInput");
     const cantidadInput = $("#cantidadInput");
     const totalInput = $("#totalInput");
+    const proveedorInput = $("#insumoProveedor");
 
     insumoSelect.on("change", async function () {
         const selectedProductId = parseInt(this.value);
@@ -318,6 +336,7 @@ async function anadirInsumo() {
         cantidadInput.val(1);
         precioInput.val(formatoMoneda.format(costoUnitario));
         totalInput.val(formatoMoneda.format(costoUnitario));
+        proveedorInput.val(selectedProduct.Proveedor);
     });
 
 
@@ -368,7 +387,7 @@ async function guardarInsumo() {
     const insumoSelect = document.getElementById('insumoSelect');
     const precioManual = parseFloat(convertirMonedaAFloat(document.getElementById('precioInput').value));
     const totalInput = parseFloat(convertirMonedaAFloat(document.getElementById('totalInput').value));
-    const cantidadInput = parseInt(document.getElementById('cantidadInput').value) || 1; // Obtener cantidad, por defecto 1 si no es válida
+    const cantidadInput = parseFloat(document.getElementById('cantidadInput').value) || 1; // Obtener cantidad, por defecto 1 si no es válida
     const InsumoId = insumoSelect.value;
     const ProductoNombre = insumoSelect.options[insumoSelect.selectedIndex]?.text || '';
 
@@ -575,7 +594,7 @@ function guardarCambios() {
                     "IdInsumo": parseInt(insumo.IdInsumo),
                     "Id": insumo.Id != "" ? insumo.Id : 0,
                     "Nombre": insumo.Nombre,
-                    "Cantidad": parseInt(insumo.Cantidad),
+                    "Cantidad": parseFloat(insumo.Cantidad),
 
                 };
                 insumos.push(insumoJson);
@@ -596,8 +615,8 @@ function guardarCambios() {
             "Nombre": $("#Nombre").val(),
             "IdColor": $("#Colores").val(),
             "IdCategoria": parseInt($("#Categorias").val()),
-            "PorcGanancia": $("#porcGanancia").val() != "" ? parseInt($("#porcGanancia").val()) : 0,
-            "PorcIVA": $("#porcIVA").val() != "" ? parseInt($("#porcIVA").val()) : 0,
+            "PorcGanancia": $("#porcGanancia").val() != "" ? parseFloat($("#porcGanancia").val()) : 0,
+            "PorcIVA": $("#porcIVA").val() != "" ? parseFloat($("#porcIVA").val()) : 0,
             "CostoUnitario": $("#costoTotal").val() != "" ? parseFloat(convertirMonedaAFloat($("#costoTotal").val())) : 0,
             "ProductosInsumos": insumos
         };

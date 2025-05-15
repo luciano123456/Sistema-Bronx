@@ -195,8 +195,8 @@ namespace SistemaBronx.DAL.Repository
                             {
                                 Id = result.GetInt32(result.GetOrdinal("Id")),
                                 Nombre = result.GetString(result.GetOrdinal("Nombre")),
-                                PorcGanancia = result.IsDBNull(result.GetOrdinal("PorcGanancia")) ? (int?)null : result.GetInt32(result.GetOrdinal("PorcGanancia")),
-                                PorcIva = result.IsDBNull(result.GetOrdinal("PorcIva")) ? (int?)null : result.GetInt32(result.GetOrdinal("PorcIva")),
+                                PorcGanancia = result.IsDBNull(result.GetOrdinal("PorcGanancia")) ? (decimal?)null : result.GetDecimal(result.GetOrdinal("PorcGanancia")),
+                                PorcIva = result.IsDBNull(result.GetOrdinal("PorcIva")) ? (decimal?)null : result.GetDecimal(result.GetOrdinal("PorcIva")),
                                 IdCategoria = result.IsDBNull(result.GetOrdinal("IdCategoria")) ? (int?)null : result.GetInt32(result.GetOrdinal("IdCategoria")),
                                 CostoUnitario = result.GetDecimal(result.GetOrdinal("CostoUnitario")),
                                 IdCategoriaNavigation = new ProductosCategoria
@@ -247,8 +247,8 @@ namespace SistemaBronx.DAL.Repository
                             {
                                 Id = result.GetInt32(result.GetOrdinal("Id")),
                                 Nombre = result.GetString(result.GetOrdinal("Nombre")),
-                                PorcGanancia = result.IsDBNull(result.GetOrdinal("PorcGanancia")) ? (int?)null : result.GetInt32(result.GetOrdinal("PorcGanancia")),
-                                PorcIva = result.IsDBNull(result.GetOrdinal("PorcIva")) ? (int?)null : result.GetInt32(result.GetOrdinal("PorcIva")),
+                                PorcGanancia = result.IsDBNull(result.GetOrdinal("PorcGanancia")) ? (decimal?)null : result.GetDecimal(result.GetOrdinal("PorcGanancia")),
+                                PorcIva = result.IsDBNull(result.GetOrdinal("PorcIva")) ? (decimal?)null : result.GetDecimal(result.GetOrdinal("PorcIva")),
                                 IdCategoria = result.IsDBNull(result.GetOrdinal("IdCategoria")) ? (int?)null : result.GetInt32(result.GetOrdinal("IdCategoria")),
                                 CostoUnitario = result.GetDecimal(result.GetOrdinal("CostoUnitario")),
                                 IdCategoriaNavigation = new ProductosCategoria

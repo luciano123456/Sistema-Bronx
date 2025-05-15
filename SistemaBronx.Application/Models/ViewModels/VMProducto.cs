@@ -11,9 +11,9 @@ namespace SistemaBronx.Application.Models.ViewModels
 
         public int? IdCategoria { get; set; }
 
-        public int? PorcGanancia { get; set; }
+        public decimal PorcGanancia { get; set; }
 
-        public int? PorcIva { get; set; }
+        public decimal? PorcIva { get; set; }
         public decimal CostoUnitario { get; set; }
 
         public string Categoria { get; set; }

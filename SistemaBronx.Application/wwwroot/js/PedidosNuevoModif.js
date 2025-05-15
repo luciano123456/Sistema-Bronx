@@ -338,7 +338,6 @@ async function configurarDataTableInsumosModal(data, editando) {
             scrollCollapse: true,  // Habilita el colapso del scroll si hay pocas filas
             searching: false, // 🔹 Esto oculta el campo de búsqueda
             columns: [
-
                 { data: 'Nombre' },
                 { data: 'Cantidad' },
                 { data: 'CostoUnitario' },
@@ -890,7 +889,7 @@ async function configurarDataTableInsumos(data) {
             scrollCollapse: true,
             searching: false, // 🔹 Esto oculta el campo de búsqueda
             columns: [
-                { data: 'IdDetalle', visible: false },
+                { data: 'IdDetalle'},
                 { data: 'IdProducto', visible: false },
                 { data: 'Producto' },
                 { data: 'Cantidad' },
@@ -1839,14 +1838,14 @@ function configurarOpcionesColumnasInsumos() {
     container.empty(); // Limpia el contenedor
 
     columnas.forEach((col, index) => {
-        if (col.data && !col.data.includes("Id")) { // Solo agregar columnas que no sean "Id"
+        if (col.data && (!col.data.includes("Id") || col.data == "IdDetalle")) { // Solo agregar columnas que no sean "Id"
             // Recupera el valor guardado en localStorage, si existe. Si no, inicializa en 'false' para no estar marcado.
             const isChecked = savedConfig && savedConfig[`col_${index}`] !== undefined ? savedConfig[`col_${index}`] : true;
 
             // Asegúrate de que la columna esté visible si el valor es 'true'
             grid.column(index).visible(isChecked);
 
-            const columnName = col.data;
+            const columnName = col.data == "IdDetalle" ? "Detalle" : col.data;
 
             // Ahora agregamos el checkbox, asegurándonos de que se marque solo si 'isChecked' es 'true'
             container.append(`

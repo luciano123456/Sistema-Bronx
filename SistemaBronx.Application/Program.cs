@@ -12,11 +12,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Configurar la conexión a la base de datos
 builder.Services.AddDbContext<SistemaBronxContext>(options =>
-{
-    options.UseSqlServer(builder.Configuration.GetConnectionString("cadenaSQL"));
-});
+    options.UseSqlServer(builder.Configuration.GetConnectionString("SistemaDB")));
+
 
 // Agregar Razor Pages
 builder.Services.AddRazorPages().AddRazorRuntimeCompilation();
@@ -113,7 +111,15 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    ServeUnknownFileTypes = true,
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=600");
+    }
+});
 
 app.UseRouting();
 
