@@ -234,6 +234,12 @@ async function mostrarModalDuplicado(modelo) {
     document.getElementById("txtProveedor").value = modelo.Proveedor;
 
 
+    $("#Categorias, #UnidadesDeMedidas, #Tipos").select2({
+        dropdownParent: $("#modalEdicion"), // Asegura que el dropdown se muestre dentro del modal
+        width: "100%",
+        placeholder: "Selecciona una opción",
+        allowClear: true
+    });
 
     $('#modalEdicion').modal('show');
     $("#btnGuardar").text("Registrar");

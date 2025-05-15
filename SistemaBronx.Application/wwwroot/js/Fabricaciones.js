@@ -306,9 +306,16 @@ async function configurarDataTable(data) {
             if (colIndex === 6 || colIndex == 7) {
                 var select = $('<select class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
                     .appendTo($(this).empty())
-                    .on('change', function () {
-                        // No hacer nada en el change, lo controlamos con el botón de aceptar
+                    .on('keydown', function (e) {
+                        if (e.key === 'Enter') {
+                            var selectedValue = select.val();
+                            var selectedText = select.find('option:selected').text();
+                            saveEdit(colIndex, selectedText, selectedValue);
+                        } else if (e.key === 'Escape') {
+                            cancelEdit();
+                        }
                     });
+
 
                 // Estilo para las opciones del select
                 select.find('option').css('color', 'white'); // Cambiar el color del texto de las opciones a blanco
@@ -788,3 +795,41 @@ function ajustarAlturaProveedores() {
         document.querySelector('#listadoProveedores').style.height = alturaTabla + 'px';
     }
 }
+
+    let proveedorActivoIndex = -1; // índice del proveedor actualmente seleccionado con flechas
+
+$(document).on('keydown', function (e) {
+    const links = $('#listadoProveedores a');
+    if (links.length === 0) return;
+
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault(); // Evitar scroll
+
+        if (proveedorActivoIndex === -1) {
+            // Si no hay ninguno seleccionado aún, arranco desde el primero
+            proveedorActivoIndex = 0;
+        } else {
+            // Navegar
+            if (e.key === 'ArrowDown') {
+                proveedorActivoIndex = (proveedorActivoIndex + 1) % links.length;
+            } else if (e.key === 'ArrowUp') {
+                proveedorActivoIndex = (proveedorActivoIndex - 1 + links.length) % links.length;
+            }
+        }
+
+        // Limpiar selección actual
+        links.removeClass('proveedor-activo');
+        proveedoresSeleccionados = [];
+
+        // Activar nuevo proveedor
+        const linkActivo = links.eq(proveedorActivoIndex);
+        const proveedor = linkActivo.text().trim();
+
+        linkActivo.addClass('proveedor-activo');
+        proveedoresSeleccionados.push(proveedor);
+
+        // Filtrar en la tabla
+        const tabla = $('#grd_Fabricaciones').DataTable();
+        tabla.column(11).search(`^${proveedor}$`, true, false).draw();
+    }
+});

@@ -37,7 +37,7 @@ namespace SistemaBronx.Application.Controllers
                 {
                     Id = c.Id,
                     Nombre = c.Nombre,
-                    PorcGanancia = c.PorcGanancia,
+                    PorcGanancia = (decimal)c.PorcGanancia,
                     PorcIva = c.PorcIva,
                     IdCategoria = c.IdCategoria,
                     CostoUnitario = c.CostoUnitario,
@@ -185,7 +185,7 @@ namespace SistemaBronx.Application.Controllers
                     PorcIva = model.PorcIva,
                     Nombre = model.Nombre,
                     IdCategoria = model.IdCategoria,
-                    PorcGanancia = model.PorcGanancia,
+                    PorcGanancia = (decimal)model.PorcGanancia,
                     CostoUnitario = model.CostoUnitario,
                     Categoria = model.IdCategoriaNavigation.Nombre
                 };

@@ -33,7 +33,7 @@ html, body {
     list-style: none;
     padding-left: 0;
     margin-bottom: 0;
-    font-size: 1rem;
+    font-size: 0.8rem;
   
 
     
@@ -118,7 +118,11 @@ html, body {
 }
 
 
-
+#grd_Fabricaciones tr.selected td {
+    background-color: antiquewhite !important;
+    color: black !important;
+    z-index: 2;
+}
 
 
 /* Estilo para la fila seleccionada */
@@ -128,6 +132,12 @@ table.dataTable.display tbody tr.seleccionada td {
     color: white !important;
 }
 
+
+/* Selección beige */
+#grd_Fabricaciones tr.seleccionada,
+#grd_Fabricaciones td.seleccionada {
+    background-color: #fff3cd !important;
+}
 
 /* Proveedor seleccionado + hover */
 #listadoProveedores a.proveedor-activo.hover-intenso {
@@ -142,22 +152,14 @@ table.dataTable.display tbody tr.seleccionada td {
 }
 
 
-#grd_Fabricaciones tr,
-#grd_Fabricaciones td {
-    transition: background-color 1.7s  ease-in-out;
-}
-
 /* Hover verde */
-#grd_Fabricaciones tr.hover-verde,
-#grd_Fabricaciones td.hover-verde {
-    background-color: #f0ad4e !important; /* Verde claro */
-}
+    #grd_Fabricaciones tr.hover-verde,
+    #grd_Fabricaciones td.hover-verde {
+        transition: background-color 2s ease-in-out;
+        background-color: #f0ad4e !important; /* Verde claro */
+    }
 
-/* Selección beige */
-#grd_Fabricaciones tr.seleccionada,
-#grd_Fabricaciones td.seleccionada {
-    background-color: #fff3cd !important;
-}
+
 
 /* Fila del proveedor seleccionado en la lista */
 #listadoProveedores a.proveedor-activo {

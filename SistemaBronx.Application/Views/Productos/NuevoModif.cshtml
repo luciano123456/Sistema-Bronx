@@ -133,6 +133,10 @@
                     <select id="insumoSelect" class="form-control"></select>
                 </div>
                 <div class="form-group">
+                    <label for="insumoProveedor" class="text-black">Proveedor</label>
+                    <input type="text" id="insumoProveedor" class="form-control" placeholder="Proveedor" step="0.01" disabled>
+                </div>
+                <div class="form-group">
                     <label for="precioInput" class="text-black">Precio</label>
                     <input type="text" id="precioInput" class="form-control" placeholder="Ingrese precio manual" step="0.01" disabled>
                 </div>
@@ -183,7 +187,7 @@
 
     <script src="~/js/utils/moment.js"></script>
 
-    <script src="~/js/ProductosNuevoModif.js?v=1.2"></script>
+    <script src="~/js/ProductosNuevoModif.js?v=1.4"></script>
 
     <script>
         var ProductoData = @Html.Raw(Json.Serialize(ViewBag.Data ?? new { }));
