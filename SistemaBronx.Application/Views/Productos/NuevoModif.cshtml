@@ -91,6 +91,7 @@
                         <thead>
                             <tr>
                                 <th>Nombre</th>
+                                <th>Proveedor</th>
                                 <th>Costo Unitario</th>
                                 <th>Cantidad</th>
                                 <th>SubTotal</th>
@@ -187,7 +188,7 @@
 
     <script src="~/js/utils/moment.js"></script>
 
-    <script src="~/js/ProductosNuevoModif.js?v=1.4"></script>
+    <script src="~/js/ProductosNuevoModif.js?v=1.6"></script>
 
     <script>
         var ProductoData = @Html.Raw(Json.Serialize(ViewBag.Data ?? new { }));

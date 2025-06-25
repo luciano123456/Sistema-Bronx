@@ -25,6 +25,7 @@ namespace SistemaBronx.Application.Models.ViewModels
         public string? Color { get; set; }
         public string? Estado { get; set; }
         public string? Tipo { get; set; }
+        public string? Proveedor { get; set; }
 
         public decimal Cantidad { get; set; }
         public decimal CostoUnitario { get; set; }

@@ -319,6 +319,7 @@ namespace SistemaBronx.DAL.Repository
                     .Include(c => c.IdInsumoNavigation)
                     .Include(c => c.IdInsumoNavigation.IdCategoriaNavigation)
                     .Include(c => c.IdInsumoNavigation.IdTipoNavigation)
+                    .Include(c => c.IdInsumoNavigation.IdProveedorNavigation)
                     .Where(c => c.IdProducto == idProducto).ToList();
                 return productos;
 

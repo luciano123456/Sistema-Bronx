@@ -907,6 +907,7 @@ async function configurarDataTableInsumos(data) {
                 { data: 'Comentarios' },
                 { data: 'IdEstado', visible: false },
                 { data: 'Estado' },
+                { data: 'Proveedor' },
                 {
                     data: "Id",
                     render: function (data, type, row) {
@@ -1507,7 +1508,8 @@ async function cargarInformacionProducto(id) {
     document.getElementById("ProductoModalPorcGanancia").value = Producto.PorcGanancia;
     document.getElementById("ProductoModalIva").value = formatNumber(totalIva);
     document.getElementById("ProductoModalGanancia").value = formatNumber(totalGanancia);
-    document.getElementById("ProductoModalPrecioVenta").value = formatNumber(Producto.CostoUnitario);
+    document.getElementById("ProductoModalPrecioVenta").value = formatNumber(Math.ceil(Producto.CostoUnitario / 100) * 100);
+
 
 }
 
@@ -1542,7 +1544,8 @@ function calcularIVAyGanancia() {
     // Mostrar resultados formateados
     document.getElementById("ProductoModalIva").value = formatoMoneda.format(totalIVA);
     document.getElementById("ProductoModalGanancia").value = formatoMoneda.format(totalGanancia);
-    document.getElementById("ProductoModalPrecioVenta").value = formatoMoneda.format(costoTotal);
+    document.getElementById("ProductoModalPrecioVenta").value = formatoMoneda.format(Math.ceil(costoTotal / 100) * 100);
+
 }
 
 
@@ -1957,6 +1960,7 @@ async function guardarCambios() {
                     "IVA": parseInt(producto.IVA),
                     "PrecioVenta": parseFloat(producto.PrecioVenta),
                     "IdColor": parseInt(producto.IdColor),
+                    "Producto": producto.Nombre
                 };
                 productos.push(productoJson);
             });
@@ -2266,10 +2270,11 @@ function generarRemitoPDF(datos) {
     doc.setLineWidth(0.5);
     doc.line(14, 52, 194, 52);
 
-    const columns = ["C", "Producto", "Precio C/IVA", "Subtotal C/IVA"];
+    const columns = ["C", "Producto", "Color", "Precio C/IVA", "Subtotal C/IVA"];
     const rows = datos.Productos.map((item, i) => [
         item.Cantidad,
         item.Nombre,
+        item.Color,
         formatNumber(item.CostoUnitario),
         formatNumber(item.CostoUnitario * item.Cantidad)
     ]);
@@ -2287,9 +2292,10 @@ function generarRemitoPDF(datos) {
         },
         columnStyles: {
             0: { halign: 'center', cellWidth: 10 },
-            1: { cellWidth: 90 },
-            2: { halign: 'right', cellWidth: 40 },
-            3: { halign: 'right', cellWidth: 40 }
+            1: { cellWidth: 55 },
+            2: { cellWidth: 55 },
+            3: { halign: 'right', cellWidth: 30},
+            4: { halign: 'right', cellWidth: 30 }
         }
     });
 

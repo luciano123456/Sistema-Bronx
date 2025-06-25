@@ -22,6 +22,7 @@ public partial class PedidosDetalle
     public int? PorcGanancia { get; set; }
 
     public int? PorcIva { get; set; }
+    public string Producto { get; set; }
 
     public decimal? PrecioVenta { get; set; }
 
