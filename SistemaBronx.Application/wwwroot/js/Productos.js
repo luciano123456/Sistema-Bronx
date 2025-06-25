@@ -273,8 +273,10 @@ async function configurarDataTable(data) {
 
                                 if (selectedValues && selectedValues.length > 0) {
                                     // Filtrar por múltiples valores seleccionados (basado en texto completo)
-                                    var regex = selectedValues.join('|'); // Crear una expresión regular para múltiples opciones
-                                    await api.column(config.index).search(regex, true, false).draw(); // Realizar búsqueda con regex
+                                    // Buscar coincidencia exacta para cada valor seleccionado
+                                    var regex = '^(' + selectedValues.map(val => $.fn.dataTable.util.escapeRegex(val)).join('|') + ')$';
+                                    await api.column(config.index).search(regex, true, false).draw();
+
                                 } else {
                                     await api.column(config.index).search('').draw(); // Limpiar filtro
                                 }

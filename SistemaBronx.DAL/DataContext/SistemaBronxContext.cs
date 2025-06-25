@@ -8,10 +8,12 @@ namespace SistemaBronx.DAL.DataContext;
 
 public partial class SistemaBronxContext : DbContext
 {
-
     private readonly IConfiguration _configuration;
 
-   
+
+    public SistemaBronxContext()
+    {
+    }
 
     public SistemaBronxContext(DbContextOptions<SistemaBronxContext> options)
         : base(options)
@@ -26,7 +28,6 @@ public partial class SistemaBronxContext : DbContext
             optionsBuilder.UseSqlServer(connectionString);
         }
     }
-
 
     public virtual DbSet<Cliente> Clientes { get; set; }
 
@@ -78,7 +79,7 @@ public partial class SistemaBronxContext : DbContext
 
     public virtual DbSet<User> Usuarios { get; set; }
 
-   
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Cliente>(entity =>
@@ -248,6 +249,9 @@ public partial class SistemaBronxContext : DbContext
             entity.Property(e => e.Cantidad).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.CostoUnitario).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.PrecioVenta).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.Producto)
+                .HasMaxLength(250)
+                .IsUnicode(false);
 
             entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.PedidosDetalles)
                 .HasForeignKey(d => d.IdCategoria)

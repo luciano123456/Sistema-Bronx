@@ -8,6 +8,7 @@ const columnConfig = [
     { index: 2, filterType: 'text' },
     { index: 3, filterType: 'text' },
     { index: 4, filterType: 'text' },
+    { index: 5, filterType: 'text' },
 ];
 
 
@@ -139,6 +140,7 @@ async function configurarDataTable(data) {
             scrollCollapse: true,
             columns: [
                 { data: 'Nombre' },
+                { data: 'Proveedor' },
                 { data: 'CostoUnitario' },
                 { data: 'Cantidad' },
                 { data: 'SubTotal' },
@@ -165,7 +167,7 @@ async function configurarDataTable(data) {
                     "render": function (data, type, row) {
                         return formatNumber(data); // Formatear números
                     },
-                    "targets": [1, 3] // Índices de las columnas de números
+                    "targets": [2, 4] // Índices de las columnas de números
                 },
 
             ],
@@ -390,7 +392,7 @@ async function guardarInsumo() {
     const cantidadInput = parseFloat(document.getElementById('cantidadInput').value) || 1; // Obtener cantidad, por defecto 1 si no es válida
     const InsumoId = insumoSelect.value;
     const ProductoNombre = insumoSelect.options[insumoSelect.selectedIndex]?.text || '';
-
+    const proveedorNombre = $("#insumoProveedor").val();
 
     let i = 0;
 
@@ -412,6 +414,7 @@ async function guardarInsumo() {
                 data.Nombre = ProductoNombre;
                 data.CostoUnitario = precioManual; // Guardar PrecioVenta
                 data.Cantidad = cantidadInput; // Usar la cantidad del input
+                data.Proveedor = proveedorNombre;
                 data.SubTotal = totalInput; // Recalcular el total con formato de moneda
                 this.data(data).draw();
             }
@@ -424,6 +427,7 @@ async function guardarInsumo() {
                 // Producto existe, sumamos las cantidades y recalculamos el total
                 data.Cantidad = cantidadInput; // Sumar la cantidad proporcionada
                 data.CostoUnitario = precioManual; // Guardar PrecioVenta
+                data.Proveedor = proveedorNombre;
                 data.SubTotal = precioManual * data.Cantidad; // Recalcular el total con formato de moneda
                 this.data(data).draw();
                 ProductoExistente = true;
@@ -435,6 +439,7 @@ async function guardarInsumo() {
             gridInsumos.row.add({
                 IdInsumo: InsumoId,
                 Id: 0,
+                Proveedor: proveedorNombre,
                 Nombre: ProductoNombre,
                 CostoUnitario: precioManual, // Agregar PrecioVenta
                 Cantidad: cantidadInput, // Usar la cantidad proporcionada
@@ -475,6 +480,7 @@ async function editarInsumo(id) {
     $("#cantidadInput").val(insumoData.Cantidad);
     $("#precioInput").val(formatoMoneda.format(insumoData.CostoUnitario));
     $("#totalInput").val(formatoMoneda.format(insumoData.SubTotal));
+    $("#insumoProveedor").val(insumoData.Proveedor);
 
     $("#insumoSelect").prop("disabled", true);
 
@@ -565,7 +571,8 @@ function calcularIVAyGanancia() {
     // Mostrar resultados formateados
     document.getElementById("totalIVA").value = formatoMoneda.format(totalIVA);
     document.getElementById("totalGanancia").value = formatoMoneda.format(totalGanancia);
-    document.getElementById("costoTotal").value = formatoMoneda.format(costoTotal);
+    document.getElementById("costoTotal").value = formatNumber(Math.ceil(costoTotal / 100) * 100);
+
 }
 
 // Agregar eventos para actualizar cálculos cuando cambian los porcentajes

@@ -59,7 +59,8 @@ namespace SistemaBronx.Application.Controllers
                         IdCategoria = detalle.IdCategoria,
                         IdColor = detalle.IdColor,
                         IdProducto = detalle.IdProducto,
-                        PorcGanancia = detalle.PorcGanancia ?? 0
+                        PorcGanancia = detalle.PorcGanancia ?? 0,
+                        Producto = detalle.Producto
                     }).ToList();
                 }
 
@@ -142,7 +143,8 @@ namespace SistemaBronx.Application.Controllers
                         IdCategoria = detalle.IdCategoria,
                         IdColor = detalle.IdColor,
                         IdProducto = detalle.IdProducto,
-                        PorcGanancia = detalle.PorcGanancia ?? 0
+                        PorcGanancia = detalle.PorcGanancia ?? 0,
+                        Producto = detalle.Producto
                     }).ToList();
                 }
 
@@ -239,16 +241,30 @@ namespace SistemaBronx.Application.Controllers
                     Fecha = c.Fecha,
                     Finalizado = c.Finalizado,
                     SubTotal = c.SubTotal,
-                    FormaPago = c.IdFormaPagoNavigation != null ? c.IdFormaPagoNavigation.Nombre : "",
+                    FormaPago = c.IdFormaPagoNavigation?.Nombre ?? "",
                     Saldo = c.Saldo,
-                    Cliente = c.IdClienteNavigation != null ? c.IdClienteNavigation.Nombre : "",
+                    Cliente = c.IdClienteNavigation?.Nombre ?? "",
                     PorcDescuento = c.PorcDescuento,
                     ImporteAbonado = c.ImporteAbonado,
                     ImporteTotal = c.ImporteTotal,
                     Comentarios = c.Comentarios,
-                    Estado = c.Saldo > 0 ? "EN PROCESO" : "ENTREGAR",
+                    Estado =
+    c.PedidosDetalleProcesos.Any() &&
+    c.PedidosDetalleProcesos.All(p => (p.IdEstadoNavigation?.Nombre?.Trim().ToUpper() ?? "") == "FINALIZADO") &&
+    (c.Saldo ?? 0) == 0
+        ? "FINALIZADO"
+    : c.PedidosDetalleProcesos.Any() &&
+      c.PedidosDetalleProcesos.All(p => (p.IdEstadoNavigation?.Nombre?.Trim().ToUpper() ?? "") == "ENTREGADO")
+        ? "ENTREGADO"
+    : c.PedidosDetalleProcesos.Any() &&
+      c.PedidosDetalleProcesos.All(p => (p.IdEstadoNavigation?.Nombre?.Trim().ToUpper() ?? "") == "ENTREGAR")
+        ? "ENTREGAR"
+    : "EN PROCESO"
+
+
 
                 }).ToList();
+
 
                 return Ok(lista);
             }
@@ -306,8 +322,8 @@ namespace SistemaBronx.Application.Controllers
                         IdPedido = detalle.IdPedido,
                         Id = detalle.Id,
                         Color = detalle.IdColorNavigation != null ? detalle.IdColorNavigation.Nombre : "",
-                        Nombre = detalle.IdProductoNavigation.Nombre,
-                        Categoria = detalle.IdCategoriaNavigation.Nombre,
+                        Nombre = detalle.Producto != null ? detalle.Producto : detalle.IdProductoNavigation.Nombre,
+                        Categoria = detalle.IdCategoriaNavigation != null ? detalle.IdCategoriaNavigation.Nombre : "",
                         IVA = (decimal)detalle.PrecioVenta * ((decimal)detalle.PorcIva / 100),
                         Ganancia = (decimal)detalle.CostoUnitario * ((decimal)detalle.PorcGanancia / 100)
                     }).ToList();
@@ -336,11 +352,12 @@ namespace SistemaBronx.Application.Controllers
                         Estado = detalleProceso.IdEstadoNavigation.Nombre,
                         Insumo = detalleProceso.IdInsumoNavigation.Descripcion,
                         Producto = detalleProceso.IdProductoNavigation.Nombre,
-                        Categoria = detalleProceso.IdCategoriaNavigation.Nombre,
+                        Categoria = detalleProceso.IdCategoriaNavigation != null ? detalleProceso.IdCategoriaNavigation.Nombre : "",
                         Tipo = detalleProceso.IdTipoNavigation.Nombre,
                         IdPedido = detalleProceso.IdPedido,
                         IdDetalle = detalleProceso.IdDetalle,
-                        Id = detalleProceso.Id
+                        Id = detalleProceso.Id,
+                        Proveedor = detalleProceso.IdProveedorNavigation != null ? detalleProceso.IdProveedorNavigation.Nombre : ""
                     }).ToList();
                 }
 

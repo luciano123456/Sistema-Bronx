@@ -119,6 +119,7 @@ namespace SistemaBronx.DAL.Repository
                         detalleExistente.IdCategoria = detalle.IdCategoria;
                         detalleExistente.IdColor = detalle.IdColor;
                         detalleExistente.PorcGanancia = detalle.PorcGanancia;
+                        detalleExistente.Producto = detalle.Producto;
                     }
                     else
                     {
@@ -254,6 +255,7 @@ namespace SistemaBronx.DAL.Repository
                 List<Pedido> pedidos = await _dbcontext.Pedidos
                     .Include(x => x.IdClienteNavigation)
                     .Include(x => x.IdFormaPagoNavigation)
+                    .Include(x => x.PedidosDetalleProcesos).ThenInclude(x => x.IdEstadoNavigation)
                     .Where(x=> x.Fecha >= FechaDesde && x.Fecha <= FechaHasta && (x.IdCliente == IdCliente || IdCliente == -1) && (x.Finalizado == Finalizado || Finalizado == -1) && (x.Saldo <= 0 && Estado == "ENTREGAR" || x.Saldo >= 0 && Estado == "EN PROCESO" || Estado == "TODOS"))
                     .ToListAsync();
 

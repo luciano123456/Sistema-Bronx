@@ -40,17 +40,17 @@ namespace SistemaBronx.Application.Controllers
                     Id = detalleProceso.Id, // Si el ID existe, actualizarlo; si no, insertarlo
                     Cantidad = detalleProceso.Cantidad,
                     Producto = detalleProceso.IdProductoNavigation.Nombre,
-                    Insumo = detalleProceso.IdInsumoNavigation.Descripcion,
+                    Insumo = detalleProceso.IdInsumoNavigation != null ? detalleProceso.IdInsumoNavigation.Descripcion : "",
                     IdColor = detalleProceso.IdColor,
                     IdPedido = detalleProceso.IdPedido,
-                    Color = detalleProceso.IdColorNavigation.Nombre,
+                    Color = detalleProceso.IdColorNavigation != null ? detalleProceso.IdColorNavigation.Nombre : "",
                     Comentarios = detalleProceso.Comentarios,
                     Descripcion = detalleProceso.Descripcion,
                     IdEstado = detalleProceso.IdEstado,
-                    Estado = detalleProceso.IdEstadoNavigation.Nombre,
+                    Estado = detalleProceso.IdEstadoNavigation != null ? detalleProceso.IdEstadoNavigation.Nombre : "",
                     IdProveedor = detalleProceso.IdProveedor,
-                    Proveedor = detalleProceso.IdProveedorNavigation.Nombre,
-                    Categoria = detalleProceso.IdCategoriaNavigation.Nombre,
+                    Proveedor = detalleProceso.IdProveedorNavigation != null ? detalleProceso.IdProveedorNavigation.Nombre : "",
+                    Categoria = detalleProceso.IdCategoriaNavigation != null ? detalleProceso.IdCategoriaNavigation.Nombre : "",
                     IdDetalle = detalleProceso.IdDetalle
                 }).ToList();
 

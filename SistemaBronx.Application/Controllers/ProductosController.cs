@@ -187,7 +187,8 @@ namespace SistemaBronx.Application.Controllers
                     IdCategoria = model.IdCategoria,
                     PorcGanancia = (decimal)model.PorcGanancia,
                     CostoUnitario = model.CostoUnitario,
-                    Categoria = model.IdCategoriaNavigation.Nombre
+                    Categoria = model.IdCategoriaNavigation.Nombre,
+
                 };
 
                 var ProductosInsumos = await _ProductosService.ObtenerInsumos(id);
@@ -212,7 +213,8 @@ namespace SistemaBronx.Application.Controllers
                     IdTipo = p.IdInsumoNavigation.IdTipo,
                     Tipo = p.IdInsumoNavigation.IdTipoNavigation.Nombre,
                     IdUnidadMedida = p.IdInsumoNavigation.IdUnidadMedida,
-                    IdProveedor = (int)p.IdInsumoNavigation.IdProveedor
+                    IdProveedor = (int)p.IdInsumoNavigation.IdProveedor,
+                    Proveedor = p.IdInsumoNavigation.IdProveedorNavigation != null ? p.IdInsumoNavigation.IdProveedorNavigation.Nombre : ""
                 }).ToList();
 
 
