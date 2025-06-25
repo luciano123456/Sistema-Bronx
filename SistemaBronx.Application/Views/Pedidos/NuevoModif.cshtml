@@ -247,8 +247,12 @@
     </div>
 
     <div class="d-flex justify-content-end mt-3 w-100">
-        <button type="submit" id="btnGenerarPdf" class="btn btn-primary" onclick="generarDatosPDF()">
-            <i class="fa fa-print"></i> Imprimir Pedido
+        <button type="submit" id="btnGenerarPdf" class="btn btn-danger me-2" onclick="generarDatosPedidoPDF()">
+            <i class="fa fa-print"></i> Imprimir PDF
+        </button>
+
+        <button type="submit" id="btnGenerarPdf" class="btn btn-dark" onclick="generarDatosRemitoPDF()">
+            <i class="fa fa-print"></i> Imprimir Remito
         </button>
 
         <button type="submit" id="btnNuevoModificar" class="btn btn-primary ms-2" onclick="guardarCambios()">Registrar</button>
