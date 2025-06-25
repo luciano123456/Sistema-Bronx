@@ -2183,7 +2183,7 @@ function validarCamposCliente() {
     return camposValidos;
 }
 
-function generarDatosPDF() {
+function generarDatosPedidoPDF() {
 
     let cliente = $("#Clientes").select2("data")[0].text
     let idCliente = $("#Clientes").val();
@@ -2231,46 +2231,64 @@ function generarDatosPDF() {
         Productos: productos
     }
 
-    factura = generarRemitoPDF(datos);
+    factura = generarPedidoPDF(datos);
     facturaCliente = cliente;
-    descargarFacturaPDF(datos, factura);
+    descargarPedidoPDF(datos, factura);
 }
 
+function generarPedidoPDF(datos) {
 
-
-function obtenerUrlCompleta(rutaRelativa) {
-    const path = window.location.origin + rutaRelativa.replace("~", ""); // Construye la URL completa
-    return path;
-}
-
-function generarRemitoPDF(datos) {
     const doc = new jsPDF();
 
-    const logoElement = document.getElementById("logoImpresion1");
-    doc.addImage(logoElement, 'PNG', 0, 0, 100, 0);
+    const logoElement = document.getElementById("logoImpresion1"); // Logo Bronx
+    const logoElement2 = document.getElementById("logoImpresion2"); // Logo X
 
-    const logoElement2 = document.getElementById("logoImpresion2");
-    doc.addImage(logoElement2, 'PNG', 95, 10, 70, 0);
+    // Logos
+    doc.addImage(logoElement, 'PNG', 14, 8, 50, 20);
+    doc.addImage(logoElement2, 'PNG', 155, 2, 65, 35);
 
-    if (datos.Pedido.IdPedido != "") {
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(12);
-        doc.text("N° REMITO", 172, 15);
+    // Bloque izquierdo
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text("SANTA ROSA 3755, VICENTE LÓPEZ,", 14, 37);
+    doc.text("BUENOS AIRES, ARGENTINA.", 14, 41);
+    doc.text("+541165075229", 14, 45);
+    doc.text("HOLA@BRONXCONCEPT.COM.AR", 14, 49);
 
-        doc.setFontSize(20);
-        doc.text(`${datos.Pedido.IdPedido}`, 178, 25);
-    }
+    // Bloque centro
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("NINCHICH SRL", 90, 37);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text("CUIT: 30-71743646-2", 90, 41);
+    doc.text("IIBB: 30-71743646-2", 90, 45);
+    doc.text("Inicio Act: 09/03/2022", 90, 49);
 
-    doc.setFontSize(10);
-    doc.text(`Nombre: ${datos.Pedido.Cliente}`, 110, 35);
-    doc.text(`Telefono: ${datos.Pedido.Telefono}`, 110, 42);
-    doc.text(`Fecha: ${moment(datos.Pedido.Fecha, "YYYY-MM-DD").format("DD/MM/YYYY")}`, 110, 49);
+    // Encabezado derecho
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8);
+    doc.text("DOCUMENTO NO VÁLIDO COMO FACTURA", 120, 13);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("PEDIDO", 155, 23);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(13);
+    doc.text("N", 160, 27);
+    doc.text(`${datos.Pedido.IdPedido}`, 165, 27);
 
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.5);
-    doc.line(14, 52, 194, 52);
+    // Datos cliente
+    doc.setFontSize(8);
+    doc.text(`Nombre: ${datos.Pedido.Cliente}`, 150, 37);
+    doc.text(`Teléfono: ${datos.Pedido.Telefono}`, 150, 41);
+    doc.text(`Fecha: ${moment(datos.Pedido.Fecha, "YYYY-MM-DD").format("DD/MM/YYYY")}`, 150, 45);
 
-    const columns = ["C", "Producto", "Color", "Precio C/IVA", "Subtotal C/IVA"];
+    //// Línea horizontal
+    //doc.setDrawColor(0);
+    //doc.setLineWidth(0.5);
+    //doc.line(14, 50, 194, 50);
+
+    const columns = ["C", "Producto", "Color", "Precio", "Subtotal"];
     const rows = datos.Productos.map((item, i) => [
         item.Cantidad,
         item.Nombre,
@@ -2352,15 +2370,15 @@ function generarRemitoPDF(datos) {
     // Pie dinámico: debajo del recuadro de totales
     const pieY = boxY + boxHeight + 10;
 
-    doc.setFontSize(10);
-    doc.text(`Telefono: 11-6507-5229`, 15, pieY);
-    doc.text(`Mail: admin@bronxdecor.com.ar`, 15, pieY + 5);
-    doc.text(`BRONX CONCEPT`, 160, pieY);
+    doc.setFontSize(9);
+    doc.text(`WWW.BRONXCONCEPT.COM.AR`, 15, pieY);
+    doc.setFontSize(11);
+    doc.text(`BRONXCONCEPT®`, 160, pieY);
+    doc.text(`2024`, 186, pieY + 5);
     return doc;
 }
 
-
-function descargarFacturaPDF(datos, facturaPDF) {
+function descargarPedidoPDF(datos, facturaPDF) {
 
     let msjpedido = "";
 
@@ -2373,4 +2391,239 @@ function descargarFacturaPDF(datos, facturaPDF) {
     titulo = `Pedido ${msjpedido}Cliente ${facturaCliente} ${datos.Pedido.ImporteTotal}`
 
     facturaPDF.save(`${titulo}.pdf`);
+}
+
+
+
+function generarDatosRemitoPDF() {
+
+    let cliente = $("#Clientes").select2("data")[0].text
+    let idCliente = $("#Clientes").val();
+
+    var cantidadFilasTotales = gridProductos.data().length;
+
+
+    // Verificar si al eliminar las filas seleccionadas se quedaría con menos de una fila
+    if (cantidadFilasTotales < 1) {
+        errorModal("No puedes imprimir un remito sin al menos un producto.");
+        return;
+    }
+
+    if (cantidadFilasTotales > 18) {
+        errorModal("No puedes exportar el remito: supera el límite de 18 productos.");
+        return;
+    }
+
+    if (!idCliente || idCliente == '-1') {
+        errorModal("Para imprimir un remito debes seleccionar un cliente.");
+        return;
+    }
+
+    var datosPedidoJson =
+    {
+        IdPedido: document.getElementById("IdPedido").value,
+        Cliente: cliente,// Obtener el texto seleccionado de la lista de categorías
+        Fecha: document.getElementById("Fecha").value,
+        ImporteTotal: document.getElementById("ImporteTotal").value,
+        PorcDesc: document.getElementById("PorcDesc").value,
+        Descuento: document.getElementById("Descuento").value,
+        SubTotal: document.getElementById("SubTotal").value,
+        ImporteAbonado: document.getElementById("ImporteAbonado").value,
+        Telefono: document.getElementById("Telefono").value,
+        Saldo: document.getElementById("Saldo").value,
+    };
+
+
+    var productos = [];
+    gridProductos.rows().every(function () {
+        let producto = this.data();
+        productos.push(producto)
+    });
+
+
+    var datos = {
+        Pedido: datosPedidoJson,
+        Productos: productos
+    }
+
+    factura = generarRemitoPDF(datos);
+    facturaCliente = cliente;
+    descargarRemitoPDF(datos, factura);
+}
+
+function generarRemitoPDF(datos) {
+
+    const doc = new jsPDF();
+
+    const logoElement = document.getElementById("logoImpresion1"); // Logo Bronx
+    const logoElement2 = document.getElementById("logoImpresion2"); // Logo X
+
+    // Logos
+    doc.addImage(logoElement, 'PNG', 14, 8, 50, 20);
+    doc.addImage(logoElement2, 'PNG', 155, 2, 65, 35);
+
+    // Bloque izquierdo
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text("SANTA ROSA 3755, VICENTE LÓPEZ,", 14, 37);
+    doc.text("BUENOS AIRES, ARGENTINA.", 14, 41);
+    doc.text("+541165075229", 14, 45);
+    doc.text("HOLA@BRONXCONCEPT.COM.AR", 14, 49);
+
+    // Bloque centro
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text("NINCHICH SRL", 90, 37);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text("CUIT: 30-71743646-2", 90, 41);
+    doc.text("IIBB: 30-71743646-2", 90, 45);
+    doc.text("Inicio Act: 09/03/2022", 90, 49);
+
+    // Encabezado derecho
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8);
+    doc.text("DOCUMENTO NO VÁLIDO COMO FACTURA", 120, 13);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("REMITO", 155, 23);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(13);
+    doc.text("N", 160, 27);
+    doc.text(`${datos.Pedido.IdPedido}`, 165, 27);
+
+    // Datos cliente
+    doc.setFontSize(8);
+    doc.text(`Nombre: ${datos.Pedido.Cliente}`, 150, 37);
+    doc.text(`Teléfono: ${datos.Pedido.Telefono}`, 150, 41);
+    doc.text(`Fecha: ${moment(datos.Pedido.Fecha, "YYYY-MM-DD").format("DD/MM/YYYY")}`, 150, 45);
+
+    //// Línea horizontal
+    //doc.setDrawColor(0);
+    //doc.setLineWidth(0.5);
+    //doc.line(14, 50, 194, 50);
+
+    const columns = ["C", "Producto", "Color", "Precio", "Subtotal"];
+
+    let rows = datos.Productos.map((item) => [
+        item.Cantidad,
+        item.Nombre,
+        item.Color,
+        formatNumber(item.CostoUnitario),
+        formatNumber(item.CostoUnitario * item.Cantidad)
+    ]);
+
+    // Completa hasta 15 filas vacías
+    while (rows.length < 18) {
+        rows.push(["", "", "", "", ""]);
+    }
+
+
+    doc.autoTable({
+        startY: 55,
+        head: [columns],
+        body: rows,
+        theme: 'grid',
+        styles: { fontSize: 10 },
+        headStyles: {
+            fillColor: [0, 0, 0],
+            textColor: 255,
+            halign: 'center'
+        },
+        columnStyles: {
+            0: { halign: 'center', cellWidth: 10 },
+            1: { cellWidth: 55 },
+            2: { cellWidth: 55 },
+            3: { halign: 'right', cellWidth: 30 },
+            4: { halign: 'right', cellWidth: 30 }
+        }
+    });
+
+    let y = doc.lastAutoTable.finalY + 10;
+    const pageHeight = doc.internal.pageSize.height;
+    const boxHeight = 45;
+    const marginBottom = 30;
+
+    // Si no entra el bloque de totales + pie, crear nueva página
+    if (y + boxHeight + marginBottom > pageHeight) {
+        doc.addPage();
+        y = 20; // posición inicial en nueva página
+    }
+
+    const boxX = 14;
+    const boxY = y - 5;
+    const boxWidth = 180;
+
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.5);
+    doc.rect(boxX, boxY, boxWidth, boxHeight);
+
+    const total = datos.Pedido.ImporteTotal || 0;
+    const descuento = datos.Pedido.PorcDesc || 0;
+    const totalDescuento = datos.Pedido.Descuento || 0;
+    const importeTotal = datos.Pedido.SubTotal || 0;
+    const abonado = datos.Pedido.ImporteAbonado || 0;
+    const saldo = datos.Pedido.Saldo ?? importeTotal - abonado;
+
+    doc.setFontSize(10);
+    const labels = [
+        "Importe total con IVA:",
+        "Descuento %:",
+        "Total descuento:",
+        "Importe total:",
+        "Importe abonado :",
+        "Saldo:"
+    ];
+    const valores = [
+        total,
+        `${descuento}%`,
+        totalDescuento,
+        importeTotal,
+        datos.Pedido.ImporteAbonado,
+        datos.Pedido.Saldo
+    ];
+
+    labels.forEach((label, i) => {
+        const yPos = y + i * 7;
+        doc.text(label, boxX + 100, yPos);
+        doc.text(valores[i], boxX + 145, yPos, { align: "right" });
+    });
+
+
+
+
+    // Pie dinámico: debajo del recuadro de totales
+    const pieY = boxY + boxHeight + 10;
+
+    doc.setFontSize(9);
+    doc.text("RECIBÍ CONFORME  ................................................................", 14, pieY);
+    doc.text("ACLARACIÓN  ................................................................", 114, pieY);
+
+    doc.setFontSize(9);
+    doc.text(`WWW.BRONXCONCEPT.COM.AR`, 15, pieY + 15);
+    doc.setFontSize(11);
+    doc.text(`BRONXCONCEPT®`, 160, pieY + 15);
+    doc.text(`2024`, 186, pieY + 20);
+    return doc;
+}
+
+function descargarRemitoPDF(datos, facturaPDF) {
+
+    let msjpedido = "";
+
+    if (datos.Pedido.IdPedido == "") {
+        msjpedido = ""
+    } else {
+        msjpedido = `Nº ${datos.Pedido.IdPedido} `
+    }
+
+    titulo = `Remito ${msjpedido}Cliente ${facturaCliente} ${datos.Pedido.ImporteTotal}`
+
+    facturaPDF.save(`${titulo}.pdf`);
+}
+
+
+function obtenerUrlCompleta(rutaRelativa) {
+    const path = window.location.origin + rutaRelativa.replace("~", ""); // Construye la URL completa
+    return path;
 }
