@@ -92,7 +92,7 @@ async function configurarDataTable(data) {
                     filename: `Reporte Fabricaciones_${moment().format('YYYY-MM-DD')}`,
                     title: '',
                     exportOptions: {
-                        columns: [1, 2, 3, 4, 5]
+                        columns: [2, 5, 4, 6, 8]
                     },
                     className: 'btn-exportar-excel',
                 },
@@ -102,7 +102,7 @@ async function configurarDataTable(data) {
                     filename: `Reporte Fabricaciones_${moment().format('YYYY-MM-DD')}`,
                     title: '',
                     exportOptions: {
-                        columns: [1, 2, 3, 4, 5]
+                        columns: [2, 5,4,6,8]
                     },
                     className: 'btn-exportar-pdf',
                 },
@@ -112,7 +112,7 @@ async function configurarDataTable(data) {
 
                     title: '',
                     exportOptions: {
-                        columns: [1, 2, 3, 4, 5]
+                        columns: [2, 5, 4, 6, 8]
                     },
                     className: 'btn-exportar-print'
                 },
