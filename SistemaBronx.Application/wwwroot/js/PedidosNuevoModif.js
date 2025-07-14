@@ -351,6 +351,7 @@ async function configurarDataTableInsumosModal(data, editando) {
                 { data: 'IdTipo', visible: false },
                 { data: 'Tipo', },  // Establece el ancho para la columna de Estado
                 { data: 'Especificacion' },
+                { data: 'Proveedor' },
                 { data: 'Comentarios' },
                 { data: 'IdUnidadMedida', visible: false },
                 { data: 'IdProveedor', visible: false },
@@ -399,12 +400,12 @@ async function configurarDataTableInsumosModal(data, editando) {
 
                         if (index === -1) {
                             // Si no está seleccionada, agregarla
-                            filasSeleccionadas.push(fila[0]);
+                            filaSeleccionadaInsumos.push(fila[0]);
                             fila.addClass('selected');
                             $('td', fila).addClass('selected');
                         } else {
                             // Si ya está seleccionada, quitarla
-                            filasSeleccionadas.splice(index, 1);
+                            filaSeleccionadaInsumos.splice(index, 1);
                             fila.removeClass('selected');
                             $('td', fila).removeClass('selected');
                         }
@@ -427,20 +428,15 @@ async function configurarDataTableInsumosModal(data, editando) {
                             }
                         });
                     } else {
-                        // Si no se presiona Ctrl/Cmd ni Shift, selecciona solo esta fila
-                        if (filasSeleccionadas.length === 1 && filasSeleccionadas.includes(fila[0])) {
-                            // Si ya está seleccionada y es la única fila seleccionada, deseleccionarla
-                            filasSeleccionadas = []; // Vaciar el array
-                            $('#grd_Insumos_Modal tbody tr').removeClass('selected');
-                            $('#grd_Insumos_Modal tbody tr td').removeClass('selected');
-                        } else {
-                            // Reemplazamos la selección con la nueva fila
-                            filasSeleccionadas = [fila[0]];
+                        // ✅ Si NO se presiona Ctrl ni Shift, limpiar todo y seleccionar solo la nueva fila
+                        if (!fila.hasClass('selected') || filasSeleccionadas.length == 1) {
+                            filasSeleccionadas = [fila[0]]; // Reiniciar selección
                             $('#grd_Insumos_Modal tbody tr').removeClass('selected');
                             $('#grd_Insumos_Modal tbody tr td').removeClass('selected');
                             fila.addClass('selected');
                             $('td', fila).addClass('selected');
                         }
+
                     }
 
                     // Actualizar la última fila seleccionada
@@ -517,7 +513,8 @@ async function configurarDataTableInsumosModal(data, editando) {
                         var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
                             var selectedValue = select.val();
                             var selectedText = select.find('option:selected').text();
-                            saveEdit(colIndex, gridInsumosModal.row($(this).closest('tr')).data(), selectedText, selectedValue, $(this).closest('tr'));
+                            //saveEdit(colIndex, gridInsumosModal.row($(this).closest('tr')).data(), selectedText, selectedValue, $(this).closest('tr'));
+                            saveEdit(colIndex, selectedText, selectedValue);
                         });
 
                         var cancelButton = $('<i class="fa fa-times text-danger"></i>').on('click', cancelEdit);
@@ -549,7 +546,8 @@ async function configurarDataTableInsumosModal(data, editando) {
                             })
                             .on('keydown', function (e) {
                                 if (e.key === 'Enter') {
-                                    saveEdit(colIndex, gridInsumosModal.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                                    //saveEdit(colIndex, gridInsumosModal.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                                    saveEdit(colIndex, input.val(), input.val());
                                 } else if (e.key === 'Escape') {
                                     cancelEdit();
                                 }
@@ -558,7 +556,8 @@ async function configurarDataTableInsumosModal(data, editando) {
 
                         var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
                             if (!$(this).prop('disabled')) { // Solo guardar si el botón no está deshabilitado
-                                saveEdit(colIndex, gridInsumosModal.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));
+                                /*saveEdit(colIndex, gridInsumosModal.row($(this).closest('tr')).data(), input.val(), input.val(), $(this).closest('tr'));*/
+                                saveEdit(colIndex, input.val(), input.val());
                             }
                         });
 
@@ -570,49 +569,49 @@ async function configurarDataTableInsumosModal(data, editando) {
                         input.focus();
                     }
 
+                    async function saveEdit(colIndex, newText, newValue) {
+                        for (let i = 0; i < filasSeleccionadas.length; i++) {
+                            const rowElement = filasSeleccionadas[i];
+                            let rowData = gridInsumosModal.row($(rowElement)).data();
 
-                    // Función para guardar los cambios
-                    function saveEdit(colIndex, rowData, newText, newValue, trElement) {
-                        // Obtener el nombre de la propiedad basado en el dataSrc
+                            const visibleIndex = gridInsumosModal.column(colIndex).index('visible');
+                            const celda = $(rowElement).find('td').eq(visibleIndex);
 
+                            // Actualizar datos según la columna editada
+                            if (colIndex === 7) {
+                                rowData.IdColor = newValue;
+                                rowData.Color = newText;
+                            } else if (colIndex === 9) {
+                                rowData.IdEstado = newValue;
+                                rowData.Estado = newText;
+                            } else if (colIndex === 3) {
+                                rowData.Cantidad = parseFloat(newValue) || 0;
+                            } else {
+                                const nombreCol = gridInsumosModal.column(colIndex).header().textContent.trim();
+                                rowData[nombreCol] = newText;
+                            }
 
-                        // Convertir el índice de columna (data index) al índice visible
-                        var visibleIndex = gridInsumosModal.column(colIndex).index('visible');
+                            // Actualizar la celda en el grid visual
+                            gridInsumosModal.cell(rowElement, colIndex).data(newText).draw();
 
-                        // Obtener la celda visible y aplicar la clase blinking
-                        var celda = $(trElement).find('td').eq(visibleIndex);
-
-                        // Obtener el valor original de la celda
-                        var originalText = gridInsumosModal.cell(trElement, celda).data();
-
-                        // Actualizar el valor de la fila según la columna editada
-                        if (colIndex === 7) { // Columna de la provincia
-                            rowData.IdColor = newValue;
-                            rowData.Color = newText;
-                        } else if (colIndex === 9) { // Columna de la provincia
-                            rowData.IdEstado = newValue;
-                            rowData.Estado = newText;
-                        } else {
-                            rowData[gridInsumosModal.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
+                            // Parpadeo visual en la celda
+                            celda.addClass('blinking');
+                            setTimeout(() => {
+                                celda.removeClass('blinking');
+                            }, 3000);
                         }
 
-                        // Actualizar la fila en la tabla con los nuevos datos
-                        gridInsumosModal.row(trElement).data(rowData).draw();
+                        // Limpiar selección visual y lógica
+                        $(filasSeleccionadas).each(function (_, rowElement) {
+                            $(rowElement).removeClass('selected');
+                            $(rowElement).find('td').removeClass('selected');
+                        });
 
-                        // Aplicar el parpadeo solo si el texto cambió
-                        if (originalText !== newText) {
-                            celda.addClass('blinking'); // Aplicar la clase 'blinking' a la celda que fue editada
-                        }
-
-
-                        // Desactivar el modo de edición
                         isEditing = false;
-
-                        // Remover la clase blinking después de 3 segundos
-                        setTimeout(function () {
-                            celda.removeClass('blinking');
-                        }, 3000);
+                        filasSeleccionadas = [];
                     }
+
+
 
 
 
@@ -1396,6 +1395,7 @@ async function guardarProducto() {
                 IdEstado: insumoData.IdEstado,
                 Estado: insumoData.Estado,
                 IdProveedor: insumoData.IdProveedor,
+                Proveedor: insumoData.Proveedor,
                 IdUnidadMedida: insumoData.IdUnidadMedida
                 // Otros campos necesarios
             }).draw();
@@ -1577,6 +1577,7 @@ async function editarProducto(producto) {
                 Comentarios: row.Comentarios,
                 IdUnidadMedida: row.IdUnidadMedida,
                 IdProveedor: row.IdProveedor,
+                Proveedor: row.Proveedor,
                 Id: row.Id,
                 IdProducto: row.IdProducto,
                 IdInsumo: row.IdInsumo
@@ -2293,8 +2294,8 @@ function generarPedidoPDF(datos) {
         item.Cantidad,
         item.Nombre,
         item.Color,
-        formatNumber(item.CostoUnitario),
-        formatNumber(item.CostoUnitario * item.Cantidad)
+        formatNumber(item.PrecioVenta),
+        formatNumber(item.PrecioVenta * item.Cantidad)
     ]);
 
     doc.autoTable({
@@ -2455,53 +2456,12 @@ function generarRemitoPDF(datos) {
 
     const doc = new jsPDF();
 
-    const logoElement = document.getElementById("logoImpresion1"); // Logo Bronx
-    const logoElement2 = document.getElementById("logoImpresion2"); // Logo X
-
-    // Logos
-    doc.addImage(logoElement, 'PNG', 14, 8, 50, 20);
-    doc.addImage(logoElement2, 'PNG', 155, 2, 65, 35);
-
-    // Bloque izquierdo
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.text("SANTA ROSA 3755, VICENTE LÓPEZ,", 14, 37);
-    doc.text("BUENOS AIRES, ARGENTINA.", 14, 41);
-    doc.text("+541165075229", 14, 45);
-    doc.text("HOLA@BRONXCONCEPT.COM.AR", 14, 49);
-
-    // Bloque centro
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text("NINCHICH SRL", 90, 37);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.text("CUIT: 30-71743646-2", 90, 41);
-    doc.text("IIBB: 30-71743646-2", 90, 45);
-    doc.text("Inicio Act: 09/03/2022", 90, 49);
-
-    // Encabezado derecho
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(8);
-    doc.text("DOCUMENTO NO VÁLIDO COMO FACTURA", 120, 13);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text("REMITO", 155, 23);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(13);
-    doc.text("N", 160, 27);
-    doc.text(`${datos.Pedido.IdPedido}`, 165, 27);
-
+   
     // Datos cliente
     doc.setFontSize(8);
-    doc.text(`Nombre: ${datos.Pedido.Cliente}`, 150, 37);
-    doc.text(`Teléfono: ${datos.Pedido.Telefono}`, 150, 41);
-    doc.text(`Fecha: ${moment(datos.Pedido.Fecha, "YYYY-MM-DD").format("DD/MM/YYYY")}`, 150, 45);
-
-    //// Línea horizontal
-    //doc.setDrawColor(0);
-    //doc.setLineWidth(0.5);
-    //doc.line(14, 50, 194, 50);
+    doc.text(`${datos.Pedido.Cliente}`, 150, 37);
+    doc.text(`${datos.Pedido.Telefono}`, 150, 41);
+    doc.text(`${moment(datos.Pedido.Fecha, "YYYY-MM-DD").format("DD/MM/YYYY")}`, 150, 45);
 
     const columns = ["C", "Producto", "Color", "Precio", "Subtotal"];
 
@@ -2509,8 +2469,8 @@ function generarRemitoPDF(datos) {
         item.Cantidad,
         item.Nombre,
         item.Color,
-        formatNumber(item.CostoUnitario),
-        formatNumber(item.CostoUnitario * item.Cantidad)
+        formatNumber(item.PrecioVenta),
+        formatNumber(item.PrecioVenta * item.Cantidad)
     ]);
 
     // Completa hasta 15 filas vacías
@@ -2521,14 +2481,22 @@ function generarRemitoPDF(datos) {
 
     doc.autoTable({
         startY: 55,
-        head: [columns],
         body: rows,
-        theme: 'grid',
-        styles: { fontSize: 10 },
+        styles: {
+            fontSize: 10,
+            lineWidth: 0 // elimina líneas de borde generales
+        },
         headStyles: {
             fillColor: [0, 0, 0],
             textColor: 255,
             halign: 'center'
+        },
+        bodyStyles: {
+            fillColor: [255, 255, 255],
+            lineWidth: 0 // elimina bordes de celdas en el cuerpo
+        },
+        alternateRowStyles: {
+            fillColor: false // evita el gris alternado
         },
         columnStyles: {
             0: { halign: 'center', cellWidth: 10 },
@@ -2538,6 +2506,7 @@ function generarRemitoPDF(datos) {
             4: { halign: 'right', cellWidth: 30 }
         }
     });
+
 
     let y = doc.lastAutoTable.finalY + 10;
     const pageHeight = doc.internal.pageSize.height;
@@ -2553,10 +2522,6 @@ function generarRemitoPDF(datos) {
     const boxX = 14;
     const boxY = y - 5;
     const boxWidth = 180;
-
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.5);
-    doc.rect(boxX, boxY, boxWidth, boxHeight);
 
     const total = datos.Pedido.ImporteTotal || 0;
     const descuento = datos.Pedido.PorcDesc || 0;
@@ -2585,25 +2550,9 @@ function generarRemitoPDF(datos) {
 
     labels.forEach((label, i) => {
         const yPos = y + i * 7;
-        doc.text(label, boxX + 100, yPos);
         doc.text(valores[i], boxX + 145, yPos, { align: "right" });
     });
 
-
-
-
-    // Pie dinámico: debajo del recuadro de totales
-    const pieY = boxY + boxHeight + 10;
-
-    doc.setFontSize(9);
-    doc.text("RECIBÍ CONFORME  ................................................................", 14, pieY);
-    doc.text("ACLARACIÓN  ................................................................", 114, pieY);
-
-    doc.setFontSize(9);
-    doc.text(`WWW.BRONXCONCEPT.COM.AR`, 15, pieY + 15);
-    doc.setFontSize(11);
-    doc.text(`BRONXCONCEPT®`, 160, pieY + 15);
-    doc.text(`2024`, 186, pieY + 20);
     return doc;
 }
 
