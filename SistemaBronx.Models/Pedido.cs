@@ -15,7 +15,7 @@ public partial class Pedido
 
     public decimal? SubTotal { get; set; }
 
-    public int? PorcDescuento { get; set; }
+    public decimal? PorcDescuento { get; set; }
 
     public decimal? ImporteAbonado { get; set; }
 

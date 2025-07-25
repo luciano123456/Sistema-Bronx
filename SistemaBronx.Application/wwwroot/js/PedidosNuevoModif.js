@@ -818,12 +818,12 @@ async function configurarDataTableProductos(data) {
                 { data: 'Nombre' },
                 { data: 'IdCategoria', visible: false },
                 { data: 'Categoria' },
-                { data: 'CostoUnitario' },
                 { data: 'Cantidad' },
                 { data: 'PorcGanancia' },
                 { data: 'Ganancia' },
                 { data: 'PorcIva' },
                 { data: 'IVA' },
+                { data: 'PrecioVentaUnitario' },
                 { data: 'PrecioVenta' },
                 { data: 'IdColor', visible: false },
                 { data: 'Color' },
@@ -850,7 +850,7 @@ async function configurarDataTableProductos(data) {
                     "render": function (data, type, row) {
                         return formatNumber(data); // Formatear números
                     },
-                    "targets": [4, 7, 9, 10] // Índices de las columnas de números
+                    "targets": [6, 8, 9, 10] // Índices de las columnas de números
                 },
 
             ],
@@ -1315,6 +1315,7 @@ async function guardarProducto() {
                     data.Categoria = Categoria,
                     data.CostoUnitario = CostoUnitario,
                     data.PorcGanancia = PorcGanancia,
+                    data.PrecioVentaUnitario  = PrecioVenta / Cantidad,
                     data.Ganancia = Ganancia,
                     data.PorcIva = PorcIva,
                     data.IVA = TotalIva,
@@ -1356,6 +1357,7 @@ async function guardarProducto() {
         gridProductos.row.add({
             Id: detalleId,
             IdProducto: IdProducto,
+            PrecioVentaUnitario: PrecioVenta / Cantidad,
             Nombre: NombreProducto,
             IdCategoria: IdCategoria,
             Categoria: Categoria,
@@ -1382,6 +1384,7 @@ async function guardarProducto() {
                 Cantidad: insumoData.Cantidad,
                 IdInsumo: insumoData.IdInsumo,
                 Insumo: insumoData.Nombre,
+                PrecioVentaUnitario: insumoData.PrecioVenta / insumoData.Cantidad,
                 IdTipo: insumoData.IdTipo,
                 Tipo: insumoData.Tipo,
                 IdCategoria: insumoData.IdCategoria,
@@ -1955,10 +1958,10 @@ async function guardarCambios() {
                     "IdCategoria": parseInt(producto.IdCategoria),
                     "CostoUnitario": parseFloat(producto.CostoUnitario),
                     "Cantidad": parseInt(producto.Cantidad),
-                    "PorcGanancia": parseInt(producto.PorcGanancia),
+                    "PorcGanancia": parseFloat(producto.PorcGanancia),
                     "Ganancia": parseFloat(producto.Ganancia),
-                    "PorcIva": parseInt(producto.PorcIva),
-                    "IVA": parseInt(producto.IVA),
+                    "PorcIva": parseFloat(producto.PorcIva),
+                    "IVA": parseFloat(producto.IVA),
                     "PrecioVenta": parseFloat(producto.PrecioVenta),
                     "IdColor": parseInt(producto.IdColor),
                     "Producto": producto.Nombre
@@ -2294,8 +2297,8 @@ function generarPedidoPDF(datos) {
         item.Cantidad,
         item.Nombre,
         item.Color,
-        formatNumber(item.PrecioVenta),
-        formatNumber(item.PrecioVenta * item.Cantidad)
+        formatNumber(item.PrecioVenta / item.Cantidad),
+        formatNumber(item.PrecioVenta)
     ]);
 
     doc.autoTable({
@@ -2469,8 +2472,8 @@ function generarRemitoPDF(datos) {
         item.Cantidad,
         item.Nombre,
         item.Color,
-        formatNumber(item.PrecioVenta),
-        formatNumber(item.PrecioVenta * item.Cantidad)
+        formatNumber(item.PrecioVenta / item.Cantidad),
+        formatNumber(item.PrecioVenta)
     ]);
 
     // Completa hasta 15 filas vacías
@@ -2576,3 +2579,4 @@ function obtenerUrlCompleta(rutaRelativa) {
     const path = window.location.origin + rutaRelativa.replace("~", ""); // Construye la URL completa
     return path;
 }
+

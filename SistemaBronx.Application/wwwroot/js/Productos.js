@@ -249,7 +249,7 @@ async function configurarDataTable(data) {
             "columnDefs": [
                 {
                     "render": function (data, type, row) {
-                        return formatNumber(data); // Formatear números
+                        return formatNumber(redondearCien(data)); // Formatear números
                     },
                     "targets": [5] // Índices de las columnas de números
                 },
@@ -510,4 +510,9 @@ async function listaUnidadesNegocioFiltro() {
         select.appendChild(option);
 
     }
+}
+
+function redondearCien(value) {
+    if (value == null) return '';
+    return Math.ceil(value / 100) * 100;
 }

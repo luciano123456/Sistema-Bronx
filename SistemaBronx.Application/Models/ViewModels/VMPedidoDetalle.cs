@@ -18,11 +18,12 @@ namespace SistemaBronx.Application.Models.ViewModels
 
         public decimal? CostoUnitario { get; set; }
         public decimal? PrecioVenta { get; set; }
+        public decimal? PrecioVentaUnitario { get; set; }
         public decimal? IVA { get; set; }
         public decimal? Ganancia { get; set; }
 
-        public int? PorcGanancia { get; set; }
-        public int? PorcIva { get; set; }
+        public decimal? PorcGanancia { get; set; }
+        public decimal? PorcIva { get; set; }
 
         public string Nombre { get; set; }
         public string Categoria { get; set; }
