@@ -48,9 +48,9 @@ namespace SistemaBronx.DAL.Repository
                     idMapping[idTemporal] = detalle.Id;
                 }
 
-               
 
-       
+
+
 
                 // **Registrar PedidosDetalleProceso**
                 foreach (var proceso in pedidosDetalleProceso)
@@ -228,7 +228,7 @@ namespace SistemaBronx.DAL.Repository
 
             try
             {
-                var producto = await _dbcontext.PedidosDetalles.Where(x=> x.IdPedido == IdPedido && x.IdProducto == IdProducto).FirstOrDefaultAsync();
+                var producto = await _dbcontext.PedidosDetalles.Where(x => x.IdPedido == IdPedido && x.IdProducto == IdProducto).FirstOrDefaultAsync();
                 if (producto == null)
                 {
                     return null;
@@ -244,19 +244,28 @@ namespace SistemaBronx.DAL.Repository
 
         }
 
-        public async Task<List<Pedido>> ObtenerPedidos(DateTime FechaDesde, DateTime FechaHasta, int IdCliente, string Estado, int Finalizado)
+        public async Task<List<Pedido>> ObtenerPedidos(int IdCliente, string Estado, int Finalizado)
         {
 
             try
             {
 
-                FechaHasta = FechaHasta.Date.AddDays(1).AddTicks(-1);
-
                 List<Pedido> pedidos = await _dbcontext.Pedidos
                     .Include(x => x.IdClienteNavigation)
                     .Include(x => x.IdFormaPagoNavigation)
                     .Include(x => x.PedidosDetalleProcesos).ThenInclude(x => x.IdEstadoNavigation)
-                    .Where(x=> x.Fecha >= FechaDesde && x.Fecha <= FechaHasta && (x.IdCliente == IdCliente || IdCliente == -1) && (x.Finalizado == Finalizado || Finalizado == -1) && (x.Saldo <= 0 && Estado == "ENTREGAR" || x.Saldo >= 0 && Estado == "EN PROCESO" || Estado == "TODOS"))
+                    .Where(x =>
+                                x.IdCliente == IdCliente ||
+                                (
+                                    IdCliente == -1
+                                    && (x.Finalizado == Finalizado || Finalizado == -1)
+                                    && (
+                                        (x.Saldo <= 0 && Estado == "ENTREGAR")
+                                        || (x.Saldo >= 0 && Estado == "EN PROCESO")
+                                        || Estado == "TODOS"
+                                    )
+                                )
+                            )
                     .ToListAsync();
 
                 return pedidos;
@@ -366,7 +375,7 @@ namespace SistemaBronx.DAL.Repository
                 await _dbcontext.SaveChangesAsync();
                 return true;
             }
-            catch ( Exception ex)
+            catch (Exception ex)
             {
                 return false;
             }

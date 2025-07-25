@@ -8,6 +8,7 @@ namespace SistemaBronx.DAL.DataContext;
 
 public partial class SistemaBronxContext : DbContext
 {
+
     private readonly IConfiguration _configuration;
 
 
@@ -78,7 +79,6 @@ public partial class SistemaBronxContext : DbContext
     public virtual DbSet<UnidadesDeMedida> UnidadesDeMedida { get; set; }
 
     public virtual DbSet<User> Usuarios { get; set; }
-
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -223,6 +223,7 @@ public partial class SistemaBronxContext : DbContext
             entity.Property(e => e.Fecha).HasColumnType("datetime");
             entity.Property(e => e.ImporteAbonado).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.ImporteTotal).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.PorcDescuento).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Saldo).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.SubTotal).HasColumnType("decimal(20, 2)");
 
@@ -248,6 +249,8 @@ public partial class SistemaBronxContext : DbContext
 
             entity.Property(e => e.Cantidad).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.CostoUnitario).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.PorcGanancia).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.PorcIva).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.PrecioVenta).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Producto)
                 .HasMaxLength(250)
