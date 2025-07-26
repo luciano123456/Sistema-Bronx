@@ -50,7 +50,7 @@ namespace SistemaBronx.Application.Controllers
                     Estado = detalleProceso.IdEstadoNavigation != null ? detalleProceso.IdEstadoNavigation.Nombre : "",
                     IdProveedor = detalleProceso.IdProveedor,
                     Proveedor = detalleProceso.IdProveedorNavigation != null ? detalleProceso.IdProveedorNavigation.Nombre : "",
-                    Categoria = detalleProceso.IdCategoriaNavigation != null ? detalleProceso.IdCategoriaNavigation.Nombre : "",
+                    Categoria = detalleProceso.IdInsumoNavigation.IdCategoriaNavigation != null ? detalleProceso.IdInsumoNavigation.IdCategoriaNavigation.Nombre : "",
                     IdDetalle = detalleProceso.IdDetalle
                 }).ToList();
 

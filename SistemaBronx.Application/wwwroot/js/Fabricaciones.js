@@ -655,7 +655,7 @@ async function listaColores() {
 }
 
 async function listaCategoriasFilter() {
-    const url = `/PedidosCategorias/Lista`;
+    const url = `/InsumosCategorias/Lista`;
     const response = await fetch(url);
     const data = await response.json();
 

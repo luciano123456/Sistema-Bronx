@@ -2392,7 +2392,7 @@ function descargarPedidoPDF(datos, facturaPDF) {
         msjpedido = `Nº ${datos.Pedido.IdPedido} `
     }
 
-    titulo = `Pedido ${msjpedido}Cliente ${facturaCliente} ${datos.Pedido.ImporteTotal}`
+    titulo = `Pedido ${msjpedido}Cliente ${facturaCliente} ${datos.Pedido.SubTotal}`
 
     facturaPDF.save(`${titulo}.pdf`);
 }
@@ -2465,7 +2465,8 @@ function generarRemitoPDF(datos) {
     doc.text(`${datos.Pedido.Cliente}`, 150, 37);
     doc.text(`${datos.Pedido.Telefono}`, 150, 41);
     doc.text(`${moment(datos.Pedido.Fecha, "YYYY-MM-DD").format("DD/MM/YYYY")}`, 150, 45);
-
+    doc.setFontSize(13);
+    doc.text(`${datos.Pedido.IdPedido}`, 165, 27);
     const columns = ["C", "Producto", "Color", "Precio", "Subtotal"];
 
     let rows = datos.Productos.map((item) => [
@@ -2569,7 +2570,7 @@ function descargarRemitoPDF(datos, facturaPDF) {
         msjpedido = `Nº ${datos.Pedido.IdPedido} `
     }
 
-    titulo = `Remito ${msjpedido}Cliente ${facturaCliente} ${datos.Pedido.ImporteTotal}`
+    titulo = `Remito ${msjpedido}Cliente ${facturaCliente} ${datos.Pedido.SubTotal}`
 
     facturaPDF.save(`${titulo}.pdf`);
 }
