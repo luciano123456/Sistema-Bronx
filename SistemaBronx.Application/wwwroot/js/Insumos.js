@@ -93,6 +93,7 @@ function guardarCambios() {
                 return response.json();
             })
             .then(dataJson => {
+                guardarFiltrosPantalla("#grd_Insumos", 'filtrosInsumos', true);
                 const mensaje = (idInsumo == null || idInsumo === "") ? "Insumo registrado correctamente" : "Insumo modificado correctamente";
                 $('#modalEdicion').modal('hide');
                 exitoModal(mensaje);
@@ -284,6 +285,7 @@ async function listaInsumos() {
     const response = await fetch(url);
     const data = await response.json();
     await configurarDataTable(data);
+    await aplicarFiltrosRestaurados(gridInsumos, "#grd_Insumos", "filtrosInsumos", true)
 }
 
 async function listaCategorias() {

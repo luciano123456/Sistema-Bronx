@@ -62,6 +62,7 @@ function guardarCambios() {
                 return response.json();
             })
             .then(dataJson => {
+                guardarFiltrosPantalla("#grd_Proveedores", 'filtrosProveedores', true);
                 const mensaje = idProveedor === "" ? "Proveedor registrado correctamente" : "Proveedor modificado correctamente";
                 $('#modalEdicion').modal('hide');
                 exitoModal(mensaje);
@@ -127,6 +128,7 @@ async function listaProveedores() {
     const response = await fetch(url);
     const data = await response.json();
     await configurarDataTable(data);
+    await aplicarFiltrosRestaurados(gridProveedores, "#grd_Proveedores", "filtrosProveedores", true)
 }
 
 const editarProveedor = id => {
@@ -299,6 +301,8 @@ async function configurarDataTable(data) {
 
                 configurarOpcionesColumnas();
 
+              
+
                 setTimeout(function () {
                     gridProveedores.columns.adjust();
                 }, 10);
@@ -445,6 +449,7 @@ async function configurarDataTable(data) {
 
     } else {
         gridProveedores.clear().rows.add(data).draw();
+       
     }
 }
 
