@@ -291,6 +291,7 @@ namespace SistemaBronx.DAL.Repository
                     .Include(x => x.IdEstadoNavigation)
                     .Include(x => x.IdProveedorNavigation)
                     .Include(x => x.IdInsumoNavigation)
+                    .ThenInclude(p => p.IdCategoriaNavigation)
                     .Include(x => x.IdColorNavigation)
                     .ToListAsync();
 
