@@ -64,53 +64,54 @@
 
 <!-- Modal Clientes-->
 <div class="modal fade" id="modalEdicion" tabindex="-1" role="dialog" aria-labelledby="modalEdicionLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-dialog-centered modal-edicion" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalEdicionLabel">Editar Cliente</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+            <div class="modal-header colorEncabezado">
+                <h5 class="modal-title fw-bold" id="modalEdicionLabel">Editar Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
+
             <div class="modal-body">
-                <form>
-                    <div class="form-group" hidden>
-                        <label for="txtIdCliente" class="lblNombreInput">ID</label>
-                        <input type="text" class="input-nuevomodif" id="txtId" readonly>
+                <form id="formEditarCliente" class="row g-3">
+                    <input type="text" id="txtId" hidden readonly>
+
+                    <div class="col-md-6">
+                        <label for="txtNombre" class="form-label">Nombre (*)</label>
+                        <input type="text" class="form-control" id="txtNombre" required>
                     </div>
-                    <div class="form-group">
-                        <label id="lblNombre" for="txtNombre" class="lblNombreInput">Nombre (*)</label>
-                        <input type="text" class="input-nuevomodif" id="txtNombre" required>
+
+                    <div class="col-md-6">
+                        <label for="txtTelefono" class="form-label">Teléfono</label>
+                        <input type="text" class="form-control" id="txtTelefono">
                     </div>
-                    <div class="form-group">
-                        <label for="txtTelefono" class="lblNombreInput">Teléfono</label>
-                        <input type="text" class="input-nuevomodif" id="txtTelefono">
+
+                    <div class="col-md-6">
+                        <label for="txtDireccion" class="form-label">Dirección</label>
+                        <input type="text" class="form-control" id="txtDireccion">
                     </div>
-                    <div class="form-group">
-                        <label for="txtDireccion" class="lblNombreInput">Dirección</label>
-                        <input type="text" class="input-nuevomodif" id="txtDireccion">
-                    </div>
-                    <div class="form-group">
-                        <label for="txtProvincia" class="lblNombreInput">Provincia</label>
-                        <select id="Provincias" name="select" class="input-nuevomodif select-modal-personalizado mt-2">
+
+                    <div class="col-md-6">
+                        <label for="Provincias" class="form-label">Provincia</label>
+                        <select id="Provincias" name="select" class="form-control">
                             <option value="" selected>Provincias</option>
                         </select>
                     </div>
 
-                    <div class="form-group mt-4">
-                        <label for="txtLocalidad" class="lblNombreInput">Localidad</label>
-                        <input type="text" class="input-nuevomodif" id="txtLocalidad">
+                    <div class="col-md-6">
+                        <label for="txtLocalidad" class="form-label">Localidad</label>
+                        <input type="text" class="form-control" id="txtLocalidad">
                     </div>
-                    <div class="form-group">
-                        <label for="txtDni" class="lblNombreInput">DNI/CUIT</label>
-                        <input type="text" class="input-nuevomodif" id="txtDni">
+
+                    <div class="col-md-6">
+                        <label for="txtDni" class="form-label">DNI/CUIT</label>
+                        <input type="text" class="form-control" id="txtDni">
                     </div>
-                    
                 </form>
             </div>
+
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" id="btnGuardar" class="btn btn-warning" onclick="guardarCambios()">Registrar</button>
+                <button type="button" id="btnGuardar" class="btn btn-primary" onclick="guardarCambios()">Registrar</button>
             </div>
         </div>
     </div>

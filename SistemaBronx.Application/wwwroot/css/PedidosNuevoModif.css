@@ -129,10 +129,6 @@ select option:disabled {
     background: #353c48;
 }
 
-#productoModal .modal-header {
-    background: #2a303a;
-}
-
 #productoModal .modal-title {
     color: white;
 }
@@ -143,9 +139,6 @@ select option:disabled {
     background: #353c48;
 }
 
-#productoModal .modal-header {
-    background: #2a303a;
-}
 
 #productoModal .modal-title {
     color: white;

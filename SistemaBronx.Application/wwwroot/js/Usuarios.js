@@ -140,8 +140,7 @@ function nuevoUsuario() {
     $('#lblContrasena').css('color', 'red');
     $('#txtContrasena').css('border-color', 'red');
 
-    document.getElementById("lblContrasena").hidden = false;
-    document.getElementById("txtContrasena").hidden = false;
+    document.getElementById("divContrasena").hidden = false;
 
 }
 async function mostrarModal(modelo) {
@@ -157,8 +156,7 @@ async function mostrarModal(modelo) {
     $("#btnGuardar").text("Guardar");
     $("#modalEdicionLabel").text("Editar Usuario");
 
-    document.getElementById("lblContrasena").hidden = true;
-    document.getElementById("txtContrasena").hidden = true;
+    document.getElementById("divContrasena").hidden = true;
 
     $('#lblUsuario, #txtUsuario').css('color', '').css('border-color', '');
     $('#lblNombre, #txtNombre').css('color', '').css('border-color', '');

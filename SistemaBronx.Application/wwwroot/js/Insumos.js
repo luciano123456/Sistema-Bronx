@@ -29,7 +29,7 @@ $(document).ready(() => {
 
 
 
-    $("#Categorias, #UnidadesDeMedidas, #Tipos").select2({
+    $("#Categorias, #UnidadesDeMedidas, #Tipos, #Proveedores").select2({
         dropdownParent: $("#modalEdicion"), // Asegura que el dropdown se muestre dentro del modal
         width: "100%",
         placeholder: "Selecciona una opción",
@@ -70,7 +70,7 @@ function guardarCambios() {
             "IdTipo": $("#Tipos").val(),
             "IdUnidadMedida": $("#UnidadesDeMedidas").val(),
             "IdCategoria": $("#Categorias").val(),
-            "IdProveedor": (idProveedor && idProveedor !== "") ? idProveedor : 0,
+            "IdProveedor": $("#Proveedores").val(),
             "Especificacion": $("#txtEspecificacion").val(),
             "PrecioCosto": formatoNumero($("#txtPrecioCosto").val()),
             "PorcGanancia": $("#txtPorcGanancia").val(),
@@ -135,13 +135,9 @@ function validarCampos() {
     $("#lblPorcGanancia").css("color", porcGananciaValida ? "" : "red");
     $("#txtPorcGanancia").css("border-color", porcGananciaValida ? "" : "red");
 
-    // Validar porcentaje ganancia
-    const idProveedorValido = idProveedor !== "";
-    $("#lblIdProveedor").css("color", idProveedor ? "" : "red");
-    $("#txtProveedor").css("border-color", idProveedor ? "" : "red");
 
     // Retorna true solo si todos los campos son válidos
-    return descripcionValida && precioCostoValido && porcGananciaValida && precioVentaValido && idProveedorValido;
+    return descripcionValida && precioCostoValido && porcGananciaValida && precioVentaValido;
 }
 
 function nuevoInsumo() {
@@ -160,8 +156,6 @@ function nuevoInsumo() {
     $('#txtPrecioVenta').css('border-color', 'red');
     $('#lblPorcGanancia').css('color', 'red');
     $('#txtPorcGanancia').css('border-color', 'red');
-    $('#lblIdProveedor').css('color', 'red');
-    $('#txtProveedor').css('border-color', 'red');
 }
 
 async function mostrarModal(modelo) {
@@ -175,17 +169,17 @@ async function mostrarModal(modelo) {
     });
 
     await listaCategorias();
+    await listaProveedores();
     await listaUnidadesDeMedidas();
     await listaTipos();
 
     document.getElementById("Tipos").value = modelo.IdTipo;
     document.getElementById("Categorias").value = modelo.IdCategoria;
     document.getElementById("UnidadesDeMedidas").value = modelo.IdUnidadMedida;
-    document.getElementById("txtIdProveedor").value = modelo.IdProveedor;
-    document.getElementById("txtProveedor").value = modelo.Proveedor;
+    document.getElementById("Proveedores").value = modelo.IdProveedor;
 
 
-    $("#Categorias, #UnidadesDeMedidas, #Tipos").select2({
+    $("#Categorias, #UnidadesDeMedidas, #Tipos, #Proveedores").select2({
         dropdownParent: $("#modalEdicion"), // Asegura que el dropdown se muestre dentro del modal
         width: "100%",
         placeholder: "Selecciona una opción",
@@ -205,8 +199,6 @@ async function mostrarModal(modelo) {
     $('#txtPrecioVenta').css('border-color', '');
     $('#lblPorcGanancia').css('color', '');
     $('#txtPorcGanancia').css('border-color', '');
-    $('#lblIdProveedor').css('color', '');
-    $('#txtProveedor').css('border-color', '');
 
 }
 
@@ -231,8 +223,7 @@ async function mostrarModalDuplicado(modelo) {
     document.getElementById("Tipos").value = modelo.IdTipo;
     document.getElementById("Categorias").value = modelo.IdCategoria;
     document.getElementById("UnidadesDeMedidas").value = modelo.IdUnidadMedida;
-    document.getElementById("txtIdProveedor").value = modelo.IdProveedor;
-    document.getElementById("txtProveedor").value = modelo.Proveedor;
+    document.getElementById("Proveedores").value = modelo.Proveedor;
 
 
     $("#Categorias, #UnidadesDeMedidas, #Tipos").select2({
@@ -254,8 +245,6 @@ async function mostrarModalDuplicado(modelo) {
     $('#txtPrecioVenta').css('border-color', '');
     $('#lblPorcGanancia').css('color', '');
     $('#txtPorcGanancia').css('border-color', '');
-    $('#lblIdProveedor').css('color', '');
-    $('#txtProveedor').css('border-color', '');
 
 }
 
@@ -274,8 +263,6 @@ function limpiarModal() {
     $('#txtPrecioVenta').css('border-color', '');
     $('#lblPorcGanancia').css('color', '');
     $('#txtPorcGanancia').css('border-color', '');
-    $('#lblIdProveedor').css('color', '');
-    $('#txtProveedor').css('border-color', '');
 }
 
 
@@ -287,6 +274,23 @@ async function listaInsumos() {
     await configurarDataTable(data);
     await aplicarFiltrosRestaurados(gridInsumos, "#grd_Insumos", "filtrosInsumos", true)
 }
+
+async function listaProveedores() {
+    const data = await obtenerProveedores();
+
+    $('#Proveedores option').remove();
+
+    select = document.getElementById("Proveedores");
+
+    for (i = 0; i < data.length; i++) {
+        option = document.createElement("option");
+        option.value = data[i].Id;
+        option.text = data[i].Nombre;
+        select.appendChild(option);
+
+    }
+}
+
 
 async function listaCategorias() {
     const url = `/InsumosCategorias/Lista`;
@@ -953,49 +957,6 @@ async function guardarCambiosFila(rowData) {
 }
 
 
-async function abrirProveedor() {
-    const Proveedores = await obtenerProveedores();
-    await cargarDataTableProveedores(Proveedores);
-
-    // Configura eventos de selección
-    $('#tablaProveedores tbody').on('dblclick', 'tr', function () {
-        var data = $('#tablaProveedores').DataTable().row(this).data();
-        cargarDatosProveedor(data);
-        $('#ProveedorModal').modal('hide');
-    });
-
-    $('#btnSeleccionarProveedor').on('click', function () {
-        var data = $('#tablaProveedores').DataTable().row('.selected').data();
-        if (data) {
-            cargarDatosProveedor(data);
-            $('#ProveedorModal').modal('hide');
-        } else {
-            errorModal('Seleccione una Proveedor');
-        }
-    });
-
-    let filaSeleccionada = null; // Variable para almacenar la fila seleccionada
-
-    $('#tablaProveedores tbody').on('click', 'tr', function () {
-        // Remover la clase de la fila anteriormente seleccionada
-        if (filaSeleccionada) {
-            $(filaSeleccionada).removeClass('selected');
-            $('td', filaSeleccionada).removeClass('selected');
-
-        }
-
-        // Obtener la fila actual
-        filaSeleccionada = $(this);
-
-        // Agregar la clase a la fila actual
-        $(filaSeleccionada).addClass('selected');
-        $('td', filaSeleccionada).addClass('selected');
-    });
-
-    // Abre el modal
-    $('#ProveedorModal').modal('show');
-
-}
 
 function cargarDatosProveedor(data) {
     $('#txtIdProveedor').val(data.Id);

@@ -577,3 +577,30 @@ input:disabled {
     height: auto !important;
     padding: 4px 8px;
 }
+
+
+.colorEncabezado {
+    background: linear-gradient(to right, #005bea, #418bf9, #7baaf7);
+    color: white;
+    border: none !important
+}
+
+
+.card-body,
+.card-header {
+    background: #323844 !important;
+    color: white;
+}
+
+.card {
+    background-color: #1B2631 !important;
+    border-radius: 50px;
+}
+
+.modal-content {
+    background-color: #323844 !important;
+    border-radius: 0 0 0.5rem 0.5rem;
+    box-shadow: none;
+}
+
+
