@@ -54,13 +54,12 @@ function exitoModal(texto) {
 }
 
 function errorModal(texto) {
-    mostrarModalConContador('ErrorModal', texto, 3000000);
+    mostrarModalConContador('ErrorModal', texto, 3000);
 }
 
 function advertenciaModal(texto) {
     mostrarModalConContador('AdvertenciaModal', texto, 3000);
 }
-
 const formatoMoneda = new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency: 'ARS', // Cambia "ARS" por el código de moneda que necesites

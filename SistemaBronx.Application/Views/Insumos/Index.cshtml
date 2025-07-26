@@ -70,78 +70,76 @@
 
 
 <div class="modal fade" id="modalEdicion" tabindex="-1" role="dialog" aria-labelledby="modalEdicionLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <!-- Clase modal-lg para mayor ancho -->
-        <div class="modal-content modalEdicion">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalEdicionLabel">Editar Insumo</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-edicion" role="document">
+        <div class="modal-content">
+            <div class="modal-header colorEncabezado">
+                <h5 class="modal-title fw-bold" id="modalEdicionLabel">Editar Insumo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <div class="modal-body">
-                <form>
-                    <div class="row">
-                        <div class="col-12 col-md-6">
-                            <!-- Ajuste responsivo -->
-                            <div class="form-group" hidden>
-                                <label for="txtId" class="lblNombreInput">ID</label>
-                                <input type="text" class="input-nuevomodif" id="txtId" readonly>
-                            </div>
-                            <div class="form-group">
-                                <label id="lblDescripcion" for="txtDescripcion" class="lblNombreInput">Descripcion (*)</label>
-                                <input type="text" class="input-nuevomodif" id="txtDescripcion" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="txtCategorias" class="lblNombreInput">Categoria (*)</label>
-                                <select id="Categorias" name="select" class="input-nuevomodif select-modal-personalizado mt-2">
-                                    <option value="" selected>Categoria</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="txtUnidadDeMedida" class="lblNombreInput">U. de Medida (*)</label>
-                                <select id="UnidadesDeMedidas" name="select" class="input-nuevomodif select-modal-personalizado mt-2">
-                                    <option value="" selected>U. de Medida</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="txtTipos" class="lblNombreInput">Tipo (*)</label>
-                                <select id="Tipos" name="select" class="input-nuevomodif select-modal-personalizado mt-2">
-                                    <option value="" selected>Tipo</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <input type="text" class="input-nuevomodif" id="txtIdProveedor" name="txtIdProveedor" hidden>
-                                <label id="lblIdProveedor" for="txtIdProveedor" class="lblNombreInput">Proveedor</label>
-                                <div style="display: flex; align-items: center;">
-                                    <input type="text" class="input-nuevomodif" id="txtProveedor" name="Proveedor" style="flex: 1;" readonly>
-                                    <button type="button" class="btn btn-default" id="buscarProveedor" onclick="abrirProveedor()"
-                                            style="margin-left: 8px; background-color: #198754; padding: 6px 10px; border-radius: 4px; position: relative; top: -12px;">
-                                        <i class="fa fa-search" style="color: white; font-size: 1em;"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div class="col-12 col-md-6">
-                            <div class="form-group" >
-                                <label id="lblPrecioCosto" for="txtPrecioCosto" class="lblNombreInput">Precio Costo (*)</label>
-                                <input type="text" class="input-nuevomodif" id="txtPrecioCosto" required>
-                            </div>
-                            <div class="form-group" style="margin-bottom: 4px;">
-                                <label id="lblPorcGanancia" for="txtPorcGanancia" class="lblNombreInput">Porc. Ganancia (*)</label>
-                                <input type="number" class="input-nuevomodif" id="txtPorcGanancia" required>
-                            </div>
-                            <div class="form-group" >
-                                <label id="lblPrecioVenta" for="txtPrecioVenta" class="lblNombreInput">Precio de Venta (*)</label>
-                                <input type="text" class="input-nuevomodif" id="txtPrecioVenta" required >
-                            </div>
-                            <div class="form-group">
-                                <label id="lblEspecificacion" for="txtEspecificacion" class="lblNombreInput">Especificacion</label>
-                                <input type="text" class="input-nuevomodif" id="txtEspecificacion" required>
-                            </div>
-                        </div>
+            <div class="modal-body">
+                <form id="formEditarInsumo" class="row g-3">
+                    <input type="text" id="txtId" hidden readonly>
+
+                    <div class="col-md-6">
+                        <label for="txtDescripcion" class="form-label" id="lblDescripcion">Descripción (*)</label>
+                        <input type="text" class="form-control" id="txtDescripcion" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="Categorias" class="form-label">Categoría (*)</label>
+                        <select id="Categorias" name="select" class="form-control">
+                            <option value="" selected>Categoría</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="UnidadesDeMedidas" class="form-label">U. de Medida (*)</label>
+                        <select id="UnidadesDeMedidas" name="select" class="form-control">
+                            <option value="" selected>U. de Medida</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="Tipos" class="form-label">Tipo (*)</label>
+                        <select id="Tipos" name="select" class="form-control">
+                            <option value="" selected>Tipo</option>
+                        </select>
+                    </div>
+
+                    <input type="text" class="form-control" id="txtIdProveedor" name="txtIdProveedor" hidden>
+
+
+                     <div class="col-md-6">
+                        <label for="Proveedores" class="form-label">Proveedor (*)</label>
+                        <select id="Proveedores" name="select" class="form-control">
+                            <option value="" selected>Proveedor</option>
+                        </select>
+                    </div>
+
+   
+                    <div class="col-md-6">
+                        <label for="txtPrecioCosto" class="form-label" id="lblPrecioCosto">Precio Costo (*)</label>
+                        <input type="text" class="form-control" id="txtPrecioCosto" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="txtPorcGanancia" class="form-label" id="lblPorcGanancia">Porc. Ganancia (*)</label>
+                        <input type="number" class="form-control" id="txtPorcGanancia" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="txtPrecioVenta" class="form-label" id="lblPrecioVenta">Precio de Venta (*)</label>
+                        <input type="text" class="form-control" id="txtPrecioVenta" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="txtEspecificacion" class="form-label" id="lblEspecificacion">Especificación</label>
+                        <input type="text" class="form-control" id="txtEspecificacion">
                     </div>
                 </form>
             </div>
+
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                 <button type="button" id="btnGuardar" class="btn btn-warning" onclick="guardarCambios()">Registrar</button>

@@ -1,5 +1,54 @@
-/* Aplica solo a los Select2 que NO estén dentro del modal */
-.select2-container--default:not(#modalEdicion .select2-container) .select2-selection--single {
+.modal-edicion .select2-container--default .select2-selection--single {
+    height: 38px !important;
+    border: 1px solid #0d6efd !important; /* mismo azul que el input */
+    padding: 0rem 0.75rem !important;
+    background-color: white !important;
+    color: black !important;
+    border-radius: 0.375rem !important;
+}
+
+    .modal-edicion .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 38px !important; /* igual a la altura del select */
+        color: black !important; /* aseguro color del texto */
+    }
+
+
+    .modal-edicion .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 38px !important;
+    }
+
+.modal-edicion .select2-container--default .select2-results > .select2-results__options {
+    background-color: white !important; /* o el color de tu fondo */
+    color: white !important;
+}
+
+.modal-edicion .select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: white !important;
+    color: burlywood !important;
+}
+
+.modal-edicion {
+    max-width: 60%; /* o lo que necesites */
+}
+
+
+
+@media (max-width: 1300px) {
+    .modal-edicion {
+        max-width: 80%; /* o lo que necesites */
+    }
+}
+
+@media (max-width: 900px) {
+    .modal-edicion {
+        max-width: 98%; /* o lo que necesites */
+    }
+}
+
+
+
+
+.select2-container--default .select2-selection--single {
     border: none !important;
     border-bottom: 3px solid blue !important;
     border-radius: 0px !important;
@@ -7,28 +56,8 @@
     margin-top: 1px;
 }
 
-.select2-container:not(#modalEdicion .select2-container) .select2-selection__rendered {
+.select2-container .select2-selection__rendered {
     color: white !important;
 }
-
-/* Aplica solo a los Select2 que NO estén dentro del modal */
-#modalEdicion .select2-container--default .select2-selection--single {
-    display: flex !important;
-    border: none !important;
-    border-bottom: solid blue !important;
-    width: 70% !important;
-    display: block !important;
-    position: relative !important;
-    left: 17% !important;
-    font-size: 30px !important;
-    margin-bottom: 10px !important;
-    margin-top: 10px !important;
-    color: black !important;
-    text-align: center !important;
-    font-size: 1.5vw !important;
-    max-width: 500px !important;
-    color: black !important;
-}
-
 
 
