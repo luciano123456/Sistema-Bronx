@@ -143,3 +143,111 @@ function toggleAcciones(id) {
     }
 }
 
+
+
+
+function guardarFiltrosPantalla(idTabla, nombreEstado, soloPosicion = false) {
+    const tabla = $(idTabla).DataTable();
+    const estado = {
+        page: tabla.page.info().page,
+        search: tabla.search(),
+        scrollY: window.scrollY,
+        filtros: {},
+        columnasVisibles: []
+    };
+
+    // Guardar visibilidad de columnas
+    tabla.columns().every(function (index) {
+        estado.columnasVisibles.push(this.visible());
+    });
+
+    if (!soloPosicion) {
+        // Guardar filtros de columnas visibles (excepto columna 0)
+        $('.filters th').each(function (index) {
+            const filtro = this.querySelector('input, select');
+            if (!filtro) return;
+
+            const visible = estado.columnasVisibles[index];
+            if (visible && index !== 0) {
+                estado.filtros[index] = $(filtro).val();
+            }
+        });
+    }
+
+    localStorage.setItem(nombreEstado, JSON.stringify(estado));
+}
+
+
+async function aplicarFiltrosRestaurados(api, idTabla, nombreEstado, soloPosicion = false) {
+    const estadoGuardado = JSON.parse(localStorage.getItem(nombreEstado));
+    if (!estadoGuardado) return;
+
+
+    if (!soloPosicion) {
+        for (const [indexStr, valor] of Object.entries(estadoGuardado.filtros || {})) {
+            const index = parseInt(indexStr);
+
+            const th = document.querySelector(`${idTabla} thead tr.filters th:nth-child(${index + 1})`);
+            const filtro = th?.querySelector('input, select');
+            if (!filtro) continue;
+
+            // SELECT2
+            if (filtro.tagName === 'SELECT') {
+                const valores = Array.isArray(valor) ? valor : [valor];
+
+                // 1. Asignar los valores guardados
+                $(filtro).val(valores).trigger('change.select2');
+
+                // 2. Aplicar filtro en la tabla
+                if (valores.length > 0) {
+                    const regex = '^(' + valores.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|') + ')$';
+                    api.column(index).search(regex, true, false);
+                } else {
+                    api.column(index).search('', true, false);
+                }
+
+                // 3. 🔁 FORZAR REASIGNACIÓN LUEGO DEL DRAW (por si select2 no los dibuja)
+                setTimeout(() => {
+                    $(filtro).val(valores).trigger('change.select2');
+                }, 100);
+
+            }
+
+            // INPUT TEXT
+            if (filtro.tagName === 'INPUT') {
+                filtro.value = valor;
+                filtro.placeholder = ''; // quitar "Buscar..."
+                const regexr = '(((' + valor + ')))';
+                api.column(index).search(valor ? regexr : '', valor !== '', valor === '');
+            }
+        }
+    }
+
+    // Restaurar página
+    if (estadoGuardado.page !== undefined) {
+        api.page(estadoGuardado.page);
+    }
+
+    // Restaurar visibilidad columnas
+    if (estadoGuardado.columnasVisibles) {
+        estadoGuardado.columnasVisibles.forEach((visible, i) => {
+            api.column(i).visible(visible);
+        });
+    }
+
+    // Búsqueda global
+    if (estadoGuardado.search) {
+        api.search(estadoGuardado.search);
+    }
+
+    // Aplicar los filtros
+    api.draw(false);
+
+    // Restaurar scroll
+    setTimeout(() => {
+        window.scrollTo(0, estadoGuardado.scrollY || 0);
+    }, 100);
+
+    // 🔥 Eliminar el estado ya restaurado
+    localStorage.removeItem(nombreEstado);
+}

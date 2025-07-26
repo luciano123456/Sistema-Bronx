@@ -560,3 +560,20 @@ input:disabled {
 
 
 
+
+.paginate_button.current {
+    background-color: #007bff !important;
+    color: white !important;
+    border: 1px solid #007bff !important;
+    border-radius: 4px !important;
+}
+
+
+.select2-selection__rendered {
+    display: block !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    height: auto !important;
+    padding: 4px 8px;
+}

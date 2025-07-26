@@ -59,6 +59,7 @@ function guardarCambios() {
                 return response.json();
             })
             .then(dataJson => {
+                guardarFiltrosPantalla("#grd_clientes", 'filtrosClientes', true);
                 const mensaje = idCliente === "" ? "Cliente registrado correctamente" : "Cliente modificado correctamente";
                 $('#modalEdicion').modal('hide');
                 exitoModal(mensaje);
@@ -130,6 +131,7 @@ async function listaClientes() {
     const response = await fetch(url);
     const data = await response.json();
     await configurarDataTable(data);
+    await aplicarFiltrosRestaurados(gridClientes, "#grd_clientes", "filtrosClientes", true)
 }
 
 async function listaClientesFiltro() {

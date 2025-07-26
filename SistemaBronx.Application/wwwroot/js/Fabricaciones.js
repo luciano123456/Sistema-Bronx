@@ -124,61 +124,90 @@ async function configurarDataTable(data) {
 
             initComplete: async function () {
                 var api = this.api();
+                const estadoGuardado = JSON.parse(localStorage.getItem('filtrosFabricaciones')) || {};
 
-                // Iterar sobre las columnas y aplicar la configuración de filtros
-                columnConfig.forEach(async (config) => {
-                    var cell = $('.filters th').eq(config.index);
+                // 1. Armar todos los filtros inicialmente (sin esperar data)
+                const filtrosData = {};
+                const promesasCarga = [];
+
+                for (const config of columnConfig) {
+                    const cell = $('.filters th').eq(config.index);
+                    const valorGuardado = estadoGuardado?.filtros?.[config.index];
 
                     if (config.filterType === 'select') {
-                        // Crear el select con la opción de multiselect
-                        var select = $('<select id="filter' + config.index + '" multiple="multiple"><option value="">Seleccionar...</option></select>')
+                        const select = $('<select id="filter' + config.index + '" multiple="multiple"><option>Cargando...</option></select>')
+                            .attr('data-index', config.index)
                             .appendTo(cell.empty())
                             .on('change', async function () {
-                                var selectedValues = $(this).val();
-
-                                if (selectedValues && selectedValues.length > 0) {
-                                    var regex = selectedValues.join('|'); // Crear una expresión regular para múltiples opciones
-
-                                    // Aplica la búsqueda en la columna oculta
-                                    api.column(config.index, { search: 'applied' }).search(regex, true, false).draw();
-                                } else {
-                                    api.column(config.index, { search: 'applied' }).search('').draw(); // Limpiar filtro
-                                }
+                                const selectedValues = $(this).val();
+                                const regex = selectedValues?.length > 0
+                                    ? '^(' + selectedValues.map(val => $.fn.dataTable.util.escapeRegex(val)).join('|') + ')$'
+                                    : '';
+                                api.column(config.index).search(regex, true, false).draw();
                             });
 
-                        // Llamada a la función para obtener los datos para el filtro
-                        var data = await config.fetchDataFunc();
-                        data.forEach(function (item) {
-                            select.append('<option value="' + item.Nombre + '">' + item.Nombre + '</option>');
+                        // Placeholder visual anticipado
+                        select.select2({ placeholder: 'Cargando...', width: '100%' });
+
+                        // Lanzar carga asincrónica sin bloquear el bucle
+                        const p = config.fetchDataFunc().then(data => {
+                            filtrosData[config.index] = data;
+
+                            // Limpiar y agregar opciones
+                            select.empty().append('<option value="">Seleccionar...</option>');
+                            data.forEach(item => {
+                                select.append('<option value="' + item.Nombre + '">' + item.Nombre + '</option>');
+                            });
+
+                            // Reaplicar valor si había algo guardado
+                            if (valorGuardado) {
+                                const valores = Array.isArray(valorGuardado) ? valorGuardado : [valorGuardado];
+                                const opcionesActuales = Array.from(select[0].options).map(opt => opt.value);
+                                const valoresValidos = valores.filter(v => opcionesActuales.includes(v));
+                                if (valoresValidos.length > 0) {
+                                    select.val(valoresValidos).trigger('change.select2');
+                                }
+                            }
+
+                            // Reconfigurar placeholder
+                            select.select2({ placeholder: 'Seleccionar...', width: '100%' });
                         });
 
-                        // Inicializar Select2 para el filtro con la opción de multiselect
-                        select.select2({
-                            placeholder: 'Seleccionar...',
-                            width: '100%'
-                        });
-                    }
- else if (config.filterType === 'text') {
-                        var input = $('<input type="text" placeholder="Buscar..." />')
+                        promesasCarga.push(p);
+
+                    } else if (config.filterType === 'text') {
+                        const input = $('<input type="text" placeholder="Buscar..." />')
+                            .attr('data-index', config.index)
+                            .val(valorGuardado || '')
                             .appendTo(cell.empty())
-                            .off('keyup change') // Desactivar manejadores anteriores
-                            .on('keyup change', function (e) {
-                                e.stopPropagation();
-                                var regexr = '({search})';
-                                var cursorPosition = this.selectionStart;
+                            .on('keyup change', function () {
+                                const regexr = '(((' + this.value + ')))';
+                                const cursorPosition = this.selectionStart;
                                 api.column(config.index)
-                                    .search(this.value != '' ? regexr.replace('{search}', '(((' + this.value + ')))') : '', this.value != '', this.value == '')
+                                    .search(this.value !== '' ? regexr : '', this.value !== '', this.value === '')
                                     .draw();
                                 $(this).focus()[0].setSelectionRange(cursorPosition, cursorPosition);
                             });
+
+                        if (valorGuardado) input.attr('placeholder', '');
                     }
+                }
+
+                // 2. Esperar a que se terminen de cargar todos los datos async, si necesitás hacer algo después:
+                Promise.all(promesasCarga).then(() => {
+                    console.log("Todos los filtros select2 cargados");
                 });
+
+
 
                 $('.filters th').eq(0).html(''); // Limpiar la última columna si es necesario
                 
 
                 configurarOpcionesColumnas()
 
+                await aplicarFiltrosRestaurados(api, '#grd_Fabricaciones', 'filtrosFabricaciones', false);
+
+               
                 setTimeout(function () {
                     gridFabricaciones.columns.adjust();
                 }, 30);
@@ -564,6 +593,7 @@ function configurarOpcionesColumnas() {
 
 function editarPedido(id) {
     // Redirige a la vista 'PedidoNuevoModif' con el parámetro id
+    guardarFiltrosPantalla('#grd_Fabricaciones', 'filtrosFabricaciones', false);
     localStorage.setItem("RedireccionFabricaciones", 1);
     window.location.href = '/Pedidos/NuevoModif/' + id;
 }
