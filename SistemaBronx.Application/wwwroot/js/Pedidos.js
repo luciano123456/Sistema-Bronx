@@ -3,18 +3,19 @@ let isEditing = false;
 
 
 const columnConfig = [
-    { index: 1, filterType: 'text' },
-    { index: 2, filterType: 'text',},
-    { index: 3, filterType: 'text' },
-    { index: 4, filterType: 'text' },
-    { index: 5, filterType: 'text' },
-    { index: 6, filterType: 'text' },
-    { index: 7, filterType: 'text' },
-    { index: 8, filterType: 'text' },
-    { index: 9, filterType: 'text' },
-    { index: 10, filterType: 'text' },
-    { index: 11, filterType: 'text' },
+    { index: 1, name: 'Nro', filterType: 'text' },
+    { index: 2, name: 'Fecha', filterType: 'text' },
+    { index: 3, name: 'Cliente', filterType: 'text' },
+    { index: 4, name: 'Importe Total', filterType: 'text' },
+    { index: 5, name: 'Porc. Descuento', filterType: 'text' },
+    { index: 6, name: 'SubTotal', filterType: 'text' },
+    { index: 7, name: 'Importe Abonado', filterType: 'text' },
+    { index: 8, name: 'Saldo', filterType: 'text' },
+    { index: 9, name: 'Forma de pago', filterType: 'text' },
+    { index: 10, name: 'Estado', filterType: 'text' },
+    { index: 11, name: 'Comentarios', filterType: 'text' }
 ];
+
 
 $(document).ready(() => {
 
@@ -71,6 +72,7 @@ async function listaPedidos(IdCliente, Estado, Finalizado) {
 
 function editarPedido(id) {
     // Redirige a la vista 'PedidoNuevoModif' con el parámetro id
+    guardarFiltrosPantalla('#grd_Pedidos', 'estadoPedidos', false);
     window.location.href = '/Pedidos/NuevoModif/' + id;
 }
 
@@ -219,62 +221,87 @@ async function configurarDataTable(data) {
             ],
 
             initComplete: async function () {
-                var api = this.api();
+                const api = this.api();
+                const idTabla = '#grd_Pedidos';
+                const estadoGuardado = JSON.parse(localStorage.getItem('estadoPedidos')) || {};
 
-                // Iterar sobre las columnas y aplicar la configuración de filtros
-                // Iterar sobre las columnas y aplicar la configuración de filtros
-                columnConfig.forEach(async (config) => {
-                    var cell = $('.filters th').eq(config.index);
+                const visibilidadActual = api.columns().visible().toArray();
+
+                for (const config of columnConfig) {
+                    const index = config.index;
+                    const name = config.name;
+                    const cell = $('.filters th').eq(index);
+                    const valorGuardado = estadoGuardado.filtrosPorNombre?.[name];
+
+                    if (!api.column(index).visible()) continue;
+
+                    cell.attr('data-colname', name);
+                    cell.empty();
 
                     if (config.filterType === 'select') {
-                        // Crear el select con la opción de multiselect
-                        var select = $('<select id="filter' + config.index + '" multiple="multiple"><option value="">Seleccionar...</option></select>')
-                            .appendTo(cell.empty())
+                        const select = $('<select id="filter' + index + '" multiple="multiple"><option value="">Seleccionar...</option></select>')
+                            .attr('data-index', index)
+                            .appendTo(cell)
                             .on('change', async function () {
-                                var selectedValues = $(this).val();
-
+                                const selectedValues = $(this).val();
                                 if (selectedValues && selectedValues.length > 0) {
-                                    // Filtrar por múltiples valores seleccionados (basado en texto completo)
-                                    var regex = selectedValues.join('|'); // Crear una expresión regular para múltiples opciones
-                                    await api.column(config.index).search(regex, true, false).draw(); // Realizar búsqueda con regex
+                                    const regex = '^(' + selectedValues.map(val => $.fn.dataTable.util.escapeRegex(val)).join('|') + ')$';
+                                    await api.column(index).search(regex, true, false).draw();
                                 } else {
-                                    await api.column(config.index).search('').draw(); // Limpiar filtro
+                                    await api.column(index).search('').draw();
                                 }
                             });
 
-                        // Llamada a la función para obtener los datos para el filtro
-                        var data = await config.fetchDataFunc();
-                        data.forEach(function (item) {
-                            select.append('<option value="' + item.Nombre + '">' + item.Nombre + '</option>'); // Usamos Nombre para mostrar
+                        const data = await config.fetchDataFunc();
+                        data.forEach(item => {
+                            select.append('<option value="' + item.Nombre + '">' + item.Nombre + '</option>');
                         });
 
-                        // Inicializar Select2 para el filtro con la opción de multiselect
-                        select.select2({
-                            placeholder: 'Seleccionar...',
-                            width: '100%'
-                        });
+                        select.select2({ placeholder: 'Seleccionar...', width: '100%' });
 
+                        // Aplicar filtro guardado
+                        if (valorGuardado) {
+                            const valores = Array.isArray(valorGuardado) ? valorGuardado : [valorGuardado];
+                            const opcionesActuales = data.map(x => x.Nombre);
+                            const valoresValidos = valores.filter(v => opcionesActuales.includes(v));
+                            if (valoresValidos.length > 0) {
+                                select.val(valoresValidos).trigger('change.select2');
+
+                                // Aplicar búsqueda al DataTable
+                                const regex = '^(' + valoresValidos.map(val => $.fn.dataTable.util.escapeRegex(val)).join('|') + ')$';
+                                await api.column(index).search(regex, true, false).draw();
+                            }
+
+                        }
 
                     } else if (config.filterType === 'text') {
-                        var input = $('<input type="text" placeholder="Buscar..." />')
-                            .appendTo(cell.empty())
-                            .off('keyup change') // Desactivar manejadores anteriores
-                            .on('keyup change', function (e) {
-                                e.stopPropagation();
-                                var regexr = '({search})';
-                                var cursorPosition = this.selectionStart;
-                                api.column(config.index)
-                                    .search(this.value != '' ? regexr.replace('{search}', '(((' + this.value + ')))') : '', this.value != '', this.value == '')
+                        const input = $('<input type="text" />')
+                            .attr('data-index', index)
+                            .val(valorGuardado || '')
+                            .attr('placeholder', valorGuardado ? '' : 'Buscar...')
+                            .appendTo(cell)
+                            .on('keyup change', function () {
+                                const regexr = '(((' + this.value + ')))';
+                                const cursorPosition = this.selectionStart;
+                                api.column(index)
+                                    .search(this.value !== '' ? regexr : '', this.value !== '', this.value === '')
                                     .draw();
                                 $(this).focus()[0].setSelectionRange(cursorPosition, cursorPosition);
                             });
-                    }
-                });
 
-                $('.filters th').eq(0).html(''); // Limpiar la última columna si es necesario
+                        // Aplicar búsqueda al inicializar
+                        if (valorGuardado) {
+                            const regexr = '(((' + valorGuardado + ')))';
+                            api.column(index).search(regexr, true, false);
+                        }
+                    }
+                }
                 $('.filters th').eq(12).html(''); // Limpiar la última columna si es necesario
 
-                configurarOpcionesColumnas();
+                await configurarOpcionesColumnas();
+
+                await aplicarFiltrosRestaurados(api, idTabla, 'estadoPedidos', true);
+                localStorage.removeItem('estadoPedidos');
 
                 setTimeout(function () {
                     gridPedidos.columns.adjust();
