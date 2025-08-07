@@ -2,20 +2,20 @@
 let isEditing = false;
 let filasSeleccionadas = []; // Array para almacenar las filas seleccionadas
 
+
 const columnConfig = [
     { index: 0, filterType: 'text' },
-    { index: 1, filterType: 'text' },
-    { index: 2, filterType: 'text' },
-    { index: 3, filterType: 'select', fetchDataFunc: listaProductosFilter },
-    { index: 4, filterType: 'text' }, // Columna con un filtro de selección (de provincias)
-    { index: 5, filterType: 'text' }, // Columna con un filtro de selección (de provincias)
-    { index: 6, filterType: 'text', filterType: 'select', fetchDataFunc: listaColoresFilter },
-    { index: 7, filterType: 'text', filterType: 'select', fetchDataFunc: listaEstadosFilter },
-    { index: 8, filterType: 'text' },
-    { index: 9, filterType: 'text' },
-    { index: 10, filterType: 'text', filterType: 'select', fetchDataFunc: listaCategoriasFilter },
-    { index: 11, filterType: 'select', fetchDataFunc: listaProveedoresFilter },
-    { index: 12, filterType: 'text' },
+    { index: 1, name: 'Pedido', filterType: 'text' },
+    { index: 2, name: 'Detalle', filterType: 'text' },
+    { index: 3, name: 'Producto', filterType: 'select', fetchDataFunc: listaProductosFilter },
+    { index: 4, name: 'Insumo', filterType: 'text' },
+    { index: 5, name: 'Cantidad', filterType: 'text' },
+    { index: 6, name: 'Color', filterType: 'select', fetchDataFunc: listaColoresFilter },
+    { index: 7, name: 'Estado', filterType: 'select', fetchDataFunc: listaEstadosFilter },
+    { index: 8, name: 'Comentarios', filterType: 'text' },
+    { index: 9, name: 'Descripcion', filterType: 'text' },
+    { index: 10, name: 'Categoria', filterType: 'select', fetchDataFunc: listaCategoriasFilter },
+    { index: 11, name: 'Proveedor', filterType: 'select', fetchDataFunc: listaProveedoresFilter },
 ];
 
 
@@ -123,94 +123,94 @@ async function configurarDataTable(data) {
 
 
             initComplete: async function () {
-                var api = this.api();
-                const estadoGuardado = JSON.parse(localStorage.getItem('filtrosFabricaciones')) || {};
+                const api = this.api();
+                const idTabla = '#grd_Fabricaciones';
+                const estadoGuardado = JSON.parse(localStorage.getItem('estadoFabricaciones')) || {};
 
-                // 1. Armar todos los filtros inicialmente (sin esperar data)
-                const filtrosData = {};
-                const promesasCarga = [];
+                const visibilidadActual = api.columns().visible().toArray();
 
                 for (const config of columnConfig) {
-                    const cell = $('.filters th').eq(config.index);
-                    const valorGuardado = estadoGuardado?.filtros?.[config.index];
+                    const index = config.index;
+                    const name = config.name;
+                    const cell = $('.filters th').eq(index);
+                    const valorGuardado = estadoGuardado.filtrosPorNombre?.[name];
+
+                    if (!api.column(index).visible()) continue;
+
+                    cell.attr('data-colname', name);
+                    cell.empty();
 
                     if (config.filterType === 'select') {
-                        const select = $('<select id="filter' + config.index + '" multiple="multiple"><option>Cargando...</option></select>')
-                            .attr('data-index', config.index)
-                            .appendTo(cell.empty())
+                        const select = $('<select id="filter' + index + '" multiple="multiple"><option value="">Seleccionar...</option></select>')
+                            .attr('data-index', index)
+                            .appendTo(cell)
                             .on('change', async function () {
                                 const selectedValues = $(this).val();
-                                const regex = selectedValues?.length > 0
-                                    ? '^(' + selectedValues.map(val => $.fn.dataTable.util.escapeRegex(val)).join('|') + ')$'
-                                    : '';
-                                api.column(config.index).search(regex, true, false).draw();
-                            });
-
-                        // Placeholder visual anticipado
-                        select.select2({ placeholder: 'Cargando...', width: '100%' });
-
-                        // Lanzar carga asincrónica sin bloquear el bucle
-                        const p = config.fetchDataFunc().then(data => {
-                            filtrosData[config.index] = data;
-
-                            // Limpiar y agregar opciones
-                            select.empty().append('<option value="">Seleccionar...</option>');
-                            data.forEach(item => {
-                                select.append('<option value="' + item.Nombre + '">' + item.Nombre + '</option>');
-                            });
-
-                            // Reaplicar valor si había algo guardado
-                            if (valorGuardado) {
-                                const valores = Array.isArray(valorGuardado) ? valorGuardado : [valorGuardado];
-                                const opcionesActuales = Array.from(select[0].options).map(opt => opt.value);
-                                const valoresValidos = valores.filter(v => opcionesActuales.includes(v));
-                                if (valoresValidos.length > 0) {
-                                    select.val(valoresValidos).trigger('change.select2');
+                                if (selectedValues && selectedValues.length > 0) {
+                                    const regex = '^(' + selectedValues.map(val => $.fn.dataTable.util.escapeRegex(val)).join('|') + ')$';
+                                    await api.column(index).search(regex, true, false).draw();
+                                } else {
+                                    await api.column(index).search('').draw();
                                 }
-                            }
+                            });
 
-                            // Reconfigurar placeholder
-                            select.select2({ placeholder: 'Seleccionar...', width: '100%' });
+                        const data = await config.fetchDataFunc();
+                        data.forEach(item => {
+                            select.append('<option value="' + item.Nombre + '">' + item.Nombre + '</option>');
                         });
 
-                        promesasCarga.push(p);
+                        select.select2({ placeholder: 'Seleccionar...', width: '100%' });
+
+                        // Aplicar filtro guardado
+                        if (valorGuardado) {
+                            const valores = Array.isArray(valorGuardado) ? valorGuardado : [valorGuardado];
+                            const opcionesActuales = data.map(x => x.Nombre);
+                            const valoresValidos = valores.filter(v => opcionesActuales.includes(v));
+                            if (valoresValidos.length > 0) {
+                                select.val(valoresValidos).trigger('change.select2');
+
+                                // Aplicar búsqueda al DataTable
+                                const regex = '^(' + valoresValidos.map(val => $.fn.dataTable.util.escapeRegex(val)).join('|') + ')$';
+                                await api.column(index).search(regex, true, false).draw();
+                            }
+
+                        }
 
                     } else if (config.filterType === 'text') {
-                        const input = $('<input type="text" placeholder="Buscar..." />')
-                            .attr('data-index', config.index)
+                        const input = $('<input type="text" />')
+                            .attr('data-index', index)
                             .val(valorGuardado || '')
-                            .appendTo(cell.empty())
+                            .attr('placeholder', valorGuardado ? '' : 'Buscar...')
+                            .appendTo(cell)
                             .on('keyup change', function () {
                                 const regexr = '(((' + this.value + ')))';
                                 const cursorPosition = this.selectionStart;
-                                api.column(config.index)
+                                api.column(index)
                                     .search(this.value !== '' ? regexr : '', this.value !== '', this.value === '')
                                     .draw();
                                 $(this).focus()[0].setSelectionRange(cursorPosition, cursorPosition);
                             });
 
-                        if (valorGuardado) input.attr('placeholder', '');
+                        // Aplicar búsqueda al inicializar
+                        if (valorGuardado) {
+                            const regexr = '(((' + valorGuardado + ')))';
+                            api.column(index).search(regexr, true, false);
+                        }
                     }
                 }
-
-                // 2. Esperar a que se terminen de cargar todos los datos async, si necesitás hacer algo después:
-                Promise.all(promesasCarga).then(() => {
-                    console.log("Todos los filtros select2 cargados");
-                });
-
 
 
                 $('.filters th').eq(0).html(''); // Limpiar la última columna si es necesario
                 
 
-                configurarOpcionesColumnas()
+                await configurarOpcionesColumnas()
 
-                await aplicarFiltrosRestaurados(api, '#grd_Fabricaciones', 'filtrosFabricaciones', false);
-
+                await aplicarFiltrosRestaurados(api, '#grd_Fabricaciones', 'estadoFabricaciones', false);
+                localStorage.removeItem('estadoFabricaciones');
                
                 setTimeout(function () {
                     gridFabricaciones.columns.adjust();
-                }, 30);
+                }, 10);
 
                 $('body').on('mouseenter', '#grd_Fabricaciones .fa-map-marker', function () {
                     $(this).css('cursor', 'pointer');
@@ -593,7 +593,7 @@ function configurarOpcionesColumnas() {
 
 function editarPedido(id) {
     // Redirige a la vista 'PedidoNuevoModif' con el parámetro id
-    guardarFiltrosPantalla('#grd_Fabricaciones', 'filtrosFabricaciones', false);
+    guardarFiltrosPantalla('#grd_Fabricaciones', 'estadoFabricaciones', false);
     localStorage.setItem("RedireccionFabricaciones", 1);
     window.location.href = '/Pedidos/NuevoModif/' + id;
 }
