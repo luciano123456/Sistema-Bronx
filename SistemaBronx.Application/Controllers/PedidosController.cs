@@ -229,11 +229,11 @@ namespace SistemaBronx.Application.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Lista(int IdCliente, string Estado, int Finalizado)
+        public async Task<IActionResult> Lista(DateTime FechaDesde, DateTime FechaHasta,int IdCliente, string Estado, int Finalizado)
         {
             try
             {
-                var pedidos = await _PedidosService.ObtenerPedidos(IdCliente, Estado, Finalizado);
+                var pedidos = await _PedidosService.ObtenerPedidos(FechaDesde, FechaHasta, IdCliente, Estado, Finalizado);
 
                 var lista = pedidos.Select(c => new VMPedido
                 {

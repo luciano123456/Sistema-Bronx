@@ -243,39 +243,46 @@ namespace SistemaBronx.DAL.Repository
             }
 
         }
-
-        public async Task<List<Pedido>> ObtenerPedidos(int IdCliente, string Estado, int Finalizado)
+        public async Task<List<Pedido>> ObtenerPedidos(DateTime FechaDesde, DateTime FechaHasta, int IdCliente, string Estado, int Finalizado)
         {
-
             try
             {
+                // Si se pasan fechas válidas, ajustar FechaHasta al final del día
+                if (FechaHasta != DateTime.MinValue)
+                    FechaHasta = FechaHasta.Date.AddDays(1).AddTicks(-1);
 
-                List<Pedido> pedidos = await _dbcontext.Pedidos
+                var query = _dbcontext.Pedidos
                     .Include(x => x.IdClienteNavigation)
                     .Include(x => x.IdFormaPagoNavigation)
                     .Include(x => x.PedidosDetalleProcesos).ThenInclude(x => x.IdEstadoNavigation)
-                    .Where(x =>
-                                x.IdCliente == IdCliente ||
-                                (
-                                    IdCliente == -1
-                                    && (x.Finalizado == Finalizado || Finalizado == -1)
-                                    && (
-                                        (x.Saldo <= 0 && Estado == "ENTREGAR")
-                                        || (x.Saldo >= 0 && Estado == "EN PROCESO")
-                                        || Estado == "TODOS"
-                                    )
-                                )
-                            )
-                    .ToListAsync();
+                    .AsQueryable();
 
-                return pedidos;
+                if (FechaDesde != DateTime.MinValue)
+                    query = query.Where(x => x.Fecha >= FechaDesde);
 
+                if (FechaHasta != DateTime.MinValue)
+                    query = query.Where(x => x.Fecha <= FechaHasta);
+
+                if (IdCliente != -1)
+                    query = query.Where(x => x.IdCliente == IdCliente);
+
+                if (Finalizado != -1)
+                    query = query.Where(x => x.Finalizado == Finalizado);
+
+                if (Estado != "TODOS")
+                {
+                    if (Estado == "ENTREGAR")
+                        query = query.Where(x => x.Saldo <= 0);
+                    else if (Estado == "EN PROCESO")
+                        query = query.Where(x => x.Saldo >= 0);
+                }
+
+                return await query.ToListAsync();
             }
             catch (Exception ex)
             {
                 return null;
             }
-
         }
 
 
