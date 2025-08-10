@@ -9,7 +9,7 @@ namespace SistemaBronx.BLL.Service
         Task<bool> Actualizar(Pedido pedido, IQueryable<PedidosDetalle> pedidosDetalle, IQueryable<PedidosDetalleProceso> pedidosDetalleProceso);
         Task<bool> ActualizarDetalleProceso(PedidosDetalleProceso pedidosDetalleProceso);
         Task<PedidosDetalle> ObtenerProducto(int IdPedido, int IdProducto);
-        Task<List<Pedido>> ObtenerPedidos(int IdCliente, string Estado, int Finalizado);
+        Task<List<Pedido>> ObtenerPedidos(DateTime FechaDesde, DateTime FechaHasta, int IdCliente, string Estado, int Finalizado);
         Task<PedidosDetalleProceso> ObtenerInsumo(int IdPedido, int IdInsumo);
         Task<List<PedidosDetalleProceso>> ObtenerDetalleProcesos();
         Task<Pedido> ObtenerPedido(int pedidoId);

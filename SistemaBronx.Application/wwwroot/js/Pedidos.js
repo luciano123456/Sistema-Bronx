@@ -27,8 +27,11 @@ $(document).ready(() => {
     });
 
 
+    document.getElementById("FechaDesde").value = moment().add(-7, 'days').format('YYYY-MM-DD');
+    document.getElementById("FechaHasta").value = moment().format('YYYY-MM-DD');
 
-    listaPedidos(-1, "TODOS", 0);
+
+    listaPedidos(-1, "TODOS", 0, -1, -1);
 
     $('#txtNombre, #txtCodigo').on('input', function () {
         validarCampos()
@@ -58,12 +61,16 @@ function nuevoPedido() {
 
 
 async function aplicarFiltros() {
-    listaPedidos(document.getElementById("ClientesFiltro").value, document.getElementById("EstadosFiltro").value, document.getElementById("FinalizadosFiltro").value)
+    listaPedidos(document.getElementById("ClientesFiltro").value, document.getElementById("EstadosFiltro").value, document.getElementById("FinalizadosFiltro").value, document.getElementById("FechaDesde").value, document.getElementById("FechaHasta").value)
 }
 
 
-async function listaPedidos(IdCliente, Estado, Finalizado) {
-    const url = `/Pedidos/Lista?IdCliente=${IdCliente}&Estado=${Estado}&Finalizado=${Finalizado}`;
+async function listaPedidos(IdCliente, Estado, Finalizado, FechaDesde = null, FechaHasta = null) {
+    let url = `/Pedidos/Lista?IdCliente=${IdCliente}&Estado=${Estado}&Finalizado=${Finalizado}`;
+
+    if (FechaDesde) url += `&FechaDesde=${FechaDesde}`;
+    if (FechaHasta) url += `&FechaHasta=${FechaHasta}`;
+
     const response = await fetch(url);
     const data = await response.json();
     await configurarDataTable(data);
