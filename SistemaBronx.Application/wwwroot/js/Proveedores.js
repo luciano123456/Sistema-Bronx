@@ -388,7 +388,7 @@ async function configurarDataTable(data) {
             
 
             // Función para guardar los cambios
-            function saveEdit(colIndex, rowData, newText, newValue, trElement) {
+            async function saveEdit(colIndex, rowData, newText, newValue, trElement) {
                 // Obtener el nombre de la propiedad basado en el dataSrc
 
 
@@ -417,6 +417,8 @@ async function configurarDataTable(data) {
                     rowData[gridProveedores.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
                 }
 
+                guardarFiltrosPantalla("#grd_Proveedores", 'filtrosProveedores', true);
+
                 // Actualizar la fila en la tabla con los nuevos datos
                 gridProveedores.row(trElement).data(rowData).draw();
 
@@ -427,6 +429,8 @@ async function configurarDataTable(data) {
 
                 // Enviar los datos actualizados al servidor
                 guardarCambiosFila(rowData);
+
+                await aplicarFiltrosRestaurados(gridProveedores, "#grd_Proveedores", "filtrosProveedores", true)
 
                 // Desactivar el modo de edición
                 isEditing = false;

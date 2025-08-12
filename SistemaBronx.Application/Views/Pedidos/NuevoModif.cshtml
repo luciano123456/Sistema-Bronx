@@ -46,14 +46,14 @@
             <div class="form-container">
                 <div class="form-group">
                     <label for="Fecha">Fecha</label>
-                    <input type="date" class="input-nuevo" id="Fecha" name="Fecha">
+                    <input type="date" class="form-control" id="Fecha" name="Fecha">
                 </div>
 
                 <div class="form-group">
                     <label class="lblfiltro">Cliente</label>
                     <div class="d-flex align-items-center">
                         <!-- Input -->
-                        <select id="Clientes" name="select" class="input-nuevomodif select-modal-personalizado" style="flex-grow: 1;">
+                        <select id="Clientes" name="select" class="form-control" style="flex-grow: 1;">
                             <option value="" selected>Cliente</option>
                         </select>
 
@@ -70,7 +70,7 @@
 
                 <div class="form-group">
                     <label for="Telefono">Telefono</label>
-                    <input type="text" class="input-nuevo" id="Telefono" name="Telefono" disabled>
+                    <input type="text" class="form-control" id="Telefono" name="Telefono" disabled>
 
                 </div>
             </div>
@@ -192,44 +192,44 @@
 
                     <div class="form-group">
                         <label for="ImporteTotal">Importe Total</label>
-                        <input type="text" class="input-nuevo" id="ImporteTotal" name="ImporteTotal" disabled>
+                        <input type="text" class="form-control" id="ImporteTotal" name="ImporteTotal" disabled>
                     </div>
 
                     <div class="form-group">
                         <label for="PorcDesc">% Desc.</label>
-                        <input type="number" class="input-nuevo" id="PorcDesc" name="PorcDesc">
+                        <input type="number" class="form-control" id="PorcDesc" name="PorcDesc">
                     </div>
 
                     <div class="form-group">
                         <label for="Descuento">Descuento</label>
-                        <input type="text" class="input-nuevo" id="Descuento" name="Descuento" disabled>
+                        <input type="text" class="form-control" id="Descuento" name="Descuento" disabled>
                     </div>
 
                     <div class="form-group">
                         <label for="ImporteAbonado">Sub Total</label>
-                        <input type="text" class="input-nuevo" id="SubTotal" name="Subtotal" disabled>
+                        <input type="text" class="form-control" id="SubTotal" name="Subtotal" disabled>
                     </div>
 
                     <div class="form-group">
                         <label for="ImporteAbonado">Importe Abonado</label>
-                        <input type="text" class="input-nuevo" id="ImporteAbonado" name="ImporteAbonado">
+                        <input type="text" class="form-control" id="ImporteAbonado" name="ImporteAbonado">
                     </div>
 
                     <div class="form-group">
                         <label for="Saldo">Saldo</label>
-                        <input type="text" class="input-nuevo" id="Saldo" name="Saldo" disabled>
+                        <input type="text" class="form-control" id="Saldo" name="Saldo" disabled>
                     </div>
 
                     <div class="form-group">
                         <label class="lblfiltro">Forma de pago</label>
-                        <select id="Formasdepago" name="select" class="input-nuevomodif select-modal-personalizado mt-2">
+                        <select id="Formasdepago" name="select" class="form-controlmodif select-modal-personalizado mt-2">
                             <option value="" selected>Forma de pago</option>
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label for="Comentarios">Comentarios</label>
-                        <input type="text" class="input-nuevo" id="Comentarios" name="Comentarios">
+                        <input type="text" class="form-control" id="Comentarios" name="Comentarios">
                     </div>
                 </div>
 
@@ -262,54 +262,61 @@
 
 
 
-    <div class="modal fade" id="modalEdicionCliente" tabindex="-1" role="dialog" aria-labelledby="modalEdicionLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
+    <!-- Modal Nuevo Cliente -->
+    <div class="modal fade" id="modalEdicionCliente" tabindex="-1" role="dialog" aria-labelledby="modalEdicionClienteLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-edicion" role="document">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalEdicionLabel">Nuevo Cliente</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                <div class="modal-header colorEncabezado">
+                    <h5 class="modal-title fw-bold" id="modalEdicionClienteLabel">Nuevo Cliente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
+
                 <div class="modal-body">
-                    <form>
-                        <div class="form-group" hidden>
-                            <label for="txtIdCliente" class="lblNombreInput">ID</label>
-                            <input type="text" class="input-nuevomodif" id="txtIdClienteModal" readonly>
+                    <form id="formEditarCliente" class="row g-3">
+                        <input type="text" id="txtIdClienteModal" hidden readonly>
+
+                        <div class="col-md-6">
+                            <label for="txtNombreClienteModal" class="form-label" id="lblNombreClienteModal">Nombre (*)</label>
+                            <input type="text" class="form-control" id="txtNombreClienteModal" required>
                         </div>
-                        <div class="form-group">
-                            <label id="lblNombreClienteModal" for="txtNombre" class="lblNombreInput">Nombre (*)</label>
-                            <input type="text" class="input-nuevomodif" id="txtNombreClienteModal" required>
+
+                        <div class="col-md-3">
+                            <label for="txtTelefonoClienteModal" class="form-label">Teléfono</label>
+                            <input type="text" class="form-control" id="txtTelefonoClienteModal">
                         </div>
-                        <div class="form-group">
-                            <label for="txtTelefono" class="lblNombreInput">Teléfono</label>
-                            <input type="text" class="input-nuevomodif" id="txtTelefonoClienteModal">
+
+                        <div class="col-md-3">
+                            <label for="txtDniClienteModal" class="form-label">DNI/CUIT</label>
+                            <input type="text" class="form-control" id="txtDniClienteModal">
                         </div>
-                        <div class="form-group">
-                            <label for="txtDireccion" class="lblNombreInput">Dirección</label>
-                            <input type="text" class="input-nuevomodif" id="txtDireccionClienteModal">
+
+                        <div class="col-md-6">
+                            <label for="txtDireccionClienteModal" class="form-label">Dirección</label>
+                            <input type="text" class="form-control" id="txtDireccionClienteModal">
                         </div>
-                        <div class="form-group">
-                            <label for="txtProvincia" class="lblNombreInput">Provincia</label>
-                            <select id="ProvinciasClienteModal" name="select" class="input-nuevomodif select-modal-personalizado mt-2">
+
+                        <div class="col-md-3">
+                            <label for="ProvinciasClienteModal" class="form-label">Provincia</label>
+                            <select id="ProvinciasClienteModal" name="select" class="form-control">
                                 <option value="" selected>Provincias</option>
                             </select>
                         </div>
 
-                        <div class="form-group mt-4">
-                            <label for="txtLocalidad" class="lblNombreInput">Localidad</label>
-                            <input type="text" class="input-nuevomodif" id="txtLocalidadClienteModal">
-                        </div>
-                        <div class="form-group">
-                            <label for="txtDni" class="lblNombreInput">DNI/CUIT</label>
-                            <input type="text" class="input-nuevomodif" id="txtDniClienteModal">
+                        <div class="col-md-3">
+                            <label for="txtLocalidadClienteModal" class="form-label">Localidad</label>
+                            <input type="text" class="form-control" id="txtLocalidadClienteModal">
                         </div>
 
+                        <div class="col-12">
+                            <label for="txtComentariosClienteModal" class="form-label">Comentarios</label>
+                            <input type="text" class="form-control" id="txtComentariosClienteModal">
+                        </div>
                     </form>
                 </div>
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="button" id="btnGuardar" class="btn btn-warning" onclick="guardarCambiosCliente()">Registrar</button>
+                    <button type="button" id="btnGuardarCliente" class="btn btn-warning" onclick="guardarCambiosCliente()">Registrar</button>
                 </div>
             </div>
         </div>
@@ -490,7 +497,7 @@
                     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
 
                     <script src="~/js/utils/moment.js"></script>
-                    <script src="~/js/pedidosnuevomodif.js?v=2.9">
+                    <script src="~/js/pedidosnuevomodif.js?v=3.0">
 
                         <script src="~/js/site.js"></script>
 

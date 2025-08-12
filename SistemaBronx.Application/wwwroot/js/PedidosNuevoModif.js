@@ -1333,7 +1333,7 @@ async function guardarProducto() {
                     // Buscar la fila correspondiente en gridInsumos para actualizarla
                     gridInsumos.rows().every(function () {
                         let insumoDataInsumos = this.data();
-                        if (insumoDataInsumos.IdProducto == parseInt(IdProductoEditando) && insumoDataInsumos.IdInsumo == insumoData.IdInsumo) {
+                        if (insumoDataInsumos.IdDetalle == parseInt(IdProductoEditando) && insumoDataInsumos.IdInsumo == insumoData.IdInsumo) {
                             // Si el IdInsumo coincide, actualizamos la fila existente
                             insumoDataInsumos.Cantidad = insumoData.Cantidad;
                             insumoDataInsumos.Comentarios = insumoData.Comentarios;

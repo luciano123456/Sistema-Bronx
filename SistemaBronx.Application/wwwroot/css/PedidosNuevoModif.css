@@ -90,19 +90,6 @@ select option:disabled {
     color: red; /* Cambiar el color de la letra a rojo */
 }
 
-.select2-container--default:not(#productoModal .select2-container) .select2-selection--single {
-    border: none !important;
-    border-bottom: 4px solid blue !important;
-    border-radius: 0px !important;
-    background-color: transparent !important;
-    margin-top: -6px;
-}
-
-
-
-.select2-container:not(#productoModal .select2-container) .select2-selection__rendered {
-    color: white !important;
-}
 
 
 #productoModal .select2-container--default .select2-selection--single {
@@ -144,26 +131,6 @@ select option:disabled {
     color: white;
 }
 
-/* Asegúrate de que los otros modales (exitoModal, errorModal, etc.) no se vean afectados */
-#ExitoModal .modal-body,
-#ErrorModal .modal-body,
-#AdvertenciaModal .modal-body {
-    background: white/* color deseado para estos modales */;
-}
-
-#ExitoModal .modal-header,
-#ErrorModal .modal-header,
-#AdvertenciaModal .modal-header {
-    background: white /* color deseado para estos modales */;
-}
-
-#ExitoModal .modal-title,
-#ErrorModal .modal-title,
-#AdvertenciaModal .modal-title {
-    color: white/* color deseado para estos modales */;
-}
-
-/* Los siguientes estilos no afectarán a los demás modales */
 
 
 
@@ -258,4 +225,34 @@ select2 option:disabled {
         max-height: calc(100vh - 120px); /* Ajustar según altura del header/footer */
         overflow-y: auto;
     }
+}
+
+
+.select2-container--default .select2-selection--single {
+    height: 42px !important;
+    border: 1px solid #0d6efd !important; /* mismo azul que el input */
+    padding: 0rem 0.75rem !important;
+    background-color: white !important;
+    color: black !important;
+    border-radius: 0.375rem !important;
+}
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 38px !important; /* igual a la altura del select */
+        color: black !important; /* aseguro color del texto */
+    }
+
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 38px !important;
+    }
+
+.select2-container--default .select2-results > .select2-results__options {
+    background-color: white !important; /* o el color de tu fondo */
+    color: white !important;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: white !important;
+    color: burlywood !important;
 }
