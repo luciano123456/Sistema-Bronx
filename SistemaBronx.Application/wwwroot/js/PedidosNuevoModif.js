@@ -2206,7 +2206,7 @@ function generarDatosPedidoPDF() {
         return;
     }
 
-    
+
 
     var datosPedidoJson =
     {
@@ -2240,16 +2240,25 @@ function generarDatosPedidoPDF() {
     descargarPedidoPDF(datos, factura);
 }
 
-function generarPedidoPDF(datos) {
+async function generarPedidoPDF(datos) {
 
-    const doc = new jsPDF();
+    // fuerza tamaño/units estándar
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', putOnlyUsedFonts: true, compress: true });
 
-    const logoElement = document.getElementById("logoImpresion1"); // Logo Bronx
-    const logoElement2 = document.getElementById("logoImpresion2"); // Logo X
+    // 1) normalizar imágenes a dataURL
+    const logo1El = document.getElementById('logoImpresion1');
+    const logo2El = document.getElementById('logoImpresion2');
+    const [logo1, logo2] = await Promise.all([
+        imgToDataURL(logo1El, 'image/jpeg'), // JPEG sólido = menos problemas
+        imgToDataURL(logo2El, 'image/jpeg')
+    ]);
 
-    // Logos
-    doc.addImage(logoElement, 'PNG', 14, 8, 50, 20);
-    doc.addImage(logoElement2, 'PNG', 155, 2, 65, 35);
+    // 2) insertar
+    doc.addImage(logo1, 'JPEG', 14, 8, 50, 20);
+    doc.addImage(logo2, 'JPEG', 155, 2, 65, 35);
+
+    // tipografías base de PDF (siempre soportadas)
+    doc.setFont('Helvetica', 'normal');
 
     // Bloque izquierdo
     doc.setFontSize(8);
@@ -2316,7 +2325,7 @@ function generarPedidoPDF(datos) {
             0: { halign: 'center', cellWidth: 10 },
             1: { cellWidth: 55 },
             2: { cellWidth: 55 },
-            3: { halign: 'right', cellWidth: 30},
+            3: { halign: 'right', cellWidth: 30 },
             4: { halign: 'right', cellWidth: 30 }
         }
     });
@@ -2382,22 +2391,13 @@ function generarPedidoPDF(datos) {
     return doc;
 }
 
-function descargarPedidoPDF(datos, facturaPDF) {
+async function descargarPedidoPDF(datos) {
+    const doc = await generarPedidoPDF(datos);
 
-    let msjpedido = "";
-
-    if (datos.Pedido.IdPedido == "") {
-        msjpedido = ""
-    } else {
-        msjpedido = `Nº ${datos.Pedido.IdPedido} `
-    }
-
-    titulo = `Pedido ${msjpedido}Cliente ${facturaCliente} ${datos.Pedido.SubTotal}`
-
-    facturaPDF.save(`${titulo}.pdf`);
+    const nro = datos.Pedido.IdPedido ? `Nº ${datos.Pedido.IdPedido} ` : '';
+    const file = sanitizeFileName(`Pedido ${nro}Cliente ${datos.Pedido.Cliente} ${fmtMoneda(datos.Pedido.SubTotal)}.pdf`);
+    doc.save(file);
 }
-
-
 
 function generarDatosRemitoPDF() {
 
@@ -2459,7 +2459,7 @@ function generarRemitoPDF(datos) {
 
     const doc = new jsPDF();
 
-   
+
     // Datos cliente
     doc.setFontSize(8);
     doc.text(`${datos.Pedido.Cliente}`, 150, 37);
@@ -2579,5 +2579,43 @@ function descargarRemitoPDF(datos, facturaPDF) {
 function obtenerUrlCompleta(rutaRelativa) {
     const path = window.location.origin + rutaRelativa.replace("~", ""); // Construye la URL completa
     return path;
+}
+
+
+
+// Util: convierte <img> DOM a dataURL (evita problemas de CORS/transparencia)
+async function imgToDataURL(imgEl, mime = 'image/png') {
+    // si ya es dataURL, úsala
+    if (imgEl?.src?.startsWith('data:')) return imgEl.src;
+
+    // re-render a canvas para normalizar (quita alpha problemático)
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = imgEl.src;
+    await new Promise((res, rej) => {
+        img.onload = res; img.onerror = rej;
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    // fondo blanco para eliminar alpha
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+    return canvas.toDataURL(mime, 0.92); // 92% para JPEG si lo cambiaras
+}
+
+function sanitizeFileName(name) {
+    // evita : \ / * ? " < > | y también símbolos conflictivos
+    return (name || '')
+        .replace(/[\\/:*?"<>|]/g, '-')
+        .replace(/[,$%]/g, '-')     // opcional: cambia $, , y % por guión
+        .replace(/\s+/g, ' ')       // colapsa espacios
+        .trim();
+}
+
+function fmtMoneda(v) {
+    // asegura string (algunos visores fallan con floats en text())
+    return typeof v === 'string' ? v : formatNumber(v ?? 0);
 }
 
