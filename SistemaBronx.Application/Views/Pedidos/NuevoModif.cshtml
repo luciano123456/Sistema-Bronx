@@ -324,49 +324,49 @@
 
     <!-- Modal -->
     <div class="modal fade" id="productoModal" tabindex="-1" aria-labelledby="productoModalLabel" aria-hidden="true">
-
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <!-- Agregamos la clase modal-dialog-centered aquí -->
-            <div class="modal-content ">
-                <div class="modal-header colorEncabezado ">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <!-- más ancho -->
+            <div class="modal-content">
+                <div class="modal-header colorEncabezado">
                     <h5 class="modal-title" id="productoModalLabel">Añadir Producto</h5>
                     <button type="button" class="btn-close custom-close" data-bs-dismiss="modal" aria-label="Close"></button>
-
                 </div>
+
                 <div class="modal-body">
                     <div class="container-fluid">
-                        <div class="row">
-                            <!-- Sección izquierda: Lista de productos -->
-                            <div class="col-md-6" id="listaProductos">
+
+                        <!-- TOP: dos columnas -->
+                        <div class="row g-3 mt-2 encuadre-superior">
+                            <!-- IZQ: búsqueda/lista productos -->
+                            <div class="col-lg-6">
                                 <h5 class="text-white">Búsqueda de productos</h5>
                                 <div class="input-group mb-2 flex-nowrap">
                                     <input type="text" id="busqueda" class="form-control" placeholder="Buscar producto">
-                                    <select id="Categorias" class="form-select w-auto">
-                                    </select>
+                                    <select id="Categorias" class="form-select w-auto"></select>
                                 </div>
 
-
-                                <table class="table table-striped table-hover" id="grd_Productos_Modal" style="width:100%">
-                                    <thead>
-                                        <tr>
-
-                                            <th>Descripción</th>
-                                            <th>Categoría</th>
-                                            <th>Precio venta</th>
-                                            <th hidden>Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <!-- Aquí va el contenido de tu datatable -->
-                                    </tbody>
-                                </table>
+                                <!-- ↓ le damos altura fija + scroll -->
+                                <div class="tabla-scroll productos-altura">
+                                    <table class="table table-striped table-hover" id="grd_Productos_Modal" style="width:100%">
+                                        <thead>
+                                            <tr>
+                                                <th>Descripción</th>
+                                                <th>Categoría</th>
+                                                <th>Precio venta</th>
+                                                <th hidden>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
                             </div>
 
-                            <!-- Sección derecha: Producto seleccionado -->
-                            <div class="col-md-6" id="columnaProductoSeleccionado">
+                            <!-- DER: datos del producto seleccionado -->
+                            <div class="col-lg-6" id="columnaProductoSeleccionado">
                                 <h5 class="text-white">Producto seleccionado</h5>
                                 <input type="text" class="form-control" id="ProductoModalId" hidden>
                                 <input type="text" class="form-control" id="ProductoEditandoModalId" hidden>
+
                                 <div class="row mb-2">
                                     <div class="col-md-8">
                                         <label class="form-label">Nombre</label>
@@ -375,11 +375,10 @@
                                     <div class="col-md-4">
                                         <label class="form-label">Categoría</label>
                                         <input type="text" class="form-control" id="ProductoModalIdCategoria" hidden>
-                                        <input type="text" class="form-control" id="ProductoModalCategoria" disabled value="">
+                                        <input type="text" class="form-control" id="ProductoModalCategoria" disabled>
                                     </div>
                                 </div>
 
-                                <!-- Fila de precios -->
                                 <div class="row md-6">
                                     <div class="col-md-4">
                                         <label class="form-label">Costo Unitario</label>
@@ -395,7 +394,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Segunda fila de precios -->
                                 <div class="row mb-2">
                                     <div class="col-md-4">
                                         <label class="form-label">% IVA</label>
@@ -411,7 +409,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Campos de cantidad y color -->
                                 <div class="row mb-2">
                                     <div class="col-md-6">
                                         <label class="form-label">Cantidad</label>
@@ -419,72 +416,59 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Color</label>
-                                        <select id="Colores" class="form-select">
-                                        </select>
+                                        <select id="Colores" class="form-select"></select>
                                     </div>
                                 </div>
 
-                                <!-- Botones -->
                                 <div class="d-flex justify-content-end">
                                     <button class="btn btn-success me-2" id="btnGuardarProducto" onclick="guardarProducto()">✔ Añadir</button>
                                     <button class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Close">🔙 Volver</button>
-
                                 </div>
-
-                                <h5 class="text-white">Insumos del producto</h5>
-
-                                <table class="table table-striped table-hover" id="grd_Insumos_Modal" style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            
-                                            <th>Descripción</th>
-                                            <th>Cantidad</th>
-                                            <th>PrecioUnitario</th>
-                                            <th>SubTotal</th>
-                                            <th hidden>IdCategoria</th>
-                                            <th>Categoría</th>
-                                            <th hidden>IdColor</th>
-                                            <th>Color</th>
-                                            <th hidden>IdEstado</th>
-                                            <th>Estado</th>
-                                            <th hidden>Tipo</th>
-                                            <th>Tipo</th>
-                                            <th>Especificacion</th>
-                                            <th>Proveedor</th>
-                                            <th>Comentarios</th>
-                                            <th hidden>IdUnidadMedida</th>
-                                            <th hidden>IdProveedor</th>
-                                            <th hidden>IdProducto</th>
-                                            <th hidden>IdInsumo</th>
-                                            <th hidden></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <!-- Aquí va el contenido de tu datatable -->
-                                    </tbody>
-                                </table>
-
                             </div>
+                        </div>
+
+                        <!-- BOTTOM: Insumos a 100% de ancho -->
+                        <h5 class="text-white mt-3">Insumos del producto</h5>
+                        <div class="tabla-scroll insumos-altura ">
+                            <table class="table table-striped table-hover w-100" id="grd_Insumos_Modal">
+                                <thead>
+                                    <tr>
+                                        <th>Descripción</th>
+                                        <th>Cantidad</th>
+                                        <th>PrecioUnitario</th>
+                                        <th>SubTotal</th>
+                                        <th hidden>IdCategoria</th>
+                                        <th>Categoría</th>
+                                        <th hidden>IdColor</th>
+                                        <th>Color</th>
+                                        <th hidden>IdEstado</th>
+                                        <th>Estado</th>
+                                        <th hidden>Tipo</th>
+                                        <th>Tipo</th>
+                                        <th>Especificacion</th>
+                                        <th>Proveedor</th>
+                                        <th>Comentarios</th>
+                                        <th hidden>IdUnidadMedida</th>
+                                        <th hidden>IdProveedor</th>
+                                        <th hidden>IdProducto</th>
+                                        <th hidden>IdInsumo</th>
+                                        <th hidden></th>
+                                        <th hidden>Cantidad Inicial</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
                         </div>
 
                         <div class="d-flex justify-content-end mt-2">
                             <button id="btnEliminarInsumo" class="btn btn-danger me-2">❌ Eliminar</button>
                         </div>
+
                     </div>
-
-                    <!-- Sección inferior: Insumos del producto -->
-                    <div class="row mt-3">
-                        <div class="col-6">
-                        </div>
-                    </div>
-
-
-
-
                 </div>
             </div>
         </div>
-        </div>
+    </div>
 
 
 
@@ -497,7 +481,7 @@
                     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
 
                     <script src="~/js/utils/moment.js"></script>
-                    <script src="~/js/pedidosnuevomodif.js?v=3.0">
+                    <script src="~/js/pedidosnuevomodif.js?v=3.1">
 
                         <script src="~/js/site.js"></script>
 

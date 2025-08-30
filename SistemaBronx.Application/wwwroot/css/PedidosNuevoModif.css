@@ -1,4 +1,4 @@
-
+Ôªø
 .form-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -78,7 +78,7 @@ table.dataTable.display tbody tr.selected td {
 
 
 .container {
-    width: 100%; /* O ajusta seg˙n sea necesario */
+    width: 100%; /* O ajusta seg√∫n sea necesario */
 }
 
 
@@ -89,6 +89,14 @@ table.dataTable.display tbody tr.selected td {
 select option:disabled {
     color: red; /* Cambiar el color de la letra a rojo */
 }
+
+.select2-container--default:not(#productoModal .select2-container) .select2-selection--single {
+    margin-top: 2px;
+    height: 37px !important;
+}
+
+
+
 
 
 
@@ -102,14 +110,13 @@ select option:disabled {
 
 
 .lblfiltro {
-    margin-left: 0px !important; 
+    margin-left: 0px !important;
 }
 
 #productoModal .modal-dialog {
-    max-width: 100%; /* O ajusta el porcentaje seg˙n necesites */
+    max-width: 100%; /* O ajusta el porcentaje seg√∫n necesites */
     width: 70%;
     z-index: 1;
-    
 }
 
 #productoModal .modal-body {
@@ -135,13 +142,12 @@ select option:disabled {
 
 
 
-
 .select2-container {
     flex: 1; /* Hace que Select2 no se expanda demasiado */
 }
 
 .select2-selection {
-    height: calc(2.25rem + 2px) !important; /* Ajusta la altura al tamaÒo del input */
+    height: calc(2.25rem + 2px) !important; /* Ajusta la altura al tama√±o del input */
 }
 
 
@@ -153,7 +159,7 @@ select option:disabled {
 
 
 
-/* TambiÈn aseguramos que los th (encabezados) se alineen bien */
+/* Tambi√©n aseguramos que los th (encabezados) se alineen bien */
 #grd_Insumos_Modal th {
     text-align: center; /* Centra todo el texto en la cabecera */
     vertical-align: middle; /* Centra verticalmente el texto en la cabecera */
@@ -168,7 +174,7 @@ select option:disabled {
 }
 
     .custom-close:hover {
-        background-color: blue !important; /* Cambia el color de fondo cuando el mouse est· encima */
+        background-color: blue !important; /* Cambia el color de fondo cuando el mouse est√° encima */
     }
 
 
@@ -222,37 +228,50 @@ select2 option:disabled {
     }
 
     #productoModal .modal-body {
-        max-height: calc(100vh - 120px); /* Ajustar seg˙n altura del header/footer */
+        max-height: calc(100vh - 120px); /* Ajustar seg√∫n altura del header/footer */
         overflow-y: auto;
     }
 }
 
-
-.select2-container--default .select2-selection--single {
-    height: 42px !important;
-    border: 1px solid #0d6efd !important; /* mismo azul que el input */
-    padding: 0rem 0.75rem !important;
-    background-color: white !important;
-    color: black !important;
-    border-radius: 0.375rem !important;
+/* que el modal sea c√≥modo */
+#productoModal .modal-dialog {
+    max-width: 1200px;
 }
 
-    .select2-container--default .select2-selection--single .select2-selection__rendered {
-        line-height: 38px !important; /* igual a la altura del select */
-        color: black !important; /* aseguro color del texto */
-    }
-
-
-    .select2-container--default .select2-selection--single .select2-selection__arrow {
-        height: 38px !important;
-    }
-
-.select2-container--default .select2-results > .select2-results__options {
-    background-color: white !important; /* o el color de tu fondo */
-    color: white !important;
+/* el body del modal puede scrollear si es muy alto */
+#productoModal .modal-body {
+    max-height: calc(100vh - 200px);
+    overflow: auto;
 }
 
-.select2-container--default .select2-results__option--highlighted[aria-selected] {
-    background-color: white !important;
-    color: burlywood !important;
+/* contenedores con scroll propio para tablas */
+#productoModal .tabla-scroll {
+    overflow: auto;
+}
+
+/* lista de productos (un poco m√°s baja) */
+#productoModal .productos-altura {
+    max-height: 28vh;
+}
+
+/* insumos ocupa el espacio "liberado" ‚Üí m√°s alta y 100% ancho */
+#productoModal .insumos-altura {
+    max-height: 25vh;
+}
+
+
+/* Quitar el scroll vertical interno de DataTables dentro del modal */
+#productoModal #grd_Productos_Modal_wrapper .dataTables_scrollBody,
+#productoModal #grd_Insumos_Modal_wrapper .dataTables_scrollBody {
+    overflow-y: visible !important; /* sin scroll vertical de DT */
+    max-height: none !important;
+}
+
+
+.encuadre-superior {
+    border: 1px solid #444; /* un borde suave */
+    border-radius: 8px; /* esquinas redondeadas */
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 6px rgb(241, 213, 107, 0.40); /* un poco de relieve */
 }

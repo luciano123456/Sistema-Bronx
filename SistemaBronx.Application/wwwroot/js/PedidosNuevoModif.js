@@ -340,6 +340,7 @@ async function configurarDataTableInsumosModal(data, editando) {
             columns: [
                 { data: 'Nombre' },
                 { data: 'Cantidad' },
+                
                 { data: 'CostoUnitario' },
                 { data: 'SubTotal' },
                 { data: 'IdCategoria', visible: false, name: 'IdCategoria' },
@@ -358,6 +359,7 @@ async function configurarDataTableInsumosModal(data, editando) {
                 { data: 'IdProducto', visible: false },
                 { data: 'IdInsumo', visible: false },
                 { data: 'Id', visible: false },
+                { data: 'CantidadInicial', visible: false },
             ],
 
             orderCellsTop: true,
@@ -692,7 +694,7 @@ $('#ProductoModalCantidad').on('keyup', function () {
                 cantidad = 1;
             }
             // Actualizar el objeto rowData
-            rowData.Cantidad = parseInt(cantidad);  // Actualizar la cantidad en rowData
+            rowData.Cantidad = rowData.CantidadInicial * parseInt(cantidad);  // Actualizar la cantidad en rowData
             //rowData.SubTotal = parseFloat(rowData.CostoUnitario) * parseInt(cantidad);  // Actualizar la cantidad en rowData
 
             calcularIVAyGanancia();
@@ -1566,6 +1568,7 @@ async function editarProducto(producto) {
             return {
                 Nombre: row.Producto,          // Suponiendo que 'Producto' es el nombre
                 Cantidad: row.Cantidad,
+                CantidadInicial: row.Cantidad,
                 CostoUnitario: row.PrecioUnitario,
                 SubTotal: row.SubTotal,
                 IdCategoria: row.IdCategoria,

@@ -198,6 +198,7 @@ namespace SistemaBronx.Application.Controllers
                 {
                     Nombre = p.IdInsumoNavigation.Descripcion,
                     Cantidad = p.Cantidad,
+                    CantidadInicial = p.Cantidad,
                     IdInsumo = p.IdInsumo,
                     IdProducto = p.IdProducto,
                     CostoUnitario = (decimal)p.IdInsumoNavigation.PrecioVenta,

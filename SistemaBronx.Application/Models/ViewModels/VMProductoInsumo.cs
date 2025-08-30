@@ -28,6 +28,7 @@ namespace SistemaBronx.Application.Models.ViewModels
         public string? Proveedor { get; set; }
 
         public decimal Cantidad { get; set; }
+        public decimal CantidadInicial { get; set; }
         public decimal CostoUnitario { get; set; }
         public decimal SubTotal { get; set; }
         public virtual Insumo IdInsumoNavigation { get; set; } = null!;
