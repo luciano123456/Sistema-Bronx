@@ -456,7 +456,7 @@ async function configurarDataTable(data) {
             }
 
             // Función para guardar los cambios
-            function saveEdit(colIndex, rowData, newText, newValue, trElement) {
+            async function saveEdit(colIndex, rowData, newText, newValue, trElement) {
                 // Obtener el nodo de la celda desde el índice
                 // Convertir el índice de columna (data index) al índice visible
                 var visibleIndex = gridClientes.column(colIndex).index('visible');
@@ -492,6 +492,8 @@ async function configurarDataTable(data) {
                     rowData[gridClientes.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo
                 }
 
+                  guardarFiltrosPantalla("#grd_clientes", 'filtrosClientes', true);
+
                 // Actualizar la fila en la tabla con los nuevos datos
                 gridClientes.row(trElement).data(rowData).draw();
 
@@ -500,8 +502,13 @@ async function configurarDataTable(data) {
                     celda.addClass('blinking'); // Aplicar la clase 'blinking' a la celda que fue editada
                 }
 
+
+             
+
                 // Enviar los datos al servidor
                 guardarCambiosFila(rowData);
+
+                await aplicarFiltrosRestaurados(gridClientes, "#grd_clientes", "filtrosClientes", true)
 
                 // Desactivar el modo de edición
                 isEditing = false;

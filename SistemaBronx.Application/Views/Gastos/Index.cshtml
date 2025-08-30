@@ -97,7 +97,11 @@
                     </table>
                 </div>
 
-                <div class="d-flex justify-content-end mt-2 mb-4">
+                <div class="d-flex justify-content-between align-items-center mt-2 mb-4">
+                    <div class="col-md-3">
+                        <label for="sumaTotalGastos" class="form-label fw-bold">Suma Total</label>
+                        <input type="text" id="sumaTotalGastos" class="form-control" readonly>
+                    </div>
                     <a class="btn btn-warning btnnuevo" onclick="nuevoGasto()">Nuevo</a>
                 </div>
             </div>
@@ -214,6 +218,6 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
 
 
-    <script src="~/js/Gastos.js?v=1.2"></script>
+    <script src="~/js/Gastos.js?v=1.3"></script>
 
 }

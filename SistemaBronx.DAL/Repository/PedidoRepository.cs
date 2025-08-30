@@ -243,18 +243,25 @@ namespace SistemaBronx.DAL.Repository
             }
 
         }
-        public async Task<List<Pedido>> ObtenerPedidos(DateTime FechaDesde, DateTime FechaHasta, int IdCliente, string Estado, int Finalizado)
+        public async Task<List<Pedido>> ObtenerPedidos(
+    DateTime FechaDesde,
+    DateTime FechaHasta,
+    int IdCliente,
+    string Estado,
+    int Finalizado)
         {
             try
             {
-                // Si se pasan fechas válidas, ajustar FechaHasta al final del día
+                // Normalizo rangos: FechaHasta al final del día
                 if (FechaHasta != DateTime.MinValue)
                     FechaHasta = FechaHasta.Date.AddDays(1).AddTicks(-1);
 
                 var query = _dbcontext.Pedidos
+                    .AsNoTracking()
                     .Include(x => x.IdClienteNavigation)
                     .Include(x => x.IdFormaPagoNavigation)
-                    .Include(x => x.PedidosDetalleProcesos).ThenInclude(x => x.IdEstadoNavigation)
+                    .Include(x => x.PedidosDetalleProcesos)
+                        .ThenInclude(x => x.IdEstadoNavigation)
                     .AsQueryable();
 
                 if (FechaDesde != DateTime.MinValue)
@@ -269,7 +276,7 @@ namespace SistemaBronx.DAL.Repository
                 if (Finalizado != -1)
                     query = query.Where(x => x.Finalizado == Finalizado);
 
-                if (Estado != "TODOS")
+                if (!string.Equals(Estado, "TODOS", StringComparison.OrdinalIgnoreCase))
                 {
                     if (Estado == "ENTREGAR")
                         query = query.Where(x => x.Saldo <= 0);
@@ -277,9 +284,13 @@ namespace SistemaBronx.DAL.Repository
                         query = query.Where(x => x.Saldo >= 0);
                 }
 
-                return await query.ToListAsync();
+                // 👇 Orden final: fecha desc + (desempate por Id desc)
+                return await query
+                    .OrderByDescending(x => x.Fecha)
+                    .ThenByDescending(x => x.Id)
+                    .ToListAsync();
             }
-            catch (Exception ex)
+            catch
             {
                 return null;
             }

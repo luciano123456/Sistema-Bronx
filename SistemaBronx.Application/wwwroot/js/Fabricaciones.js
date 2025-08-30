@@ -205,6 +205,7 @@ async function configurarDataTable(data) {
 
                 await configurarOpcionesColumnas()
 
+
                 await aplicarFiltrosRestaurados(api, '#grd_Fabricaciones', 'estadoFabricaciones', false);
                 localStorage.removeItem('estadoFabricaciones');
                
@@ -453,11 +454,16 @@ async function configurarDataTable(data) {
                         rowData[header] = newText;
                     }
 
+                    guardarFiltrosPantalla('#grd_Fabricaciones', 'estadoFabricaciones', false);
+                    
+
                     // Actualizar la celda específica en la tabla
                     gridFabricaciones.cell(rowElement, colIndex).data(newText).draw();
 
                     // Añadir la clase de parpadeo a la celda
                     celda.addClass('blinking');
+
+                    await aplicarFiltrosRestaurados(gridFabricaciones, '#grd_Fabricaciones', 'estadoFabricaciones', false);
 
                     try {
                         // Enviar los datos al servidor y esperar que se complete el guardado antes de continuar

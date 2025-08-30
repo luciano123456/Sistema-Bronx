@@ -217,16 +217,17 @@ async function mostrarModalDuplicado(modelo) {
     });
 
     await listaCategorias();
+    await listaProveedores();
     await listaUnidadesDeMedidas();
     await listaTipos();
 
     document.getElementById("Tipos").value = modelo.IdTipo;
     document.getElementById("Categorias").value = modelo.IdCategoria;
     document.getElementById("UnidadesDeMedidas").value = modelo.IdUnidadMedida;
-    document.getElementById("Proveedores").value = modelo.Proveedor;
+    document.getElementById("Proveedores").value = modelo.IdProveedor;
 
 
-    $("#Categorias, #UnidadesDeMedidas, #Tipos").select2({
+    $("#Categorias, #UnidadesDeMedidas, #Tipos, #Proveedores").select2({
         dropdownParent: $("#modalEdicion"), // Asegura que el dropdown se muestre dentro del modal
         width: "100%",
         placeholder: "Selecciona una opción",
@@ -783,7 +784,7 @@ async function configurarDataTable(data) {
             }
 
             // Función para guardar los cambios
-            function saveEdit(colIndex, rowData, newText, newValue, trElement) {
+            async function saveEdit(colIndex, rowData, newText, newValue, trElement) {
                 // Convertir el índice de columna (dato) al índice visible
                 var visibleIndex = gridInsumos.column(colIndex).index('visible');
 
@@ -791,6 +792,8 @@ async function configurarDataTable(data) {
                 var celda = $(trElement).find('td').eq(visibleIndex);
                 // Obtener el valor original de la celda
                 var originalText = gridInsumos.cell(trElement, colIndex).data();
+
+                guardarFiltrosPantalla("#grd_Insumos", 'filtrosInsumos', true);
 
                 if (colIndex === 7) {
                     var tempDiv = document.createElement('div'); // Crear un div temporal
@@ -808,6 +811,8 @@ async function configurarDataTable(data) {
                     if (originalValue === newValueFloat) {
                         cancelEdit();
                         return; // Si no ha cambiado, no hacer nada
+
+
                     }
                 } else {
                     // Para otras columnas, la comparación sigue siendo en texto
@@ -876,6 +881,9 @@ async function configurarDataTable(data) {
                     rowData[gridInsumos.column(colIndex).header().textContent] = newText;
                 }
 
+
+               
+                
                 // Actualizar la fila en la tabla con los nuevos datos
                 gridInsumos.row(trElement).data(rowData).draw();
 
@@ -886,6 +894,8 @@ async function configurarDataTable(data) {
 
                 // Enviar los datos actualizados al servidor
                 guardarCambiosFila(rowData);
+
+                await aplicarFiltrosRestaurados(gridInsumos, "#grd_Insumos", "filtrosInsumos", true)
 
                 // Desactivar el modo de edición
                 isEditing = false;
@@ -901,9 +911,10 @@ async function configurarDataTable(data) {
 
 
             // Función para cancelar la edición
-            function cancelEdit() {
+            async function cancelEdit() {
                 // Restaurar el valor original
                 gridInsumos.cell(cell.index()).data(originalData).draw();
+                await aplicarFiltrosRestaurados(gridInsumos, "#grd_Insumos", "filtrosInsumos", true)
                 isEditing = false;
             }
         });

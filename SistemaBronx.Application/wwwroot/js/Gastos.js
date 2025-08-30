@@ -386,6 +386,17 @@ async function configurarDataTable(data) {
                     gridGastos.columns.adjust();
                 }, 20);
 
+                // Calcular la suma de la columna "ImporteTotal"
+                let totalGastos = 0;
+                api.rows().every(function () {
+                    const data = this.data();
+                    totalGastos += parseFloat(data.ImporteTotal) || 0;
+                });
+
+                // Mostrar la suma en el div #sumaTotalGastos
+                $('#sumaTotalGastos').val(formatNumber(totalGastos));
+
+
                 $('body').on('mouseenter', '#grd_Gastos .fa-map-marker', function () {
                     $(this).css('cursor', 'pointer');
                 });
@@ -728,6 +739,17 @@ async function configurarDataTable(data) {
 
     } else {
         gridGastos.clear().rows.add(data).draw();
+
+        // Calcular la suma de la columna "ImporteTotal"
+        let totalGastos = 0;
+        gridGastos.rows().every(function () {
+            const data = this.data();
+            totalGastos += parseFloat(data.ImporteTotal) || 0;
+        });
+
+        // Mostrar la suma en el div #sumaTotalGastos
+        $('#sumaTotalGastos').val(formatNumber(totalGastos));
+
     }
 }
 
