@@ -35,6 +35,7 @@ namespace SistemaBronx.Application.Models.ViewModels
         public decimal? PrecioUnitario { get; set; }
 
         public decimal? SubTotal { get; set; }
+        public decimal? CantidadInicial { get; set; }
 
         public string? Comentarios { get; set; }
         public string? Insumo { get; set; }

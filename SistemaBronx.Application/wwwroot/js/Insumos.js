@@ -144,6 +144,7 @@ function nuevoInsumo() {
     limpiarModal();
     listaCategorias();
     listaUnidadesDeMedidas();
+    listaProveedores();
     listaTipos();
     $('#modalEdicion').modal('show');
     $("#btnGuardar").text("Registrar");
