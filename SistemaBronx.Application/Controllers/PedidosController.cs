@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Text.Json.Serialization;
 using System.Text.Json;
+using AspNetCoreGeneratedDocument;
 
 namespace SistemaBronx.Application.Controllers
 {
@@ -17,10 +18,12 @@ namespace SistemaBronx.Application.Controllers
     public class PedidosController : Controller
     {
         private readonly IPedidoService _PedidosService;
+        private readonly IProductoService _ProductosService;
 
-        public PedidosController(IPedidoService PedidosService)
+        public PedidosController(IPedidoService PedidosService, IProductoService ProductosService)
         {
             _PedidosService = PedidosService;
+            _ProductosService = ProductosService;
         }
 
 
@@ -277,64 +280,93 @@ namespace SistemaBronx.Application.Controllers
         [HttpGet]
         public async Task<IActionResult> ObtenerDatosPedido(int idPedido)
         {
-            Dictionary<string, object> result = new Dictionary<string, object>();
+            var result = new Dictionary<string, object>();
 
-            if (idPedido > 0)
+            if (idPedido <= 0)
+                return Ok(new { });
+
+            var pedido = await _PedidosService.ObtenerPedido(idPedido);
+
+            var pedidoJSON = new VMPedido
             {
+                Id = pedido.Id,
+                Fecha = pedido.Fecha,
+                Finalizado = pedido.Finalizado,
+                SubTotal = pedido.SubTotal,
+                FormaPago = pedido.IdFormaPagoNavigation?.Nombre ?? "",
+                Saldo = pedido.Saldo,
+                IdCliente = pedido.IdCliente,
+                IdFormaPago = pedido.IdFormaPago,
+                Cliente = pedido.IdClienteNavigation?.Nombre ?? "",
+                Telefono = pedido.IdClienteNavigation?.Telefono ?? "",
+                PorcDescuento = pedido.PorcDescuento,
+                ImporteAbonado = pedido.ImporteAbonado,
+                ImporteTotal = pedido.ImporteTotal,
+                Comentarios = pedido.Comentarios,
+                Estado = "Pendiente",
+            };
 
-                var pedido = await _PedidosService.ObtenerPedido(idPedido);
-
-                var pedidoJSON = new VMPedido
+            // ---------------- Detalle ----------------
+            List<VMPedidoDetalle> pedidoDetalle = new();
+            if (pedido.PedidosDetalles != null && pedido.PedidosDetalles.Any())
+            {
+                pedidoDetalle = pedido.PedidosDetalles.Select(detalle => new VMPedidoDetalle
                 {
-                    Id = pedido.Id,
-                    Fecha = pedido.Fecha,
-                    Finalizado = pedido.Finalizado,
-                    SubTotal = pedido.SubTotal,
-                    FormaPago = pedido.IdFormaPagoNavigation != null ? pedido.IdFormaPagoNavigation.Nombre : "",
-                    Saldo = pedido.Saldo,
-                    IdCliente = pedido.IdCliente,
-                    IdFormaPago = pedido.IdFormaPago,
-                    Cliente = pedido.IdClienteNavigation != null ? pedido.IdClienteNavigation.Nombre : "",
-                    Telefono = pedido.IdClienteNavigation != null ? pedido.IdClienteNavigation.Telefono : "",
-                    PorcDescuento = pedido.PorcDescuento,
-                    ImporteAbonado = pedido.ImporteAbonado,
-                    ImporteTotal = pedido.ImporteTotal,
-                    Comentarios = pedido.Comentarios,
-                    Estado = "Pendiente",
-                    
-                };
+                    Cantidad = detalle.Cantidad,
+                    CostoUnitario = detalle.CostoUnitario,
+                    PrecioVenta = detalle.PrecioVenta,
+                    PrecioVentaUnitario = detalle.Cantidad != 0 ? (detalle.PrecioVenta / detalle.Cantidad) : 0,
+                    PorcIva = detalle.PorcIva,
+                    IdCategoria = detalle.IdCategoria,
+                    IdColor = detalle.IdColor,
+                    IdProducto = detalle.IdProducto,
+                    PorcGanancia = detalle.PorcGanancia,
+                    IdPedido = detalle.IdPedido,
+                    Id = detalle.Id,
+                    Color = detalle.IdColorNavigation?.Nombre ?? "",
+                    Nombre = !string.IsNullOrWhiteSpace(detalle.Producto) ? detalle.Producto : (detalle.IdProductoNavigation?.Nombre ?? ""),
+                    Categoria = detalle.IdCategoriaNavigation?.Nombre ?? "",
+                    IVA = (decimal)detalle.PrecioVenta * ((decimal)detalle.PorcIva / 100m),
+                    Ganancia = (decimal)detalle.CostoUnitario * ((decimal)detalle.PorcGanancia / 100m)
+                }).ToList();
+            }
 
-                List<VMPedidoDetalle> pedidoDetalle = new List<VMPedidoDetalle>();
-                List<VMPedidoDetalleProceso> pedidoDetalleProceso = new List<VMPedidoDetalleProceso>();
+            // ---------------- Procesos ----------------
+            List<VMPedidoDetalleProceso> pedidoDetalleProceso = new();
 
-                if (pedido.PedidosDetalles != null && pedido.PedidosDetalles.Any())
+            if (pedido.PedidosDetalleProcesos != null && pedido.PedidosDetalleProcesos.Any())
+            {
+                // 1) Pre-cargar insumos por producto (evita N+1)
+                var productoIds = pedido.PedidosDetalleProcesos
+                    .Where(x => x.IdProducto.HasValue)
+                    .Select(x => x.IdProducto!.Value)
+                    .Distinct()
+                    .ToList();
+
+                var cantidadesBase = new Dictionary<(int prod, int ins), decimal>();
+                foreach (var pid in productoIds)
                 {
-                    pedidoDetalle = pedido.PedidosDetalles.Select(detalle => new VMPedidoDetalle
-                    {
-                        Cantidad = detalle.Cantidad,
-                        CostoUnitario = detalle.CostoUnitario,
-                        PrecioVenta = detalle.PrecioVenta,
-                        PrecioVentaUnitario = detalle.PrecioVenta / detalle.Cantidad,
-                        PorcIva = detalle.PorcIva,
-                        IdCategoria = detalle.IdCategoria,
-                        IdColor = detalle.IdColor,
-                        IdProducto = detalle.IdProducto,
-                        PorcGanancia = detalle.PorcGanancia,
-                        IdPedido = detalle.IdPedido,
-                        Id = detalle.Id,
-                        Color = detalle.IdColorNavigation != null ? detalle.IdColorNavigation.Nombre : "",
-                        Nombre = detalle.Producto != null ? detalle.Producto : detalle.IdProductoNavigation.Nombre,
-                        Categoria = detalle.IdCategoriaNavigation != null ? detalle.IdCategoriaNavigation.Nombre : "",
-                        IVA = (decimal)detalle.PrecioVenta * ((decimal)detalle.PorcIva / 100),
-                        Ganancia = (decimal)detalle.CostoUnitario * ((decimal)detalle.PorcGanancia / 100)
-                    }).ToList();
+                    var insumos = await _ProductosService.ObtenerInsumos(pid);
+                    foreach (var i in insumos)
+                        cantidadesBase[(i.IdProducto, i.IdInsumo)] = i.Cantidad;
                 }
 
-                if (pedido.PedidosDetalleProcesos != null && pedido.PedidosDetalleProcesos.Any())
+                // 2) Map a VM
+                pedidoDetalleProceso = pedido.PedidosDetalleProcesos.Select(detalleProceso =>
                 {
-                    pedidoDetalleProceso = pedido.PedidosDetalleProcesos.Select(detalleProceso => new VMPedidoDetalleProceso
+                    decimal cantInicial = 0m;
+                    if (detalleProceso.IdProducto.HasValue && detalleProceso.IdInsumo.HasValue)
+                    {
+                        cantidadesBase.TryGetValue(
+                            (detalleProceso.IdProducto.Value, detalleProceso.IdInsumo.Value),
+                            out cantInicial
+                        );
+                    }
+
+                    return new VMPedidoDetalleProceso
                     {
                         Cantidad = detalleProceso.Cantidad,
+                        CantidadInicial = cantInicial,
                         IdCategoria = detalleProceso.IdCategoria,
                         Comentarios = detalleProceso.Comentarios,
                         Descripcion = detalleProceso.Descripcion,
@@ -349,21 +381,21 @@ namespace SistemaBronx.Application.Controllers
                         IdProveedor = detalleProceso.IdProveedor,
                         IdProducto = detalleProceso.IdProducto,
                         IdInsumo = detalleProceso.IdInsumo,
-                        Color = detalleProceso.IdColorNavigation.Nombre,
-                        Estado = detalleProceso.IdEstadoNavigation.Nombre,
-                        Insumo = detalleProceso.IdInsumoNavigation.Descripcion,
-                        Producto = detalleProceso.IdProductoNavigation.Nombre,
-                        Categoria = detalleProceso.IdCategoriaNavigation != null ? detalleProceso.IdCategoriaNavigation.Nombre : "",
-                        Tipo = detalleProceso.IdTipoNavigation.Nombre,
+                        Color = detalleProceso.IdColorNavigation?.Nombre,
+                        Estado = detalleProceso.IdEstadoNavigation?.Nombre,
+                        Insumo = detalleProceso.IdInsumoNavigation?.Descripcion,
+                        Producto = detalleProceso.IdProductoNavigation?.Nombre,
+                        Categoria = detalleProceso.IdCategoriaNavigation?.Nombre ?? "",
+                        Tipo = detalleProceso.IdTipoNavigation?.Nombre,
                         IdPedido = detalleProceso.IdPedido,
                         IdDetalle = detalleProceso.IdDetalle,
                         Id = detalleProceso.Id,
-                        Proveedor = detalleProceso.IdProveedorNavigation != null ? detalleProceso.IdProveedorNavigation.Nombre : ""
-                    }).ToList();
-                }
+                        Proveedor = detalleProceso.IdProveedorNavigation?.Nombre ?? ""
+                    };
+                }).ToList();
+            }
 
-
-                result.Add("pedido", pedidoJSON);
+          result.Add("pedido", pedidoJSON);
                 result.Add("PedidoDetalle", pedidoDetalle);
                 result.Add("PedidoDetalleProceso", pedidoDetalleProceso);
 
@@ -375,9 +407,7 @@ namespace SistemaBronx.Application.Controllers
                 return Ok(System.Text.Json.JsonSerializer.Serialize(result, jsonOptions));
             }
 
-            return Ok(new { });
-
-        }
+            
 
 
         [HttpDelete]

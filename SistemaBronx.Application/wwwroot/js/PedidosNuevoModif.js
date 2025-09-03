@@ -676,7 +676,8 @@ $('#ProductoModalCantidad').on('keyup', function () {
             }
 
             // Actualizar el objeto rowData
-            rowData.Cantidad = parseInt(cantidad);  // Actualizar la cantidad en rowData
+           /* rowData.Cantidad = parseInt(cantidad);  // Actualizar la cantidad en rowData*/
+            rowData.Cantidad = Math.round(rowData.CantidadInicial * parseInt(cantidad, 10) * 100) / 100;
             //rowData.SubTotal = parseFloat(rowData.CostoUnitario) * parseInt(cantidad);  // Actualizar la cantidad en rowData
 
             calcularIVAyGanancia();
@@ -693,8 +694,14 @@ $('#ProductoModalCantidad').on('keyup', function () {
             if (cantidad == '') {
                 cantidad = 1;
             }
+
+            const idPedido = $("#IdPedido").val();
+
+            rowData.Cantidad = Math.round(rowData.CantidadInicial * parseInt(cantidad, 10) * 100) / 100;
+
+
             // Actualizar el objeto rowData
-            rowData.Cantidad = rowData.CantidadInicial * parseInt(cantidad);  // Actualizar la cantidad en rowData
+           
             //rowData.SubTotal = parseFloat(rowData.CostoUnitario) * parseInt(cantidad);  // Actualizar la cantidad en rowData
 
             calcularIVAyGanancia();
@@ -814,6 +821,7 @@ async function configurarDataTableProductos(data) {
             },
             scrollX: "100px",
             scrollCollapse: true,
+            pageLength: 100,
             searching: false, // 🔹 Esto oculta el campo de búsqueda
             columns: [
                 { data: 'IdProducto', visible: false },
@@ -888,6 +896,7 @@ async function configurarDataTableInsumos(data) {
             },
             scrollX: "100px",
             scrollCollapse: true,
+            pageLength: 100,
             searching: false, // 🔹 Esto oculta el campo de búsqueda
             columns: [
                 { data: 'IdDetalle'},
@@ -909,6 +918,13 @@ async function configurarDataTableInsumos(data) {
                 { data: 'IdEstado', visible: false },
                 { data: 'Estado' },
                 { data: 'Proveedor' },
+                {
+                    data: 'FechaActualizacion',
+                    render: function (data) {
+                        if (!data) return '-';
+                        return new Date(data).toLocaleString('es-AR'); 
+                    }
+                },
                 {
                     data: "Id",
                     render: function (data, type, row) {
@@ -1384,6 +1400,7 @@ async function guardarProducto() {
                 IdProducto: IdProducto,
                 Producto: NombreProducto,
                 Cantidad: insumoData.Cantidad,
+                CantidadInicial: insumoData.CantidadInicial,
                 IdInsumo: insumoData.IdInsumo,
                 Insumo: insumoData.Nombre,
                 PrecioVentaUnitario: insumoData.PrecioVenta / insumoData.Cantidad,
@@ -1568,7 +1585,7 @@ async function editarProducto(producto) {
             return {
                 Nombre: row.Producto,          // Suponiendo que 'Producto' es el nombre
                 Cantidad: row.Cantidad,
-                CantidadInicial: row.Cantidad,
+                CantidadInicial: row.CantidadInicial ?? row.Cantidad,
                 CostoUnitario: row.PrecioUnitario,
                 SubTotal: row.SubTotal,
                 IdCategoria: row.IdCategoria,
