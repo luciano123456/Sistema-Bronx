@@ -280,4 +280,184 @@ async function listaConfiguracion() {
         });
     });
 
-   
+/* =========================================================
+0) Anti beforeunload (mata el popup nativo en todo el sitio)
+========================================================= */
+(function killBeforeUnload() {
+    // 1) Capturamos el evento y cortamos propagación
+    window.addEventListener('beforeunload', function (e) {
+        // NO seteamos returnValue → NO hay diálogo
+        e.stopImmediatePropagation();
+    }, { capture: true });
+
+    // 2) Ignoramos registros futuros a beforeunload
+    const _add = window.addEventListener;
+    window.addEventListener = function (type, listener, opts) {
+        if (type === 'beforeunload') return; // ignorar
+        return _add.call(this, type, listener, opts);
+    };
+
+    // 3) Neutralizamos la propiedad onbeforeunload
+    try { window.onbeforeunload = null; } catch (e) { }
+    try {
+        Object.defineProperty(window, 'onbeforeunload', {
+            configurable: true,
+            get() { return null; },
+            set(_) { /* noop */ }
+        });
+    } catch (_) { }
+})();
+
+/* =========================================================
+   1) Utilidades
+   ========================================================= */
+const NAV_DEST_KEY = '__NAV_DEST_POST_SAVE__';
+
+function esVistaPedidoNuevoModif() {
+    const path = (location.pathname || '').toLowerCase();
+    // Tolerante: /Pedidos/NuevoModif, /Pedidos/NuevoModif/123, etc.
+    return /\/pedidos\/nuevomodif(\/|$)/i.test(path)
+        || (!!document.getElementById('btnNuevoModificar'))
+        || (!!document.getElementById('IdPedido') && !!document.getElementById('Fecha'));
+}
+
+function resolverDestinoSeguro(href) {
+    if (!href || href === '#' || /^\s*javascript:/i.test(href)) return null;
+    try {
+        const u = new URL(href, location.origin);
+        if (u.origin !== location.origin) return null;
+        if (!/^https?:$/.test(u.protocol)) return null;
+        return u.toString();
+    } catch {
+        return null;
+    }
+}
+
+function navegarAhora(url) {
+    // No hay beforeunload, navegamos directo
+    setTimeout(() => location.assign(url), 10);
+}
+
+/* =========================================================
+   2) Modal (usa TU modal ya existente)
+   Devuelve 'guardar' | 'salir' | 'quedarse'
+   ========================================================= */
+async function abrirModalGuardarOSalir(mensaje, esNuevo) {
+    return new Promise((resolve) => {
+        const modalEl = document.getElementById('modalGuardarSalir');
+        const lblMsg = document.getElementById('modalGuardarSalirMensaje');
+        const btnOK = document.getElementById('btnGuardarYSalir');
+        const btnCX = document.getElementById('btnCancelarYSALIR');
+
+        if (!modalEl || !lblMsg || !btnOK || !btnCX) {
+            console.error('Falta el modal #modalGuardarSalir o sus botones.');
+            resolve('quedarse');
+            return;
+        }
+
+        lblMsg.textContent = mensaje || (esNuevo
+            ? 'Estás saliendo del pedido nuevo. ¿Deseás registrar el pedido antes de irte?'
+            : 'Estás saliendo del pedido. ¿Deseás guardar antes de irte?');
+
+        btnOK.textContent = esNuevo ? 'Registrar y salir' : 'Guardar y salir';
+
+        // Evitar listeners duplicados clonando botones
+        const okCl = btnOK.cloneNode(true);
+        const cxCl = btnCX.cloneNode(true);
+        btnOK.parentNode.replaceChild(okCl, btnOK);
+        btnCX.parentNode.replaceChild(cxCl, btnCX);
+
+        // Bootstrap 5: getOrCreateInstance
+        const bs = bootstrap.Modal.getOrCreateInstance(modalEl, { backdrop: 'static', keyboard: false });
+        let decision = null;
+
+        modalEl.addEventListener('hidden.bs.modal', () => resolve(decision || 'quedarse'), { once: true });
+        okCl.addEventListener('click', () => { decision = 'guardar'; bs.hide(); }, { once: true });
+        cxCl.addEventListener('click', () => { decision = 'salir'; bs.hide(); }, { once: true });
+
+        bs.show();
+    });
+}
+
+/* =========================================================
+   3) Guard hook para redirección post-guardar (OPCIONAL)
+   Llamalo al FINAL de tu guardar exitoso: _redirigirDespuesDeGuardar();
+   ========================================================= */
+window._redirigirDespuesDeGuardar = function () {
+    const dest = sessionStorage.getItem(NAV_DEST_KEY);
+    if (!dest) return;
+    sessionStorage.removeItem(NAV_DEST_KEY);
+    navegarAhora(dest);
+};
+
+/* =========================================================
+   4) API pública: navTo(anchor)  — también instalamos delegación
+   ========================================================= */
+async function navTo(anchorEl) {
+    const destino = resolverDestinoSeguro(anchorEl.getAttribute('href'));
+    if (!destino) return false;
+
+    // Si NO estamos en Nuevo/Modif → navegar directo
+    if (!esVistaPedidoNuevoModif()) { navegarAhora(destino); return false; }
+
+    // En Nuevo/Modif SIEMPRE validamos
+    const esNuevo = (document.getElementById('IdPedido')?.value || '') === '';
+    const eleccion = await abrirModalGuardarOSalir(null, esNuevo);
+
+    if (eleccion === 'guardar') {
+        // Guardar y luego ir al destino elegido
+        sessionStorage.setItem(NAV_DEST_KEY, destino);
+        const pathAntes = location.pathname;
+
+        try {
+            const ret = window.guardarCambios && await window.guardarCambios(false);
+            // Si devolver Promise, esperamos
+            if (ret && typeof ret.then === 'function') {
+                await ret;
+            } else {
+                window.errorModal && window.errorModal('No se pudo guardar el pedido.');
+                return;
+            }
+            // Si tu guardar NO redirigió ni llamó al hook, lo hacemos nosotros:
+            setTimeout(() => {
+                const dest = sessionStorage.getItem(NAV_DEST_KEY);
+                if (dest && location.pathname === pathAntes) {
+                    sessionStorage.removeItem(NAV_DEST_KEY);
+                    navegarAhora(destino);
+                }
+            }, 300); // pequeño delay para dejar terminar animaciones/modals
+        } catch (e) {
+            console.error('Error en guardarCambios():', e);
+            sessionStorage.removeItem(NAV_DEST_KEY);
+            window.errorModal && window.errorModal('No se pudo guardar el pedido.');
+        }
+    } else if (eleccion === 'salir') {
+        navegarAhora(destino); // salir sin guardar
+    }
+    // 'quedarse' => no hacemos nada
+
+    return false; // siempre cancelamos el default del <a>
+}
+window.navTo = navTo;
+
+/* =========================================================
+   5) Delegación en el navbar (no necesitás tocar los <a>)
+   - Intercepta clicks en nav.navbar para .nav-link y .dropdown-item
+   - Ignora toggles de dropdown
+   ========================================================= */
+(function instalarDelegacionNavbar() {
+    const navbar = document.querySelector('nav.navbar');
+    if (!navbar) return;
+
+    navbar.addEventListener('click', function (ev) {
+        const a = ev.target.closest('a[href]');
+        if (!a) return;
+        if (a.classList.contains('dropdown-toggle')) return; // solo abre el menú
+        const href = a.getAttribute('href');
+        if (!href || href === '#' || /^\s*javascript:/i.test(href)) return;
+
+        ev.preventDefault();
+        ev.stopPropagation();
+        navTo(a);
+    }, true); // captura para adelantar al resto
+})();

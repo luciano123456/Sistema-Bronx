@@ -11,42 +11,54 @@
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <!-- Items del menú aquí -->
                 <li class="nav-item dropdown" id="configDropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="configDropdownLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <a class="nav-link dropdown-toggle" href="#" id="configDropdownLink"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Pedidos
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="configDropdownLink">
-                        <li><a class="dropdown-item" href="@Url.Action("NuevoModif", "Pedidos", new { Id = 0 })">Nuevo</a></li>
-                        <li><a class="dropdown-item" href="@Url.Action("Index", "Pedidos")">Historial</a></li>
+                        <li>
+                            <a class="dropdown-item"
+                               href="@Url.Action("NuevoModif","Pedidos",new { Id = 0 })"
+                               onclick="return navTo(this)">Nuevo</a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item"
+                               href="@Url.Action("Index","Pedidos")"
+                               onclick="return navTo(this)">Historial</a>
+                        </li>
                     </ul>
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link" href="@Url.Action("Index", "Fabricaciones")">Fabricaciones</a>
+                    <a class="nav-link" href="@Url.Action("Index","Fabricaciones")" onclick="return navTo(this)">Fabricaciones</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="@Url.Action("Index", "Gastos")">Gastos</a>
+                    <a class="nav-link" href="@Url.Action("Index","Gastos")" onclick="return navTo(this)">Gastos</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link active" aria-current="page" href="@Url.Action("Index", "Productos")">Productos</a>
+                    <a class="nav-link active" aria-current="page" href="@Url.Action("Index","Productos")" onclick="return navTo(this)">Productos</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="@Url.Action("Index", "Insumos")">Insumos</a>
+                    <a class="nav-link" href="@Url.Action("Index","Insumos")" onclick="return navTo(this)">Insumos</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="@Url.Action("Index", "Clientes")">Clientes</a>
+                    <a class="nav-link" href="@Url.Action("Index","Clientes")" onclick="return navTo(this)">Clientes</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="@Url.Action("Index", "Proveedores")">Proveedores</a>
+                    <a class="nav-link" href="@Url.Action("Index","Proveedores")" onclick="return navTo(this)">Proveedores</a>
                 </li>
+
                 <li class="nav-item dropdown" id="configDropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="configDropdownLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <a class="nav-link dropdown-toggle" href="#" id="configDropdownLink2"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Configuraciones
                     </a>
-                    <ul class="dropdown-menu" aria-labelledby="configDropdownLink">
-                        <li><a class="dropdown-item" href="@Url.Action("Index", "Usuarios")">Usuarios</a></li>
+                    <ul class="dropdown-menu" aria-labelledby="configDropdownLink2">
+                        <li><a class="dropdown-item" href="@Url.Action("Index","Usuarios")" onclick="return navTo(this)">Usuarios</a></li>
                         <li><a class="dropdown-item" onclick="abrirConfiguraciones()">Otras</a></li>
                     </ul>
                 </li>
+
             </ul>
 
             <!-- Usuario Dropdown -->

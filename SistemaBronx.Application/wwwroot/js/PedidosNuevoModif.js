@@ -1961,70 +1961,83 @@ async function ObtenerDatosPedido(id) {
 }
 
 
+async function guardarCambios(redirecciona = true) {
+    const NAV_DEST_KEY = '__NAV_DEST_POST_SAVE__';
 
-async function guardarCambios() {
+    try {
+        const idPedido = $("#IdPedido").val();
 
-    const idPedido = $("#IdPedido").val();
+        if (!isValidPedido()) return false;
 
-    if (isValidPedido()) {
         await calcularDatosPedido();
+
+        // --- Helpers de armado ---
         function obtenerProductos() {
-            let productos = [];
+            const productos = [];
             gridProductos.rows().every(function () {
-                const producto = this.data();
-                const productoJson = {
-                    "Id": producto.Id,
-                    "IdProducto": parseInt(producto.IdProducto),
-                    "IdCategoria": parseInt(producto.IdCategoria),
-                    "CostoUnitario": parseFloat(producto.CostoUnitario),
-                    "Cantidad": parseInt(producto.Cantidad),
-                    "PorcGanancia": parseFloat(producto.PorcGanancia),
-                    "Ganancia": parseFloat(producto.Ganancia),
-                    "PorcIva": parseFloat(producto.PorcIva),
-                    "IVA": parseFloat(producto.IVA),
-                    "PrecioVenta": parseFloat(producto.PrecioVenta),
-                    "IdColor": parseInt(producto.IdColor),
-                    "Producto": producto.Nombre
-                };
-                productos.push(productoJson);
+                const p = this.data();
+                productos.push({
+                    "Id": p.Id,
+                    "IdProducto": parseInt(p.IdProducto),
+                    "IdCategoria": parseInt(p.IdCategoria),
+                    "CostoUnitario": parseFloat(p.CostoUnitario),
+                    "Cantidad": parseFloat(p.Cantidad),
+                    "PorcGanancia": parseFloat(p.PorcGanancia),
+                    "Ganancia": parseFloat(p.Ganancia),
+                    "PorcIva": parseFloat(p.PorcIva),
+                    "IVA": parseFloat(p.IVA),
+                    "PrecioVenta": parseFloat(p.PrecioVenta),
+                    "IdColor": parseInt(p.IdColor),
+                    "Producto": p.Nombre
+                });
             });
             return productos;
         }
 
         function obtenerInsumos() {
-            let insumos = [];
+            const insumos = [];
+            let invalido = false;
+
             gridInsumos.rows().every(function () {
-                const insumo = this.data();
-                if (!insumo.IdColor || insumo.IdColor === 0) {
-                    alert("Uno de los insumos no tiene color asignado.");
-                    throw "Error: Insumo sin color"; // Esto detendrá la ejecución del código
+                const i = this.data();
+
+                if (!i.IdColor || i.IdColor === 0) {
+                    invalido = true;
+                    // Mostramos mensaje y cortamos luego
                 }
-                const insumoJson = {
-                    "Id": idPedido != "" ? insumo.Id : 0,
-                    "IdProducto": parseInt(insumo.IdProducto),
-                    "IdInsumo": parseInt(insumo.IdInsumo),
-                    "IdCategoria": parseInt(insumo.IdCategoria),
-                    "PrecioUnitario": parseFloat(insumo.PrecioUnitario),
-                    "Cantidad": parseInt(insumo.Cantidad),
-                    "SubTotal": parseFloat(insumo.SubTotal),
-                    "IdColor": parseInt(insumo.IdColor),
-                    "IdTipo": parseInt(insumo.IdTipo),
-                    "IdEstado": parseInt(insumo.IdEstado),
-                    "IdDetalle": parseInt(insumo.IdDetalle),
-                    "IdProveedor": parseInt(insumo.IdProveedor),
-                    "IdUnidadMedida": parseInt(insumo.IdUnidadMedida),
-                    "Especificacion": insumo.Especificacion,
-                    "Comentarios": insumo.Comentarios,
-                };
-                insumos.push(insumoJson);
+
+                insumos.push({
+                    "Id": idPedido !== "" ? i.Id : 0,
+                    "IdProducto": parseInt(i.IdProducto),
+                    "IdInsumo": parseInt(i.IdInsumo),
+                    "IdCategoria": parseInt(i.IdCategoria),
+                    "PrecioUnitario": parseFloat(i.PrecioUnitario),
+                    "Cantidad": parseFloat(i.Cantidad),
+                    "SubTotal": parseFloat(i.SubTotal),
+                    "IdColor": parseInt(i.IdColor),
+                    "IdTipo": parseInt(i.IdTipo),
+                    "IdEstado": parseInt(i.IdEstado),
+                    "IdDetalle": parseInt(i.IdDetalle),
+                    "IdProveedor": parseInt(i.IdProveedor),
+                    "IdUnidadMedida": parseInt(i.IdUnidadMedida),
+                    "Especificacion": i.Especificacion,
+                    "Comentarios": i.Comentarios
+                });
             });
+
+            if (invalido) {
+                if (typeof errorModal === 'function') errorModal("Uno de los insumos no tiene color asignado.");
+                else alert("Uno de los insumos no tiene color asignado.");
+                return null; // señal de error
+            }
             return insumos;
         }
 
         const productos = obtenerProductos();
         const insumos = obtenerInsumos();
+        if (!insumos) return false; // hubo insumo sin color → NO seguimos
 
-        // Construcción del objeto para el modelo
+        // --- Payload ---
         const nuevoModelo = {
             "Id": idPedido !== "" ? parseInt(idPedido) : 0,
             "Fecha": moment($("#Fecha").val(), 'YYYY-MM-DD').format('YYYY-MM-DD'),
@@ -2041,40 +2054,83 @@ async function guardarCambios() {
             "PedidosDetalleProcesos": insumos
         };
 
-        // Definir la URL y el método para el envío
+        // --- Endpoint ---
         const url = idPedido === "" ? "/Pedidos/Insertar" : "/Pedidos/Actualizar";
         const method = idPedido === "" ? "POST" : "PUT";
 
-        console.log(JSON.stringify(nuevoModelo))
-
-        // Enviar los datos al servidor
-        fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json;charset=utf-8'
-            },
+        // --- Fetch ---
+        const resp = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json;charset=utf-8' },
             body: JSON.stringify(nuevoModelo)
-        })
-            .then(response => {
+        });
 
-                if (!response.ok) throw new Error(response.statusText);
-                return response.json();
-            })
-            .then(dataJson => {
-                console.log("Respuesta del servidor:", dataJson);
-                const mensaje = idPedido === "" ? "Pedido registrado correctamente" : "Pedido modificado correctamente";
-                exitoModal(mensaje);
-                if (localStorage.getItem("RedireccionFabricaciones") == 1) {
-                    window.location.href = "../../Fabricaciones";
-                    localStorage.removeItem("RedireccionFabricaciones");
-                } else {
-                    window.location.href = "/Pedidos";
-                }
+        if (!resp.ok) {
+            // Intentamos leer mensaje del servidor; si no, usamos statusText
+            let serverMsg = '';
+            try { serverMsg = await resp.text(); } catch { }
+            const msg = serverMsg?.trim() ? serverMsg : `Error ${resp.status} - ${resp.statusText}`;
+            if (typeof errorModal === 'function') errorModal(msg);
+            else alert(msg);
+            return false;
+        }
 
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
+        const dataJson = await resp.json();
+        console.log("Respuesta del servidor:", dataJson);
+
+        // --- Detección flexible de éxito ---
+        let ok = true;
+        let serverMessage = null;
+
+        if (typeof dataJson === 'object' && dataJson !== null) {
+            if ('ok' in dataJson) ok = !!dataJson.ok;
+            else if ('success' in dataJson) ok = !!dataJson.success;
+            else if ('exito' in dataJson) ok = !!dataJson.exito;
+            else if ('valor' in dataJson) ok = Number(dataJson.valor) > 0;
+            else if ('error' in dataJson) ok = !dataJson.error;
+
+            serverMessage = dataJson.mensaje || dataJson.message || dataJson.errorMessage || null;
+        } else {
+            ok = Boolean(dataJson);
+        }
+
+        if (!ok) {
+            const msg = serverMessage || 'No se pudo guardar el pedido.';
+            if (typeof errorModal === 'function') errorModal(msg);
+            else alert(msg);
+            return false;
+        }
+
+        // --- Éxito ---
+        const mensajeOk = serverMessage || (idPedido === "" ? "Pedido registrado correctamente" : "Pedido modificado correctamente");
+        if (typeof exitoModal === 'function') exitoModal(mensajeOk);
+
+        // a) Si venimos del "Guardar y salir", redirigir EXACTO al destino elegido
+        const destinoGuard = sessionStorage.getItem(NAV_DEST_KEY);
+        if (destinoGuard) {
+            sessionStorage.removeItem(NAV_DEST_KEY);
+            setTimeout(() => { window.location.assign(destinoGuard); }, 150);
+            return true;
+        }
+
+        // b) Si NO venimos del guard y el caller permite redirigir
+        if (redirecciona) {
+            if (localStorage.getItem("RedireccionFabricaciones") == 1) {
+                window.location.href = "../../Fabricaciones";
+                localStorage.removeItem("RedireccionFabricaciones");
+            } else {
+                window.location.href = "/Pedidos";
+            }
+        }
+
+        return true;
+
+    } catch (error) {
+        console.error('Error en guardarCambios:', error);
+        const msg = (error && error.message) ? error.message : 'Ocurrió un error al guardar el pedido.';
+        if (typeof errorModal === 'function') errorModal(msg);
+        else alert(msg);
+        return false;
     }
 }
 
