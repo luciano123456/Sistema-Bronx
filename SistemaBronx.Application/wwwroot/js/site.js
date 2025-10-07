@@ -23,6 +23,97 @@ async function MakeAjaxFormData(options) {
     });
 }
 
+function confirmarModal(mensaje) {
+    return new Promise((resolve) => {
+        const modalEl = document.getElementById('modalConfirmar');
+        const mensajeEl = document.getElementById('modalConfirmarMensaje');
+        const btnAceptar = document.getElementById('btnModalConfirmarAceptar');
+
+        mensajeEl.innerText = mensaje;
+
+        const modal = new bootstrap.Modal(modalEl, {
+            backdrop: 'static',
+            keyboard: false
+        });
+
+        // Flag para que no resuelva dos veces
+        let resuelto = false;
+
+        // Limpia todos los listeners anteriores
+        modalEl.replaceWith(modalEl.cloneNode(true));
+        // Re-obtener referencias luego de clonar
+        const nuevoModalEl = document.getElementById('modalConfirmar');
+        const nuevoBtnAceptar = document.getElementById('btnModalConfirmarAceptar');
+
+        const nuevoModal = new bootstrap.Modal(nuevoModalEl, {
+            backdrop: 'static',
+            keyboard: false
+        });
+
+        nuevoBtnAceptar.onclick = function () {
+            if (resuelto) return;
+            resuelto = true;
+            resolve(true);
+            nuevoModal.hide();
+        };
+
+        nuevoModalEl.addEventListener('hidden.bs.modal', () => {
+            if (resuelto) return;
+            resuelto = true;
+            resolve(false);
+        }, { once: true });
+
+        nuevoModal.show();
+    });
+}
+
+
+// Modal con cierre correcto y resolución post-hidden
+async function abrirModalGuardarOSalir(mensaje, esNuevo) {
+    return new Promise((resolve) => {
+        const modalEl = document.getElementById('modalGuardarSalir');
+        const lblMsg = document.getElementById('modalGuardarSalirMensaje');
+        const btnOK = document.getElementById('btnGuardarYSalir');
+        const btnCancel = document.getElementById('btnCancelarYSALIR');
+
+        // set textos
+        lblMsg.innerText = mensaje || (esNuevo
+            ? 'Estás saliendo del pedido nuevo. ¿Deseás registrar el pedido antes de irte?'
+            : 'Tenés cambios sin guardar. ¿Deseás guardar el pedido antes de salir?');
+        btnOK.textContent = esNuevo ? 'Registrar y salir' : 'Guardar y salir';
+
+        // evitar listeners duplicados
+        const okCl = btnOK.cloneNode(true);
+        const cxCl = btnCancel.cloneNode(true);
+        btnOK.parentNode.replaceChild(okCl, btnOK);
+        btnCancel.parentNode.replaceChild(cxCl, btnCancel);
+
+        const bsModal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
+
+        let decision = null; // 'guardar' | 'salir' | 'quedarse'
+
+        // Siempre resolvemos DESPUÉS de que el modal se cierre
+        modalEl.addEventListener('hidden.bs.modal', () => {
+            resolve(decision || 'quedarse');
+        }, { once: true });
+
+        okCl.addEventListener('click', () => {
+            decision = 'guardar';
+            bsModal.hide(); // ⬅️ cerrar modal
+        }, { once: true });
+
+        cxCl.addEventListener('click', () => {
+            decision = 'salir';
+            bsModal.hide(); // ⬅️ cerrar modal
+        }, { once: true });
+
+        // Si tocan la X, queda 'quedarse'
+        // (no hace falta setear decision)
+
+        bsModal.show();
+    });
+}
+
 
 function formatNumber(number) {
     if (typeof number !== 'number' || isNaN(number)) {
