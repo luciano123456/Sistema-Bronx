@@ -129,7 +129,7 @@ async function mostrarModal(modelo) {
     const campos = ["Id", "Fecha", "Comentarios", "ImporteAbonado", "ImporteTotal", "SubtotalNeto", "PorcIva", "Saldo"];
     campos.forEach(campo => {
         if (campo == "ImporteAbonado" || campo == "ImporteTotal" || campo == "SubtotalNeto" || campo == "Saldo") {
-            $(`#txt${campo}`).val(formatNumber(modelo[campo]));
+            $(`#txt${campo}`).val(formatearARS(modelo[campo]));
         } else if(campo == "Fecha")
         {
             $(`#txt${campo}`).val(moment(modelo.Fecha, "YYYY-MM-DDTHH:mm:ss").format("YYYY-MM-DD"));
@@ -940,41 +940,13 @@ async function aplicarFiltros() {
 }
 
 importeTotalInput.addEventListener('blur', function () {
-    let rawValue = this.value.trim();
-
-    // Verificamos si ya tiene el formato correcto (p. ej. $12.800,00)
-    if (!rawValue.includes('$') && !rawValue.includes(',')) {
-        // Si no tiene símbolo de moneda ni coma decimal, formateamos el valor
-        let parsedValue = parseFloat(rawValue.replace('.', '').replace(',', '.')) || 0;
-        this.value = formatNumber(parsedValue);
-    } else {
-        // Si ya tiene formato, no tocamos el valor
-        // Solo nos aseguramos de que sea un número válido para la operación
-        rawValue = rawValue.replace(/[^\d,\.]/g, ''); // Eliminar caracteres no numéricos, excepto coma y punto
-        let parsedValue = parseFloat(rawValue.replace('.', '').replace(',', '.')) || 0;
-        this.value = formatNumber(parsedValue);
-    }
-
+    this.value = formatearARS(this.value); // o formatearMiles si no querés el $
     calcularGasto();
 
 });
 
 importeAbonadoInput.addEventListener('blur', function () {
-    let rawValue = this.value.trim();
-
-    // Verificamos si ya tiene el formato correcto (p. ej. $12.800,00)
-    if (!rawValue.includes('$') && !rawValue.includes(',')) {
-        // Si no tiene símbolo de moneda ni coma decimal, formateamos el valor
-        let parsedValue = parseFloat(rawValue.replace('.', '').replace(',', '.')) || 0;
-        this.value = formatNumber(parsedValue);
-    } else {
-        // Si ya tiene formato, no tocamos el valor
-        // Solo nos aseguramos de que sea un número válido para la operación
-        rawValue = rawValue.replace(/[^\d,\.]/g, ''); // Eliminar caracteres no numéricos, excepto coma y punto
-        let parsedValue = parseFloat(rawValue.replace('.', '').replace(',', '.')) || 0;
-        this.value = formatNumber(parsedValue);
-    }
-
+    this.value = formatearARS(this.value); // o formatearMiles si no querés el $
     calcularGasto();
 
 });
@@ -984,35 +956,37 @@ IvaInput.addEventListener('blur', function () {
 
 });
 function calcularGasto() {
-    // Obtener los elementos del DOM
-    var importeTotalInput = document.getElementById("txtImporteTotal");
-    var importeAbonadoInput = document.getElementById("txtImporteAbonado");
-    var IvaInput = document.getElementById("txtIva");
-    var PorcIvaInput = document.getElementById("txtPorcIva");
-    var SubTotalInput = document.getElementById("txtSubtotalNeto");
-    var SaldoInput = document.getElementById("txtSaldo");
+    // Elementos
+    const importeTotalInput = document.getElementById("txtImporteTotal");   // BRUTO (incluye IVA)
+    const importeAbonadoInput = document.getElementById("txtImporteAbonado");
+    const ivaMontoInput = document.getElementById("txtIva");            // Monto de IVA
+    const porcIvaInput = document.getElementById("txtPorcIva");        // % IVA
+    const netoInput = document.getElementById("txtSubtotalNeto");   // Neto (sin IVA)
+    const saldoInput = document.getElementById("txtSaldo");
 
-    // Convertir los valores de los campos a números
-    var ImporteTotal = parseFloat(convertirMonedaAFloat(importeTotalInput.value)) || 0;
-    var importeAbonado = parseFloat(convertirMonedaAFloat(importeAbonadoInput.value)) || 0;
-    var porcentajeIva = parseFloat(PorcIvaInput.value) || 0;
+    // Valores numéricos
+    const totalConIva = parseFloat(convertirMonedaAFloat(importeTotalInput.value)) || 0;
+    const abonado = parseFloat(convertirMonedaAFloat(importeAbonadoInput.value)) || 0;
+    let porcIva = parseFloat(porcIvaInput.value);
 
-    // Calcular el IVA como el porcentaje del Importe Neto
-    var iva = ImporteTotal * (porcentajeIva / 100); // IVA = Importe Neto * (Porcentaje IVA / 100)
+    // Default 21 si viene vacío/0/NaN
+    if (!Number.isFinite(porcIva) || porcIva <= 0) {
+        porcIva = 21;
+        porcIvaInput.value = 21;
+    }
 
-    // Asignar el valor del IVA al campo correspondiente
-    IvaInput.value = formatNumber(iva);  // Solo el valor del IVA numérico
+    // Descomposición (total incluye IVA)
+    const factor = 1 + (porcIva / 100);
+    const neto = totalConIva / factor;
+    const iva = totalConIva - neto;
+    const saldo = totalConIva - abonado;
 
-    // Calcular el Importe Total (Importe Neto + IVA)
-    var ImporteTotalConIva = ImporteTotal;
-
-    // Calcular el SubTotal (si es necesario, el Importe Neto se puede usar como SubTotal)
-    SubTotalInput.value = formatNumber(ImporteTotal - iva);
-
-    // Calcular el saldo (Importe Total - Importe Abonado)
-    var saldo = ImporteTotalConIva - importeAbonado;
-    SaldoInput.value = formatNumber(saldo);
+    // Setear campos formateados
+    ivaMontoInput.value = formatearARS(iva);
+    netoInput.value = formatearARS(neto);
+    saldoInput.value = formatearARS(saldo);
 }
+
 
 document.getElementById("FormasdePago").addEventListener("change", function () {
     let ivaInput = document.getElementById("txtPorcIva");

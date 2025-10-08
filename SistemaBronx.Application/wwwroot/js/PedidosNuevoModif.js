@@ -2266,6 +2266,7 @@ function validarCamposCliente() {
 function generarDatosPedidoPDF() {
 
     let cliente = $("#Clientes").select2("data")[0].text
+    let formaPago = $("#Formasdepago").select2("data")[0].text
     let idCliente = $("#Clientes").val();
 
     var cantidadFilasTotales = gridProductos.data().length;
@@ -2296,6 +2297,7 @@ function generarDatosPedidoPDF() {
         ImporteAbonado: document.getElementById("ImporteAbonado").value,
         Telefono: document.getElementById("Telefono").value,
         Saldo: document.getElementById("Saldo").value,
+        FormaPago: formaPago
     };
 
 
@@ -2470,8 +2472,17 @@ async function generarPedidoPDF(datos) {
 async function descargarPedidoPDF(datos) {
     const doc = await generarPedidoPDF(datos);
 
+    let file = "";
+
     const nro = datos.Pedido.IdPedido ? `Nº ${datos.Pedido.IdPedido} ` : '';
-    const file = sanitizeFileName(`Pedido ${nro}Cliente ${datos.Pedido.Cliente} ${fmtMoneda(datos.Pedido.SubTotal)}.pdf`);
+
+    if (datos.Pedido.FormaPago == "Tarjeta") {
+        file = sanitizeFileName(`TJ - Pedido ${nro}Cliente ${datos.Pedido.Cliente} ${fmtMoneda(datos.Pedido.SubTotal)}.pdf`);
+    } else {
+        file = sanitizeFileName(`Pedido ${nro}Cliente ${datos.Pedido.Cliente} ${fmtMoneda(datos.Pedido.SubTotal)}.pdf`);
+    }
+   
+    
     doc.save(file);
 }
 
@@ -2479,6 +2490,7 @@ function generarDatosRemitoPDF() {
 
     let cliente = $("#Clientes").select2("data")[0].text
     let idCliente = $("#Clientes").val();
+    let formaPago = $("#Formasdepago").select2("data")[0].text
 
     var cantidadFilasTotales = gridProductos.data().length;
 
@@ -2511,6 +2523,7 @@ function generarDatosRemitoPDF() {
         ImporteAbonado: document.getElementById("ImporteAbonado").value,
         Telefono: document.getElementById("Telefono").value,
         Saldo: document.getElementById("Saldo").value,
+        FormaPago: formaPago
     };
 
 
@@ -2646,7 +2659,15 @@ function descargarRemitoPDF(datos, facturaPDF) {
         msjpedido = `Nº ${datos.Pedido.IdPedido} `
     }
 
-    titulo = `Remito ${msjpedido}Cliente ${facturaCliente} ${datos.Pedido.SubTotal}`
+
+    let titulo = "";
+
+    if (datos.Pedido.FormaPago == "Tarjeta") {
+        titulo = `TJ - Remito ${msjpedido}Cliente ${facturaCliente} ${datos.Pedido.SubTotal}`
+    } else {
+        titulo = `Remito ${msjpedido}Cliente ${facturaCliente} ${datos.Pedido.SubTotal}`
+    }
+
 
     facturaPDF.save(`${titulo}.pdf`);
 }

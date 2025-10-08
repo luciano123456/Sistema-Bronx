@@ -294,3 +294,47 @@ async function aplicarFiltrosRestaurados(api, idTabla, nombreEstado, soloPosicio
 
     localStorage.removeItem(nombreEstado);
 }
+
+
+
+// 1) Parsear string (con $, puntos, comas) -> Número JS
+function formatearSinMiles(valor) {
+    if (valor == null) return 0;
+
+    // Dejar solo dígitos, coma, punto y signo
+    let s = String(valor).replace(/[^\d.,-]/g, '').trim();
+    if (s === '' || s === '-') return 0;
+
+    const hasDot = s.includes('.');
+    const hasComma = s.includes(',');
+
+    if (hasDot && hasComma) {
+        // Caso típico AR: 162.888,00 -> 162888.00
+        s = s.replace(/\./g, '').replace(/,/g, '.');
+    } else if (hasComma) {
+        // 162,89 -> 162.89
+        s = s.replace(/,/g, '.');
+    }
+    const n = Number(s);
+    return Number.isFinite(n) ? n : 0;
+}
+
+// 2) Formatear Número/entrada -> string "es-AR" con miles y 2 decimales (sin símbolo)
+function formatearMiles(valor) {
+    const n = typeof valor === 'number' ? valor : formatearSinMiles(valor);
+    return n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatearARS(valor) {
+    const n = (typeof valor === 'number') ? valor : formatearSinMiles(valor);
+
+    // Si es inválido o cero, devolvé 0 (número)
+    if (!Number.isFinite(n) || n === 0) return 0;
+
+    return new Intl.NumberFormat('es-AR', {
+        style: 'currency',
+        currency: 'ARS',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(n);
+}
