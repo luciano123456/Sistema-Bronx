@@ -67,7 +67,7 @@ namespace SistemaBronx.Application.Controllers
                     await SessionHelper.SetUsuarioSesion(vmUser, HttpContext);
 
                     // Responder con éxito y redirigir
-                    return Json(new { success = true, redirectUrl = Url.Action("Index", "Clientes"), user = vmUser });
+                    return Json(new { success = true, redirectUrl = Url.Action("Index", "Pedidos"), user = vmUser });
                 }
                 else
                 {

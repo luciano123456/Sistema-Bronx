@@ -163,7 +163,7 @@ async function mostrarModal(modelo) {
     const campos = ["Id", "Descripcion", "IdTipo", "IdCategoria", "IdUnidadMedida", "IdProveedor", "Especificacion", "PrecioCosto", "PorcGanancia", "PrecioVenta"];
     campos.forEach(campo => {
         if (campo == "PrecioCosto" || campo == "PrecioVenta") {
-            $(`#txt${campo}`).val(formatNumber(modelo[campo]));
+            $(`#txt${campo}`).val(formatearARS(modelo[campo]));
         } else {
             $(`#txt${campo}`).val(modelo[campo]);
         }
@@ -1061,20 +1061,12 @@ function calcularPorcentaje() {
 
 
 precioCostoInput.addEventListener('blur', function () {
-    const rawValue = this.value.replace(/[^0-9.,]/g, '').replace(',', '.');
-    const parsedValue = parseFloat(rawValue) || 0;
-
-    // Formatear el número al finalizar la edición
-    this.value = formatNumber(parsedValue);
+    this.value = formatearARS(this.value); // o formatearMiles si no querés el $
 
 });
 
 precioVentaInput.addEventListener('blur', function () {
-    const rawValue = this.value.replace(/[^0-9.,]/g, '').replace(',', '.');
-    const parsedValue = parseFloat(rawValue) || 0;
-
-    // Formatear el número al finalizar la edición
-    this.value = formatNumber(parsedValue);
+    this.value = formatearARS(this.value); // o formatearMiles si no querés el $
 
 });
 

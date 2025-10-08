@@ -5,7 +5,7 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
 <Project>
   <PropertyGroup>
     <_PublishTargetUrl>D:\Publicaciones Webs\Sistema Bronx</_PublishTargetUrl>
-    <History>True|2025-09-03T18:35:49.2225949Z||;True|2025-09-03T15:35:10.1993378-03:00||;True|2025-08-30T03:42:16.4418518-03:00||;True|2025-08-30T03:42:05.1498194-03:00||;True|2025-08-30T03:35:31.4343354-03:00||;True|2025-08-19T14:45:07.5127571-03:00||;True|2025-08-11T03:48:02.7077842-03:00||;True|2025-08-07T09:44:57.1819644-03:00||;True|2025-07-14T18:24:53.0792426-03:00||;True|2025-06-25T12:32:10.2771955-03:00||;True|2025-06-25T01:42:03.8672272-03:00||;True|2025-06-23T02:01:59.6036892-03:00||;True|2025-06-23T01:54:44.9847689-03:00||;True|2025-06-08T04:33:12.5869947-03:00||;True|2025-05-21T17:55:16.2033098-03:00||;True|2025-05-20T01:12:48.5291901-03:00||;True|2025-05-14T23:27:45.6158505-03:00||;True|2025-05-14T23:20:25.8613164-03:00||;True|2025-04-22T14:17:09.9932714-03:00||;True|2025-04-11T01:10:06.2063283-03:00||;True|2025-04-06T05:15:10.1344079-03:00||;True|2025-04-06T04:31:13.8957138-03:00||;True|2025-03-30T18:07:19.3142418-03:00||;True|2025-03-30T05:04:22.7674761-03:00||;True|2025-03-30T05:04:07.4322000-03:00||;True|2025-03-29T17:16:14.6491950-03:00||;True|2025-03-29T06:34:56.5319754-03:00||;True|2025-03-28T02:27:55.8850020-03:00||;True|2025-03-27T12:35:09.3880334-03:00||;True|2025-03-27T12:34:34.4359288-03:00||;True|2025-03-27T12:22:29.1762264-03:00||;False|2025-03-18T02:14:21.8246161-03:00||;True|2025-02-25T12:05:56.5506464-03:00||;True|2025-02-25T12:05:47.8793822-03:00||;True|2025-02-25T11:53:03.8494958-03:00||;True|2025-01-17T12:45:51.8517617-03:00||;True|2025-01-17T12:45:15.7764735-03:00||;True|2025-01-17T12:45:06.0973551-03:00||;True|2025-01-17T12:42:48.3371628-03:00||;True|2025-01-17T12:42:14.2745244-03:00||;True|2025-01-17T12:34:07.3652822-03:00||;</History>
+    <History>True|2025-10-08T03:05:41.3436593Z||;True|2025-09-03T15:35:49.2225949-03:00||;True|2025-09-03T15:35:10.1993378-03:00||;True|2025-08-30T03:42:16.4418518-03:00||;True|2025-08-30T03:42:05.1498194-03:00||;True|2025-08-30T03:35:31.4343354-03:00||;True|2025-08-19T14:45:07.5127571-03:00||;True|2025-08-11T03:48:02.7077842-03:00||;True|2025-08-07T09:44:57.1819644-03:00||;True|2025-07-14T18:24:53.0792426-03:00||;True|2025-06-25T12:32:10.2771955-03:00||;True|2025-06-25T01:42:03.8672272-03:00||;True|2025-06-23T02:01:59.6036892-03:00||;True|2025-06-23T01:54:44.9847689-03:00||;True|2025-06-08T04:33:12.5869947-03:00||;True|2025-05-21T17:55:16.2033098-03:00||;True|2025-05-20T01:12:48.5291901-03:00||;True|2025-05-14T23:27:45.6158505-03:00||;True|2025-05-14T23:20:25.8613164-03:00||;True|2025-04-22T14:17:09.9932714-03:00||;True|2025-04-11T01:10:06.2063283-03:00||;True|2025-04-06T05:15:10.1344079-03:00||;True|2025-04-06T04:31:13.8957138-03:00||;True|2025-03-30T18:07:19.3142418-03:00||;True|2025-03-30T05:04:22.7674761-03:00||;True|2025-03-30T05:04:07.4322000-03:00||;True|2025-03-29T17:16:14.6491950-03:00||;True|2025-03-29T06:34:56.5319754-03:00||;True|2025-03-28T02:27:55.8850020-03:00||;True|2025-03-27T12:35:09.3880334-03:00||;True|2025-03-27T12:34:34.4359288-03:00||;True|2025-03-27T12:22:29.1762264-03:00||;False|2025-03-18T02:14:21.8246161-03:00||;True|2025-02-25T12:05:56.5506464-03:00||;True|2025-02-25T12:05:47.8793822-03:00||;True|2025-02-25T11:53:03.8494958-03:00||;True|2025-01-17T12:45:51.8517617-03:00||;True|2025-01-17T12:45:15.7764735-03:00||;True|2025-01-17T12:45:06.0973551-03:00||;True|2025-01-17T12:42:48.3371628-03:00||;True|2025-01-17T12:42:14.2745244-03:00||;True|2025-01-17T12:34:07.3652822-03:00||;</History>
     <LastFailureDetails />
   </PropertyGroup>
   <ItemGroup>
@@ -82,7 +82,7 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>08/30/2025 02:43:34</publishTime>
     </File>
     <File Include="Views/Gastos/Index.cshtml">
-      <publishTime>08/30/2025 02:43:34</publishTime>
+      <publishTime>10/08/2025 00:04:29</publishTime>
     </File>
     <File Include="Views/Home/Index.cshtml">
       <publishTime>03/06/2025 14:33:31</publishTime>
@@ -91,7 +91,7 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>03/06/2025 14:33:31</publishTime>
     </File>
     <File Include="Views/Insumos/Index.cshtml">
-      <publishTime>08/30/2025 03:34:53</publishTime>
+      <publishTime>09/03/2025 15:51:51</publishTime>
     </File>
     <File Include="Views/Login/Index.cshtml">
       <publishTime>08/19/2025 13:36:55</publishTime>
@@ -100,10 +100,10 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>03/06/2025 14:33:31</publishTime>
     </File>
     <File Include="Views/Pedidos/Index.cshtml">
-      <publishTime>08/19/2025 13:36:55</publishTime>
+      <publishTime>10/08/2025 00:04:43</publishTime>
     </File>
     <File Include="Views/Pedidos/NuevoModif.cshtml">
-      <publishTime>09/03/2025 15:35:38</publishTime>
+      <publishTime>10/08/2025 00:04:50</publishTime>
     </File>
     <File Include="Views/Productos/Index.cshtml">
       <publishTime>08/19/2025 13:36:55</publishTime>
@@ -118,7 +118,7 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>03/06/2025 14:33:31</publishTime>
     </File>
     <File Include="Views/Shared/Partials/NavBarLogin.cshtml">
-      <publishTime>08/19/2025 13:36:55</publishTime>
+      <publishTime>10/08/2025 00:05:00</publishTime>
     </File>
     <File Include="Views/Shared/_Layout.cshtml">
       <publishTime>03/06/2025 14:33:31</publishTime>
@@ -136,7 +136,7 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>08/19/2025 13:36:55</publishTime>
     </File>
     <File Include="Views/Utils/Modals.cshtml">
-      <publishTime>08/19/2025 14:27:59</publishTime>
+      <publishTime>10/07/2025 01:45:13</publishTime>
     </File>
     <File Include="Views/Zonas/Index.cshtml">
       <publishTime>08/07/2025 09:44:12</publishTime>
@@ -334,10 +334,10 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/js/Gastos.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>07/10/2025 23:54:06</publishTime>
     </File>
     <File Include="wwwroot/js/Insumos.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>07/10/2025 02:00:44</publishTime>
     </File>
     <File Include="wwwroot/js/Login.js">
       <publishTime>01/01/0001 00:00:00</publishTime>
@@ -346,13 +346,13 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/js/NavBarLogin.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>07/10/2025 02:11:54</publishTime>
     </File>
     <File Include="wwwroot/js/Pedidos.js">
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/js/PedidosNuevoModif.js">
-      <publishTime>03/09/2025 15:34:20</publishTime>
+      <publishTime>07/10/2025 23:59:15</publishTime>
     </File>
     <File Include="wwwroot/js/Productos.js">
       <publishTime>01/01/0001 00:00:00</publishTime>
@@ -364,7 +364,7 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/js/site.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>07/10/2025 02:03:39</publishTime>
     </File>
     <File Include="wwwroot/js/Usuarios.js">
       <publishTime>01/01/0001 00:00:00</publishTime>

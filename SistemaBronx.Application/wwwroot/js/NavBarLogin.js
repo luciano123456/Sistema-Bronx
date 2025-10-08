@@ -314,12 +314,13 @@ async function listaConfiguracion() {
 const NAV_DEST_KEY = '__NAV_DEST_POST_SAVE__';
 
 function esVistaPedidoNuevoModif() {
-    const path = (location.pathname || '').toLowerCase();
-    // Tolerante: /Pedidos/NuevoModif, /Pedidos/NuevoModif/123, etc.
-    return /\/pedidos\/nuevomodif(\/|$)/i.test(path)
-        || (!!document.getElementById('btnNuevoModificar'))
-        || (!!document.getElementById('IdPedido') && !!document.getElementById('Fecha'));
+    const segs = (location.pathname || '').toLowerCase().split('/').filter(Boolean);
+    for (let i = 0; i < segs.length - 1; i++) {
+        if (segs[i] === 'pedidos' && segs[i + 1] === 'nuevomodif') return true;
+    }
+    return false;
 }
+
 
 function resolverDestinoSeguro(href) {
     if (!href || href === '#' || /^\s*javascript:/i.test(href)) return null;
