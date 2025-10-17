@@ -957,34 +957,54 @@ IvaInput.addEventListener('blur', function () {
 });
 function calcularGasto() {
     // Elementos
-    const importeTotalInput = document.getElementById("txtImporteTotal");   // BRUTO (incluye IVA)
+    const importeTotalInput = document.getElementById("txtImporteTotal"); // BRUTO (incluye IVA, salvo efectivo)
     const importeAbonadoInput = document.getElementById("txtImporteAbonado");
-    const ivaMontoInput = document.getElementById("txtIva");            // Monto de IVA
-    const porcIvaInput = document.getElementById("txtPorcIva");        // % IVA
-    const netoInput = document.getElementById("txtSubtotalNeto");   // Neto (sin IVA)
+    const ivaMontoInput = document.getElementById("txtIva");              // Monto de IVA (salida)
+    const porcIvaInput = document.getElementById("txtPorcIva");           // % IVA (entrada)
+    const netoInput = document.getElementById("txtSubtotalNeto");         // Neto (sin IVA)
     const saldoInput = document.getElementById("txtSaldo");
+    const formasDePagoSel = document.getElementById("FormasdePago");
+
+    // Forma de pago (por texto)
+    const formaPagoTexto = (formasDePagoSel && formasDePagoSel.options[formasDePagoSel.selectedIndex])
+        ? formasDePagoSel.options[formasDePagoSel.selectedIndex].text.trim().toLowerCase()
+        : "";
 
     // Valores numéricos
     const totalConIva = parseFloat(convertirMonedaAFloat(importeTotalInput.value)) || 0;
     const abonado = parseFloat(convertirMonedaAFloat(importeAbonadoInput.value)) || 0;
-    let porcIva = parseFloat(porcIvaInput.value);
 
-    // Default 21 si viene vacío/0/NaN
-    if (!Number.isFinite(porcIva) || porcIva <= 0) {
-        porcIva = 21;
-        porcIvaInput.value = 21;
+    let porcIva = parseFloat(porcIvaInput.value);
+    if (!Number.isFinite(porcIva) || porcIva < 0) porcIva = 0; // sanidad
+
+    let neto = 0, iva = 0;
+
+    if (formaPagoTexto === "efectivo") {
+        // ⚡ Efectivo: SIN IVA. El bruto es el neto.
+        porcIva = 0;
+        neto = totalConIva;
+        iva = 0;
+    } else {
+        // Otras formas: usar % ingresado o 21% por defecto
+        if (!Number.isFinite(porcIva) || porcIva <= 0) {
+            porcIva = 21;
+            porcIvaInput.value = 21; // reflejar default
+        }
+        const factor = 1 + (porcIva / 100);
+        neto = factor ? totalConIva / factor : totalConIva;
+        iva = totalConIva - neto;
     }
 
-    // Descomposición (total incluye IVA)
-    const factor = 1 + (porcIva / 100);
-    const neto = totalConIva / factor;
-    const iva = totalConIva - neto;
     const saldo = totalConIva - abonado;
 
     // Setear campos formateados
+    porcIvaInput.value = porcIva;            // asegura 0 para efectivo
     ivaMontoInput.value = formatearARS(iva);
     netoInput.value = formatearARS(neto);
     saldoInput.value = formatearARS(saldo);
+
+    // opcional: devolver resultado por si lo querés usar
+    return { total: totalConIva, neto, iva, saldo, porcIva };
 }
 
 
