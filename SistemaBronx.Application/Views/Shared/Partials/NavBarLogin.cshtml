@@ -29,6 +29,25 @@
                     </ul>
                 </li>
 
+                <li class="nav-item dropdown" id="configDropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="configDropdownLink"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Cotizaciones
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="configDropdownLink">
+                        <li>
+                            <a class="dropdown-item"
+                               href="@Url.Action("NuevoModif","Cotizaciones",new { Id = 0 })"
+                               onclick="return navTo(this)">Nuevo</a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item"
+                               href="@Url.Action("Index","Cotizaciones")"
+                               onclick="return navTo(this)">Historial</a>
+                        </li>
+                    </ul>
+                </li>
+
                 <li class="nav-item">
                     <a class="nav-link" href="@Url.Action("Index","Fabricaciones")" onclick="return navTo(this)">Fabricaciones</a>
                 </li>
@@ -147,17 +166,17 @@
                         <img src="/Imagenes/configuraciones.png" alt="Icono Categorias" class="imgConfiguraciones">
                         <span>Gastos Categorias</span>
                     </button>
-                    <button type="button" class="btnConfiguraciones" onclick="abrirConfiguracion('Categoria', 'PedidosCategorias')">
+                    <button type="button" class="btnConfiguraciones" onclick="abrirConfiguracion('Categoria', 'CotizacionesCategorias')">
                         <img src="/Imagenes/configuraciones.png" alt="Icono Categorias" class="imgConfiguraciones">
-                        <span>Pedidos Categorias</span>
+                        <span>Cotizaciones Categorias</span>
                     </button>
-                    <button type="button" class="btnConfiguraciones" onclick="abrirConfiguracion('Tipo', 'PedidosTipos')">
+                    <button type="button" class="btnConfiguraciones" onclick="abrirConfiguracion('Tipo', 'CotizacionesTipos')">
                         <img src="/Imagenes/configuraciones.png" alt="Icono Tipos" class="imgConfiguraciones">
-                        <span>Pedidos Tipos</span>
+                        <span>Cotizaciones Tipos</span>
                     </button>
-                    <button type="button" class="btnConfiguraciones" onclick="abrirConfiguracion('Estado', 'PedidosEstados')">
+                    <button type="button" class="btnConfiguraciones" onclick="abrirConfiguracion('Estado', 'CotizacionesEstados')">
                         <img src="/Imagenes/configuraciones.png" alt="Icono Estados" class="imgConfiguraciones">
-                        <span>Pedidos Estados</span>
+                        <span>Cotizaciones Estados</span>
                     </button>
                     <button type="button" class="btnConfiguraciones mt-2" onclick="abrirConfiguracion('Color', 'Colores')">
                         <img src="/Imagenes/configuraciones.png" alt="Icono Colores" class="imgConfiguraciones">
@@ -189,4 +208,4 @@
     </div>
 </div>
 
-<script src="~/js/NavBarLogin.js?v=1.1" asp-append-version="true"></script>
+<script src="~/js/NavBarLogin.js?v=1.2" asp-append-version="true"></script>

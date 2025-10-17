@@ -8,10 +8,6 @@ namespace SistemaBronx.DAL.DataContext;
 
 public partial class SistemaBronxContext : DbContext
 {
-
-    private readonly IConfiguration _configuration;
-
-
     public SistemaBronxContext()
     {
     }
@@ -20,6 +16,9 @@ public partial class SistemaBronxContext : DbContext
         : base(options)
     {
     }
+
+    private readonly IConfiguration _configuration;
+
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -33,6 +32,12 @@ public partial class SistemaBronxContext : DbContext
     public virtual DbSet<Cliente> Clientes { get; set; }
 
     public virtual DbSet<Color> Colores { get; set; }
+
+    public virtual DbSet<Cotizacion> Cotizaciones { get; set; }
+
+    public virtual DbSet<CotizacionesDetalle> CotizacionesDetalles { get; set; }
+
+    public virtual DbSet<CotizacionesDetalleProceso> CotizacionesDetalleProcesos { get; set; }
 
     public virtual DbSet<Estado> Estados { get; set; }
 
@@ -115,6 +120,114 @@ public partial class SistemaBronxContext : DbContext
             entity.Property(e => e.Nombre)
                 .HasMaxLength(255)
                 .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<Cotizacion>(entity =>
+        {
+            entity.Property(e => e.Comentarios)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.Fecha).HasColumnType("datetime");
+            entity.Property(e => e.ImporteAbonado).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.ImporteTotal).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.PorcDescuento).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.Saldo).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.SubTotal).HasColumnType("decimal(20, 2)");
+
+            entity.HasOne(d => d.IdClienteNavigation).WithMany(p => p.Cotizaciones)
+                .HasForeignKey(d => d.IdCliente)
+                .HasConstraintName("FK_Cotizaciones_Clientes");
+
+            entity.HasOne(d => d.IdFormaPagoNavigation).WithMany(p => p.Cotizaciones)
+                .HasForeignKey(d => d.IdFormaPago)
+                .HasConstraintName("FK_Cotizaciones_FormasdePago");
+        });
+
+        modelBuilder.Entity<CotizacionesDetalle>(entity =>
+        {
+            entity.ToTable("CotizacionesDetalle");
+
+            entity.Property(e => e.Cantidad).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.CostoUnitario).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.PorcGanancia).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.PorcIva).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.PrecioVenta).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.Producto)
+                .HasMaxLength(250)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.CotizacionesDetalles)
+                .HasForeignKey(d => d.IdCategoria)
+                .HasConstraintName("FK_CotizacionesDetalle_PedidosCategorias");
+
+            entity.HasOne(d => d.IdColorNavigation).WithMany(p => p.CotizacionesDetalles)
+                .HasForeignKey(d => d.IdColor)
+                .HasConstraintName("FK_CotizacionesDetalle_Colores");
+
+            entity.HasOne(d => d.IdCotizacionNavigation).WithMany(p => p.CotizacionesDetalles)
+                .HasForeignKey(d => d.IdCotizacion)
+                .HasConstraintName("FK_CotizacionesDetalle_Cotizaciones");
+
+            entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.CotizacionesDetalles)
+                .HasForeignKey(d => d.IdProducto)
+                .HasConstraintName("FK_CotizacionesDetalle_Productos");
+        });
+
+        modelBuilder.Entity<CotizacionesDetalleProceso>(entity =>
+        {
+            entity.Property(e => e.Cantidad).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.Comentarios)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.Descripcion)
+                .HasMaxLength(250)
+                .IsUnicode(false);
+            entity.Property(e => e.Especificacion)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+            entity.Property(e => e.FechaActualizacion).HasColumnType("datetime");
+            entity.Property(e => e.PrecioUnitario).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.SubTotal).HasColumnType("decimal(20, 2)");
+
+            entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.CotizacionesDetalleProcesos)
+                .HasForeignKey(d => d.IdCategoria)
+                .HasConstraintName("FK_CotizacionesDetalleProcesos_PedidosCategorias");
+
+            entity.HasOne(d => d.IdColorNavigation).WithMany(p => p.CotizacionesDetalleProcesos)
+                .HasForeignKey(d => d.IdColor)
+                .HasConstraintName("FK_CotizacionesDetalleProcesos_Colores");
+
+            entity.HasOne(d => d.IdCotizacionNavigation).WithMany(p => p.CotizacionesDetalleProcesos)
+                .HasForeignKey(d => d.IdCotizacion)
+                .HasConstraintName("FK_CotizacionesDetalleProcesos_Cotizaciones");
+
+            entity.HasOne(d => d.IdDetalleNavigation).WithMany(p => p.CotizacionesDetalleProcesos)
+                .HasForeignKey(d => d.IdDetalle)
+                .HasConstraintName("FK_CotizacionesDetalleProcesos_CotizacionesDetalle");
+
+            entity.HasOne(d => d.IdEstadoNavigation).WithMany(p => p.CotizacionesDetalleProcesos)
+                .HasForeignKey(d => d.IdEstado)
+                .HasConstraintName("FK_CotizacionesDetalleProcesos_PedidosEstados");
+
+            entity.HasOne(d => d.IdInsumoNavigation).WithMany(p => p.CotizacionesDetalleProcesos)
+                .HasForeignKey(d => d.IdInsumo)
+                .HasConstraintName("FK_CotizacionesDetalleProcesos_Insumos");
+
+            entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.CotizacionesDetalleProcesos)
+                .HasForeignKey(d => d.IdProducto)
+                .HasConstraintName("FK_CotizacionesDetalleProcesos_Productos");
+
+            entity.HasOne(d => d.IdProveedorNavigation).WithMany(p => p.CotizacionesDetalleProcesos)
+                .HasForeignKey(d => d.IdProveedor)
+                .HasConstraintName("FK_CotizacionesDetalleProcesos_Proveedores");
+
+            entity.HasOne(d => d.IdTipoNavigation).WithMany(p => p.CotizacionesDetalleProcesos)
+                .HasForeignKey(d => d.IdTipo)
+                .HasConstraintName("FK_CotizacionesDetalleProcesos_InsumosTipos");
+
+            entity.HasOne(d => d.IdUnidadMedidaNavigation).WithMany(p => p.CotizacionesDetalleProcesos)
+                .HasForeignKey(d => d.IdUnidadMedida)
+                .HasConstraintName("FK_CotizacionesDetalleProcesos_UnidadesDeMedida");
         });
 
         modelBuilder.Entity<Estado>(entity =>

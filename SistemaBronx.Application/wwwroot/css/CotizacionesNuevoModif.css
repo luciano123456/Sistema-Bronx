@@ -1,0 +1,277 @@
+﻿
+.form-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+
+.input-nuevo {
+    background: transparent !important;
+    max-width: 800px !important;
+    width: 100% !important;
+}
+
+input:disabled {
+    border-bottom: solid #5f5f5f;
+}
+
+
+.form-container .form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.form-container .form-group2 {
+    display: flex;
+}
+
+
+table.dataTable.display tbody tr.selected td {
+    background-color: antiquewhite !important;
+    color: black !important;
+}
+
+
+@media (max-width: 1200px) {
+    .form-container {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 992px) {
+    .form-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .form-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+.tituloCotizacion {
+    margin: 5px 0;
+    text-align: center;
+    font-size: 35px;
+    font-weight: bold;
+    background-color: grey;
+    color: white;
+    border-radius: 10px;
+}
+
+.card {
+    margin-top: 0px !important;
+}
+
+@media (max-width: 1250px) {
+    .pestaniasDatos {
+        margin-top: 120px !important;
+    }
+
+    .tituloCotizacionclass {
+        margin-top: 80px !important;
+    }
+}
+
+
+.container {
+    width: 100%; /* O ajusta según sea necesario */
+}
+
+
+.selected {
+    background-color: #1fabca !important;
+}
+
+select option:disabled {
+    color: red; /* Cambiar el color de la letra a rojo */
+}
+
+.select2-container--default:not(#productoModal .select2-container) .select2-selection--single {
+    margin-top: 2px;
+    height: 37px !important;
+}
+
+
+
+
+
+
+#productoModal .select2-container--default .select2-selection--single {
+    background-color: white !important;
+}
+
+#productoModal .select2-container .select2-selection__rendered {
+    color: black !important;
+}
+
+
+.lblfiltro {
+    margin-left: 0px !important;
+}
+
+#productoModal .modal-dialog {
+    max-width: 100%; /* O ajusta el porcentaje según necesites */
+    width: 70%;
+    z-index: 1;
+}
+
+#productoModal .modal-body {
+    background: #353c48;
+}
+
+#productoModal .modal-title {
+    color: white;
+}
+
+
+/* Estilos solo para #productoModal y sus hijos */
+#productoModal .modal-body {
+    background: #353c48;
+}
+
+
+#productoModal .modal-title {
+    color: white;
+}
+
+
+
+
+
+.select2-container {
+    flex: 1; /* Hace que Select2 no se expanda demasiado */
+}
+
+.select2-selection {
+    height: calc(2.25rem + 2px) !important; /* Ajusta la altura al tamaño del input */
+}
+
+
+.selected {
+    background-color: antiquewhite !important; /* Azul Bootstrap */
+    color: black !important;
+}
+
+
+
+
+/* También aseguramos que los th (encabezados) se alineen bien */
+#grd_Insumos_Modal th {
+    text-align: center; /* Centra todo el texto en la cabecera */
+    vertical-align: middle; /* Centra verticalmente el texto en la cabecera */
+}
+
+
+/* Cambiar color de la "X" y el fondo */
+.custom-close {
+    background-color: #353c48 !important; /* Cambia el color de fondo a rojo */
+
+    border: none !important; /* Elimina el borde por defecto */
+}
+
+    .custom-close:hover {
+        background-color: blue !important; /* Cambia el color de fondo cuando el mouse está encima */
+    }
+
+
+
+select2 option:disabled {
+    color: red; /* Cambiar el color de la letra a rojo */
+}
+
+
+#productoModal input:disabled {
+    background: rgb(128, 128, 128, 0.20) !important; /* Color gris claro de fondo */
+    color: white;
+    cursor: not-allowed; /* Cambia el cursor para indicar que no se puede interactuar */
+}
+
+
+.form-check-input:checked {
+    background-color: #28a745; /* Verde */
+    border-color: #28a745;
+}
+
+.form-check-input {
+    width: 10rem; /* Ancho */
+    height: 1rem; /* Alto */
+    transform: scale(1.5); /* Escalado */
+}
+
+#productoModal .modal-dialog {
+    max-width: 90%;
+    width: 50%;
+    margin: auto;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    position: fixed;
+}
+
+
+
+
+
+@media (max-width: 768px) {
+    #productoModal .modal-dialog {
+        max-width: 100%;
+        margin: 0;
+    }
+
+    #productoModal .modal-content {
+        height: 100vh;
+        border-radius: 0;
+    }
+
+    #productoModal .modal-body {
+        max-height: calc(100vh - 120px); /* Ajustar según altura del header/footer */
+        overflow-y: auto;
+    }
+}
+
+/* que el modal sea cómodo */
+#productoModal .modal-dialog {
+    max-width: 1200px;
+}
+
+/* el body del modal puede scrollear si es muy alto */
+#productoModal .modal-body {
+    max-height: calc(100vh - 200px);
+    overflow: auto;
+}
+
+/* contenedores con scroll propio para tablas */
+#productoModal .tabla-scroll {
+    overflow: auto;
+}
+
+/* lista de productos (un poco más baja) */
+#productoModal .productos-altura {
+    max-height: 28vh;
+}
+
+/* insumos ocupa el espacio "liberado" → más alta y 100% ancho */
+#productoModal .insumos-altura {
+    max-height: 25vh;
+}
+
+
+/* Quitar el scroll vertical interno de DataTables dentro del modal */
+#productoModal #grd_Productos_Modal_wrapper .dataTables_scrollBody,
+#productoModal #grd_Insumos_Modal_wrapper .dataTables_scrollBody {
+    overflow-y: visible !important; /* sin scroll vertical de DT */
+    max-height: none !important;
+}
+
+
+.encuadre-superior {
+    border: 1px solid #444; /* un borde suave */
+    border-radius: 8px; /* esquinas redondeadas */
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 6px rgb(241, 213, 107, 0.40); /* un poco de relieve */
+}

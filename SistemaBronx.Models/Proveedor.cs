@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 
 namespace SistemaBronx.Models;
+
 public partial class Proveedor
 {
     public int Id { get; set; }
@@ -17,6 +18,8 @@ public partial class Proveedor
     public string? Cbu { get; set; }
 
     public string? Cuit { get; set; }
+
+    public virtual ICollection<CotizacionesDetalleProceso> CotizacionesDetalleProcesos { get; set; } = new List<CotizacionesDetalleProceso>();
 
     public virtual ICollection<Insumo> Insumos { get; set; } = new List<Insumo>();
 

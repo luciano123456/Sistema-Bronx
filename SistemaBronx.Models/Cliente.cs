@@ -23,6 +23,8 @@ public partial class Cliente
 
     public decimal? SaldoAfavor { get; set; }
 
+    public virtual ICollection<Cotizacion> Cotizaciones { get; set; } = new List<Cotizacion>();
+
     public virtual Provincia? IdProvinciaNavigation { get; set; }
 
     public virtual ICollection<Pedido> Pedidos { get; set; } = new List<Pedido>();

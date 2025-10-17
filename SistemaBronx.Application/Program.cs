@@ -83,7 +83,8 @@ builder.Services.AddScoped<IPedidoEstadoService, PedidoEstadoService>();
 builder.Services.AddScoped<IPedidosRepository<Pedido>, PedidoRepository>();
 builder.Services.AddScoped<IPedidoService, PedidoService>();
 
-
+builder.Services.AddScoped<ICotizacionesRepository<Cotizacion>, CotizacionRepository>();
+builder.Services.AddScoped<ICotizacioneservice, Cotizacioneservice>();
 
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>
