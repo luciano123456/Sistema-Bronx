@@ -1,0 +1,50 @@
+﻿using SistemaBronx.DAL.DataContext;
+using SistemaBronx.Models;
+
+namespace SistemaBronx.Application.Models.ViewModels
+{
+    public class VMCotizacion
+    {
+        public int Id { get; set; }
+
+        public DateTime Fecha { get; set; }
+
+        public int? IdCliente { get; set; }
+
+        public decimal? SubTotal { get; set; }
+
+        public decimal? PorcDescuento { get; set; }
+
+        public decimal? ImporteAbonado { get; set; }
+        public decimal? ImporteTotal { get; set; }
+
+        public decimal? Saldo { get; set; }
+
+        public int? IdFormaPago { get; set; }
+
+        public int? IdTipo { get; set; }
+
+
+        public int? Finalizado { get; set; }
+
+        public string Tipo { get; set; }
+        public string Estado { get; set; }
+        public string FormaPago { get; set; }
+        public string Cliente { get; set; }
+        public string Telefono { get; set; }
+        public string Comentarios { get; set; }
+
+
+        public virtual Cliente? IdClienteNavigation { get; set; }
+
+        public virtual FormasdePago IdNavigation { get; set; } = null!;
+
+        public virtual PedidosTipo? IdTipoNavigation { get; set; }
+
+        public virtual ICollection<CotizacionesDetalleProceso> CotizacionesDetalleProcesos { get; set; } = new List<CotizacionesDetalleProceso>();
+
+        public virtual ICollection<CotizacionesDetalle> CotizacionesDetalles { get; set; } = new List<CotizacionesDetalle>();
+
+
+    }
+}

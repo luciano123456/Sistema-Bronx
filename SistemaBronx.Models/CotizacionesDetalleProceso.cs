@@ -3,13 +3,13 @@ using System.Collections.Generic;
 
 namespace SistemaBronx.Models;
 
-public partial class PedidosDetalleProceso
+public partial class CotizacionesDetalleProceso
 {
     public int Id { get; set; }
 
     public int? IdDetalle { get; set; }
 
-    public int? IdPedido { get; set; }
+    public int? IdCotizacion { get; set; }
 
     public int? IdProducto { get; set; }
 
@@ -41,23 +41,23 @@ public partial class PedidosDetalleProceso
 
     public DateTime? FechaActualizacion { get; set; }
 
-    public virtual InsumosCategoria? IdCategoriaNavigation { get; set; }
+    public virtual PedidosCategoria? IdCategoriaNavigation { get; set; }
 
     public virtual Color? IdColorNavigation { get; set; }
 
-    public virtual PedidosDetalle? IdDetalleNavigation { get; set; }
+    public virtual Cotizacion? IdCotizacionNavigation { get; set; }
+
+    public virtual CotizacionesDetalle? IdDetalleNavigation { get; set; }
 
     public virtual PedidosEstado? IdEstadoNavigation { get; set; }
 
     public virtual Insumo? IdInsumoNavigation { get; set; }
 
-    public virtual Pedido? IdPedidoNavigation { get; set; }
-
     public virtual Producto? IdProductoNavigation { get; set; }
 
     public virtual Proveedor? IdProveedorNavigation { get; set; }
 
-    public virtual PedidosTipo? IdTipoNavigation { get; set; }
+    public virtual InsumosTipo? IdTipoNavigation { get; set; }
 
     public virtual UnidadesDeMedida? IdUnidadMedidaNavigation { get; set; }
 }

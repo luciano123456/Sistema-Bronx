@@ -9,5 +9,7 @@ public partial class PedidosEstado
 
     public string Nombre { get; set; } = null!;
 
+    public virtual ICollection<CotizacionesDetalleProceso> CotizacionesDetalleProcesos { get; set; } = new List<CotizacionesDetalleProceso>();
+
     public virtual ICollection<PedidosDetalleProceso> PedidosDetalleProcesos { get; set; } = new List<PedidosDetalleProceso>();
 }

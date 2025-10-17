@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 
 namespace SistemaBronx.Models;
+
 public partial class Producto
 {
     public int Id { get; set; }
@@ -15,6 +16,10 @@ public partial class Producto
     public decimal? PorcIva { get; set; }
 
     public decimal CostoUnitario { get; set; }
+
+    public virtual ICollection<CotizacionesDetalleProceso> CotizacionesDetalleProcesos { get; set; } = new List<CotizacionesDetalleProceso>();
+
+    public virtual ICollection<CotizacionesDetalle> CotizacionesDetalles { get; set; } = new List<CotizacionesDetalle>();
 
     public virtual ProductosCategoria? IdCategoriaNavigation { get; set; }
 

@@ -25,6 +25,8 @@ public partial class Insumo
 
     public decimal PrecioVenta { get; set; }
 
+    public virtual ICollection<CotizacionesDetalleProceso> CotizacionesDetalleProcesos { get; set; } = new List<CotizacionesDetalleProceso>();
+
     public virtual InsumosCategoria IdCategoriaNavigation { get; set; } = null!;
 
     public virtual Proveedor? IdProveedorNavigation { get; set; }
