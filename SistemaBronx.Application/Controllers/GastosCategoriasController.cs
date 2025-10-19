@@ -76,20 +76,31 @@ namespace SistemaBronx.Application.Controllers
             return StatusCode(StatusCodes.Status200OK, new { valor = respuesta });
         }
 
+
         [HttpGet]
         public async Task<IActionResult> EditarInfo(int id)
         {
-            var Categoria = await _GastosCategoriasService.Obtener(id);
+            var resultBase = await _GastosCategoriasService.Obtener(id);
 
-            if (Categoria != null)
+            var result = new VMGenericModelConfCombo
             {
-                return StatusCode(StatusCodes.Status200OK, Categoria);
+                Id = resultBase.Id,
+                Nombre = resultBase.Nombre,
+                IdCombo = resultBase.IdTipo != null ? (int)resultBase.IdTipo : 0,
+                NombreCombo = resultBase.IdTipoNavigation != null ? resultBase.IdTipoNavigation.Nombre : null,
+            };
+
+            if (result != null)
+            {
+                return StatusCode(StatusCodes.Status200OK, result);
             }
             else
             {
                 return StatusCode(StatusCodes.Status404NotFound);
             }
         }
+
+
         public IActionResult Privacy()
         {
             return View();
