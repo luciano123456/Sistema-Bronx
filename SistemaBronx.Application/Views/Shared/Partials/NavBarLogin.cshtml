@@ -67,6 +67,10 @@
                     <a class="nav-link" href="@Url.Action("Index","Proveedores")" onclick="return navTo(this)">Proveedores</a>
                 </li>
 
+                <li class="nav-item" id="divAnalisis" hidden>
+                    <a class="nav-link" href="@Url.Action("Index","AnalisisDatos")" onclick="return navTo(this)">Analisis de Datos</a>
+                </li>
+
                 <li class="nav-item dropdown" id="configDropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="configDropdownLink2"
                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -208,4 +212,4 @@
     </div>
 </div>
 
-<script src="~/js/NavBarLogin.js?v=1.2" asp-append-version="true"></script>
+<script src="~/js/NavBarLogin.js?v=1.3" asp-append-version="true"></script>

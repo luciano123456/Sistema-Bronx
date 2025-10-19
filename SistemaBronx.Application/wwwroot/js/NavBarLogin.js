@@ -11,6 +11,15 @@ document.addEventListener("DOMContentLoaded", function () {
         $("#userName").html('<i class="fa fa-user"></i> ' + userFullName); // Cambiar el contenido del enlace
 
     }
+
+    const liAnalisis = document.getElementById('divAnalisis');
+    if (liAnalisis) {
+        if (userSession && Number(userSession.IdRol) === 1) {
+            liAnalisis.removeAttribute('hidden');   // habilitar para admin
+        } else {
+            liAnalisis.setAttribute('hidden', 'hidden'); // mantener oculto para el resto
+        }
+    }
     // Busca todos los elementos con la clase "dropdown-toggle"
     var dropdownToggleList = document.querySelectorAll('.dropdown-toggle');
 
