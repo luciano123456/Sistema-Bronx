@@ -338,3 +338,17 @@ function formatearARS(valor) {
         maximumFractionDigits: 2
     }).format(n);
 }
+
+
+
+function llenarSelect(selectId, data, valueField = 'Id', textField = 'Nombre', conOpcionVacia = true) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    sel.innerHTML = conOpcionVacia ? '<option value="">Seleccione</option>' : '';
+    (data || []).forEach(it => {
+        const opt = document.createElement('option');
+        opt.value = it[valueField];
+        opt.textContent = it[textField];
+        sel.appendChild(opt);
+    });
+}

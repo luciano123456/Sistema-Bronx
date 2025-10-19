@@ -49,6 +49,8 @@ public partial class SistemaBronxContext : DbContext
 
     public virtual DbSet<GastosCategoria> GastosCategorias { get; set; }
 
+    public virtual DbSet<GastosTipo> GastosTipos { get; set; }
+
     public virtual DbSet<Insumo> Insumos { get; set; }
 
     public virtual DbSet<InsumosCategoria> InsumosCategorias { get; set; }
@@ -191,7 +193,7 @@ public partial class SistemaBronxContext : DbContext
 
             entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.CotizacionesDetalleProcesos)
                 .HasForeignKey(d => d.IdCategoria)
-                .HasConstraintName("FK_CotizacionesDetalleProcesos_PedidosCategorias");
+                .HasConstraintName("FK_CotizacionesDetalleProcesos_InsumosCategorias");
 
             entity.HasOne(d => d.IdColorNavigation).WithMany(p => p.CotizacionesDetalleProcesos)
                 .HasForeignKey(d => d.IdColor)
@@ -280,6 +282,17 @@ public partial class SistemaBronxContext : DbContext
         {
             entity.Property(e => e.Nombre)
                 .HasMaxLength(255)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.IdTipoNavigation).WithMany(p => p.GastosCategoria)
+                .HasForeignKey(d => d.IdTipo)
+                .HasConstraintName("FK_GastosCategorias_GastosTipos");
+        });
+
+        modelBuilder.Entity<GastosTipo>(entity =>
+        {
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(250)
                 .IsUnicode(false);
         });
 

@@ -11,25 +11,23 @@ namespace SistemaBronx.Application.Controllers
 
     [Authorize]
 
-    public class GastosCategoriasController : Controller
+    public class GastosTiposController : Controller
     {
-        private readonly IGastoCategoriaService _GastosCategoriasService;
+        private readonly IGastoTipoService _GastosTiposService;
 
-        public GastosCategoriasController(IGastoCategoriaService GastosCategoriasService)
+        public GastosTiposController(IGastoTipoService GastosTiposService)
         {
-            _GastosCategoriasService = GastosCategoriasService;
+            _GastosTiposService = GastosTiposService;
         }
 
         [HttpGet]
         public async Task<IActionResult> Lista()
         {
-            var Categorias = await _GastosCategoriasService.ObtenerTodos();
+            var Tipos = await _GastosTiposService.ObtenerTodos();
 
-            var lista = Categorias.Select(c => new VMGenericModelConfCombo
+            var lista = Tipos.Select(c => new VMGastoTipo
             {
                 Id = c.Id,
-                IdCombo = c.IdTipo != null ? (int)c.IdTipo : 0,
-                NombreCombo = c.IdTipoNavigation != null ? c.IdTipoNavigation.Nombre : null,
                 Nombre = c.Nombre,
             
             }).ToList();
@@ -39,31 +37,29 @@ namespace SistemaBronx.Application.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> Insertar([FromBody] VMGenericModelConfCombo model)
+        public async Task<IActionResult> Insertar([FromBody] VMGastoTipo model)
         {
-            var Categoria = new GastosCategoria
+            var Tipo = new GastosTipo
             {
                 Id = model.Id,
-                IdTipo = model.IdCombo,
                 Nombre = model.Nombre,
             };
 
-            bool respuesta = await _GastosCategoriasService.Insertar(Categoria);
+            bool respuesta = await _GastosTiposService.Insertar(Tipo);
 
             return Ok(new { valor = respuesta });
         }
 
         [HttpPut]
-        public async Task<IActionResult> Actualizar([FromBody] VMGenericModelConfCombo model)
+        public async Task<IActionResult> Actualizar([FromBody] VMGastoTipo model)
         {
-            var Categoria = new GastosCategoria
+            var Tipo = new GastosTipo
             {
                 Id = model.Id,
-                IdTipo = model.IdCombo,
                 Nombre = model.Nombre,
             };
 
-            bool respuesta = await _GastosCategoriasService.Actualizar(Categoria);
+            bool respuesta = await _GastosTiposService.Actualizar(Tipo);
 
             return Ok(new { valor = respuesta });
         }
@@ -71,36 +67,25 @@ namespace SistemaBronx.Application.Controllers
         [HttpDelete]
         public async Task<IActionResult> Eliminar(int id)
         {
-            bool respuesta = await _GastosCategoriasService.Eliminar(id);
+            bool respuesta = await _GastosTiposService.Eliminar(id);
 
             return StatusCode(StatusCodes.Status200OK, new { valor = respuesta });
         }
 
-
         [HttpGet]
         public async Task<IActionResult> EditarInfo(int id)
         {
-            var resultBase = await _GastosCategoriasService.Obtener(id);
+            var Tipo = await _GastosTiposService.Obtener(id);
 
-            var result = new VMGenericModelConfCombo
+            if (Tipo != null)
             {
-                Id = resultBase.Id,
-                Nombre = resultBase.Nombre,
-                IdCombo = resultBase.IdTipo != null ? (int)resultBase.IdTipo : 0,
-                NombreCombo = resultBase.IdTipoNavigation != null ? resultBase.IdTipoNavigation.Nombre : null,
-            };
-
-            if (result != null)
-            {
-                return StatusCode(StatusCodes.Status200OK, result);
+                return StatusCode(StatusCodes.Status200OK, Tipo);
             }
             else
             {
                 return StatusCode(StatusCodes.Status404NotFound);
             }
         }
-
-
         public IActionResult Privacy()
         {
             return View();

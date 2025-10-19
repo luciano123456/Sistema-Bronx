@@ -9,5 +9,9 @@ public partial class GastosCategoria
 
     public string Nombre { get; set; } = null!;
 
+    public int? IdTipo { get; set; }
+
     public virtual ICollection<Gasto> Gastos { get; set; } = new List<Gasto>();
+
+    public virtual GastosTipo? IdTipoNavigation { get; set; }
 }
