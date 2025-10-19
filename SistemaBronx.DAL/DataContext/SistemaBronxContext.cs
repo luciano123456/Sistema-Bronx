@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using SistemaBronx.Models;
 
 namespace SistemaBronx.DAL.DataContext;
@@ -15,18 +14,6 @@ public partial class SistemaBronxContext : DbContext
     public SistemaBronxContext(DbContextOptions<SistemaBronxContext> options)
         : base(options)
     {
-    }
-
-    private readonly IConfiguration _configuration;
-
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured)
-        {
-            var connectionString = _configuration.GetConnectionString("SistemaDB");
-            optionsBuilder.UseSqlServer(connectionString);
-        }
     }
 
     public virtual DbSet<Cliente> Clientes { get; set; }
@@ -48,6 +35,8 @@ public partial class SistemaBronxContext : DbContext
     public virtual DbSet<Gasto> Gastos { get; set; }
 
     public virtual DbSet<GastosCategoria> GastosCategorias { get; set; }
+
+    public virtual DbSet<GastosTipo> GastosTipos { get; set; }
 
     public virtual DbSet<Insumo> Insumos { get; set; }
 
@@ -84,6 +73,10 @@ public partial class SistemaBronxContext : DbContext
     public virtual DbSet<UnidadesDeMedida> UnidadesDeMedida { get; set; }
 
     public virtual DbSet<User> Usuarios { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=DESKTOP-3MT5F5F; Database=Sistema_Bronx; Integrated Security=true; Trusted_Connection=True; Encrypt=False");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -191,7 +184,7 @@ public partial class SistemaBronxContext : DbContext
 
             entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.CotizacionesDetalleProcesos)
                 .HasForeignKey(d => d.IdCategoria)
-                .HasConstraintName("FK_CotizacionesDetalleProcesos_PedidosCategorias");
+                .HasConstraintName("FK_CotizacionesDetalleProcesos_InsumosCategorias");
 
             entity.HasOne(d => d.IdColorNavigation).WithMany(p => p.CotizacionesDetalleProcesos)
                 .HasForeignKey(d => d.IdColor)
@@ -280,6 +273,17 @@ public partial class SistemaBronxContext : DbContext
         {
             entity.Property(e => e.Nombre)
                 .HasMaxLength(255)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.IdTipoNavigation).WithMany(p => p.GastosCategoria)
+                .HasForeignKey(d => d.IdTipo)
+                .HasConstraintName("FK_GastosCategorias_GastosTipos");
+        });
+
+        modelBuilder.Entity<GastosTipo>(entity =>
+        {
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(250)
                 .IsUnicode(false);
         });
 

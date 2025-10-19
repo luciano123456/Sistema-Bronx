@@ -65,6 +65,9 @@ builder.Services.AddScoped<IProductoService, ProductoService>();
 builder.Services.AddScoped<IGenericRepository<GastosCategoria>, GastoCategoriaRepository>();
 builder.Services.AddScoped<IGastoCategoriaService, GastoCategoriaService>();
 
+builder.Services.AddScoped<IGenericRepository<GastosTipo>, GastoTipoRepository>();
+builder.Services.AddScoped<IGastoTipoService, GastoTipoService>();
+
 builder.Services.AddScoped<IGenericRepository<FormasdePago>, FormasdePagoRepository>();
 builder.Services.AddScoped<IFormasdePagoService, FormasdePagoService>();
 

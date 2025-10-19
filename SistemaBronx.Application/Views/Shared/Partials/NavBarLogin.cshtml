@@ -32,17 +32,17 @@
                 <li class="nav-item dropdown" id="configDropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="configDropdownLink"
                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Cotizaciones
+                        Pedidos
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="configDropdownLink">
                         <li>
                             <a class="dropdown-item"
-                               href="@Url.Action("NuevoModif","Cotizaciones",new { Id = 0 })"
+                               href="@Url.Action("NuevoModif","Pedidos",new { Id = 0 })"
                                onclick="return navTo(this)">Nuevo</a>
                         </li>
                         <li>
                             <a class="dropdown-item"
-                               href="@Url.Action("Index","Cotizaciones")"
+                               href="@Url.Action("Index","Pedidos")"
                                onclick="return navTo(this)">Historial</a>
                         </li>
                     </ul>
@@ -101,115 +101,207 @@
 </nav>
 
 
- <!-- Modal Configuraciones -->
-    <div class="modal fade" id="modalConfiguracion" tabindex="-1" role="dialog" aria-labelledby="modalConfiguracionLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header ">
-                    <h5 class="modal-title" id="modalConfiguracionLabel">Configuracion</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
+<!-- Modal Configuraciones (lista/edición) -->
+<div class="modal fade theme-indigo" id="modalConfiguracion" tabindex="-1" aria-labelledby="modalConfiguracionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content modal-config shadow-lg border-0 rounded-3">
 
-                <label id="lblListaVacia" for="txtListaVacia" class="lblNombreInput" hidden></label>
+            <!-- Header -->
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="modalConfiguracionLabel">
+                    <i class="fa fa-cogs me-2"></i> Configuración
+                </h5>
 
-                <div class="list-container">
-                    <div id="configuracion-list">
-                        <!-- Lista de categorías se llenará dinámicamente -->
-                    </div>
-                </div>
-
-                <div id="contenedorNombreConfiguracion" class="form-group" hidden>
-                    <label id="lblNombre" for="txtNombre" class="lblNombreInput">Nombre</label>
-                    <input type="text" class="input-nuevomodif" id="txtNombreConfiguracion" required>
-                    <input type="text" class="input-nuevomodif" id="txtIdConfiguracion" hidden>
-
-
-                    <div class="btnModificarConfiguracion-container">
-                        <button id="btnRegistrarModificarConfiguracion" class="btnModificarConfiguracion" onclick="guardarCambiosConfiguracion()">Modificar</button>
-                        <button class="btnCancelarConfiguracion ml-2" onclick="cancelarModificarConfiguracion()">Cancelar</button>
-                    </div>
-                </div>
-
-                <div class="btnAgregarConfiguracion-container">
-                <button id="agregarConfiguracion" class="btnAgregarConfiguracion" onclick="agregarConfiguracion()">Añadir</button>
-                </div>
-
-
-
-            <div class="modal-footer">
-                <div class="w-100 d-flex">
-                    <button type="button" class="btn btn-info me-auto" data-bs-dismiss="modal" onclick="abrirConfiguraciones()">Volver</button>
-                    <button type="button" class="btn btn-success" data-bs-dismiss="modal" >Aceptar</button>
-                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            </div>
-        </div>
-    </div>
 
-<!-- Modal Configuraciones -->
-<div class="modal fade" id="ModalEdicionConfiguraciones" tabindex="-1" role="dialog" aria-labelledby="ModalEdicionConfiguracionesLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content ">
-            <div class="modal-header colorEncabezado">
-                <h5 class="modal-title" id="ModalEdicionConfiguracionesLabel">Configuraciones</h5>
-                
-            </div>
+            <!-- Body -->
             <div class="modal-body">
-                <form>
-                    <button type="button" class="btnConfiguraciones" onclick="abrirConfiguracion('Categoria', 'InsumosCategorias')">
-                        <img src="/Imagenes/configuraciones.png" alt="Icono Categorias" class="imgConfiguraciones">
-                        <span>Insumos Categorias</span>
-                    </button>
-                    <button type="button" class="btnConfiguraciones" onclick="abrirConfiguracion('Categoria', 'ProductosCategorias')">
-                        <img src="/Imagenes/configuraciones.png" alt="Icono Categorias" class="imgConfiguraciones">
-                        <span>Productos Categorias</span>
-                    </button>
-                    <button type="button" class="btnConfiguraciones" onclick="abrirConfiguracion('Categoria', 'GastosCategorias')">
-                        <img src="/Imagenes/configuraciones.png" alt="Icono Categorias" class="imgConfiguraciones">
-                        <span>Gastos Categorias</span>
-                    </button>
-                    <button type="button" class="btnConfiguraciones" onclick="abrirConfiguracion('Categoria', 'CotizacionesCategorias')">
-                        <img src="/Imagenes/configuraciones.png" alt="Icono Categorias" class="imgConfiguraciones">
-                        <span>Cotizaciones Categorias</span>
-                    </button>
-                    <button type="button" class="btnConfiguraciones" onclick="abrirConfiguracion('Tipo', 'CotizacionesTipos')">
-                        <img src="/Imagenes/configuraciones.png" alt="Icono Tipos" class="imgConfiguraciones">
-                        <span>Cotizaciones Tipos</span>
-                    </button>
-                    <button type="button" class="btnConfiguraciones" onclick="abrirConfiguracion('Estado', 'CotizacionesEstados')">
-                        <img src="/Imagenes/configuraciones.png" alt="Icono Estados" class="imgConfiguraciones">
-                        <span>Cotizaciones Estados</span>
-                    </button>
-                    <button type="button" class="btnConfiguraciones mt-2" onclick="abrirConfiguracion('Color', 'Colores')">
-                        <img src="/Imagenes/configuraciones.png" alt="Icono Colores" class="imgConfiguraciones">
-                        <span>Colores</span>
-                    </button>
-                    <button type="button" class="btnConfiguraciones mt-2" onclick="abrirConfiguracion('Unidad de Medida', 'UnidadesDeMedidas')">
-                        <img src="/Imagenes/configuraciones.png" alt="Icono Unidades de Medidas" class="imgConfiguraciones">
-                        <span>Unidades de medidas</span>
-                    </button>
-                    <button type="button" class="btnConfiguraciones mt-2" onclick="abrirConfiguracion('Tipos de Insumos', 'InsumosTipos')">
-                        <img src="/Imagenes/configuraciones.png" alt="Icono Tipos de Insumos" class="imgConfiguraciones">
-                        <span>Tipos de Insumos</span>
-                    </button>
-                    <button type="button" class="btnConfiguraciones mt-2" onclick="abrirConfiguracion('Rol', 'Roles')">
-                        <img src="/Imagenes/configuraciones.png" alt="Icono Roles" class="imgConfiguraciones">
-                        <span>Roles</span>
-                    </button>
-                    <button type="button" class="btnConfiguraciones mt-2" onclick="abrirConfiguracion('Forma de Pago', 'FormasdePago')">
-                        <img src="/Imagenes/configuraciones.png" alt="Icono Roles" class="imgConfiguraciones">
-                        <span>Formas de Pago</span>
-                    </button>
+                <!-- Mensaje vacío -->
+                <div id="lblListaVacia" class="alert alert-warning text-center py-2 mb-3" hidden>No hay resultados.</div>
 
-                </form>
+                <!-- Contenedor lista + buscador -->
+                <div class="list-container border rounded-3 p-2">
+                    <div class="mb-2">
+                        <input type="text" class="form-control form-control-sm" id="txtBuscarConfig" placeholder="Buscar..." oninput="filtrarConfiguracionesLocal(this.value)">
+                    </div>
+
+                    <div id="configuracion-list" class="config-list">
+                        <!-- Tus ítems dinámicos. Se estilizan tanto .config-item como .list-item -->
+                    </div>
+                </div>
+
+                <!-- Formulario de edición -->
+                <div id="contenedorNombreConfiguracion" class="mt-4" hidden>
+                    <label for="txtNombreConfiguracion" class="form-label fw-bold">Nombre</label>
+                    <input type="text" class="form-control" id="txtNombreConfiguracion" required>
+                    <input type="hidden" id="txtIdConfiguracion">
+
+                    <div id="divConfiguracionCombo" class="mt-3" hidden>
+                        <label id="lblConfiguracionCombo" for="cmbConfiguracion" class="form-label fw-bold"></label>
+                        <select class="form-select" id="cmbConfiguracion" required>
+                            <option value="">Seleccione...</option>
+                        </select>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3">
+                        <button id="btnRegistrarModificarConfiguracion" class="btn btn-success flex-fill" onclick="guardarCambiosConfiguracion()">
+                            <i class="fa fa-save me-1"></i> Guardar cambios
+                        </button>
+                        <button class="btn btn-outline-secondary flex-fill" onclick="cancelarModificarConfiguracion()">
+                            <i class="fa fa-times me-1"></i> Cancelar
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>
+
+            <!-- Footer -->
+            <div class="modal-footer d-flex justify-content-between">
+                <button id="agregarConfiguracion" class="btn btn-primary" onclick="agregarConfiguracion()">
+                    <i class="fa fa-plus me-1"></i> Añadir
+                </button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="abrirConfiguraciones()">
+                    <i class="fa fa-times me-1"></i> Cerrar
+                </button>
             </div>
         </div>
     </div>
 </div>
+<!-- Modal Configuraciones -->
+<div class="modal fade theme-indigo" id="ModalEdicionConfiguraciones" tabindex="-1" aria-labelledby="ModalEdicionConfiguracionesLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content modal-config">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ModalEdicionConfiguracionesLabel">
+                    <i class="fa fa-cogs me-2"></i> Configuraciones
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
 
-<script src="~/js/NavBarLogin.js?v=1.3" asp-append-version="true"></script>
+            <div class="modal-body py-3">
+                <!-- Grid responsiva: 1/2/3/4 columnas -->
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3" id="gridConfiguraciones">
+
+                    <div class="col">
+                        <button type="button" class="config-card w-100"
+                                onclick="abrirConfiguracion('Categoria', 'InsumosCategorias')"
+                                data-label="Categoria" data-table="InsumosCategorias">
+                            <img src="/Imagenes/configuraciones.png" alt="" class="config-card__img" loading="lazy">
+                            <span class="config-card__title">Insumos Categorías</span>
+                            <span class="config-card__subtitle">Alta, edición y baja</span>
+                        </button>
+                    </div>
+
+                    <div class="col">
+                        <button type="button" class="config-card w-100"
+                                onclick="abrirConfiguracion('Categoria', 'ProductosCategorias')"
+                                data-label="Categoria" data-table="ProductosCategorias">
+                            <img src="/Imagenes/configuraciones.png" alt="" class="config-card__img" loading="lazy">
+                            <span class="config-card__title">Productos Categorías</span>
+                            <span class="config-card__subtitle">Organiza tu catálogo</span>
+                        </button>
+                    </div>
+
+                    <div class="col">
+                        <button type="button" class="config-card w-100"
+                                onclick="abrirConfiguracion('Tipo', 'GastosTipos')"
+                                data-label="Tipo" data-table="GastosTipos">
+                            <img src="/Imagenes/configuraciones.png" alt="" class="config-card__img" loading="lazy">
+                            <span class="config-card__title">Gastos Tipos</span>
+                            <span class="config-card__subtitle">Clasificación de egresos</span>
+                        </button>
+                    </div>
+
+                    <div class="col">
+                        <button type="button" class="config-card w-100"
+                                onclick="abrirConfiguracion('Gastos Categorias','GastosCategorias','Gastos Tipo','GastosTipos','Tipo')"
+                                data-label="Gastos Categorias" data-table="GastosCategorias"
+                                data-extra-label="Gastos Tipo" data-extra-table="GastosTipos">
+                            <img src="/Imagenes/configuraciones.png" alt="" class="config-card__img" loading="lazy">
+                            <span class="config-card__title">Gastos Categorías</span>
+                            <span class="config-card__subtitle">Vinculadas a tipos</span>
+                        </button>
+                    </div>
+
+                    <div class="col">
+                        <button type="button" class="config-card w-100"
+                                onclick="abrirConfiguracion('Categoria', 'PedidosCategorias')">
+                            <img src="/Imagenes/configuraciones.png" alt="" class="config-card__img" loading="lazy">
+                            <span class="config-card__title">Pedidos Categorías</span>
+                            <span class="config-card__subtitle">Agrupa pedidos</span>
+                        </button>
+                    </div>
+
+                    <div class="col">
+                        <button type="button" class="config-card w-100"
+                                onclick="abrirConfiguracion('Tipo', 'PedidosTipos')">
+                            <img src="/Imagenes/configuraciones.png" alt="" class="config-card__img" loading="lazy">
+                            <span class="config-card__title">Pedidos Tipos</span>
+                            <span class="config-card__subtitle">Flujos y etapas</span>
+                        </button>
+                    </div>
+
+                    <div class="col">
+                        <button type="button" class="config-card w-100"
+                                onclick="abrirConfiguracion('Estado', 'PedidosEstados')">
+                            <img src="/Imagenes/configuraciones.png" alt="" class="config-card__img" loading="lazy">
+                            <span class="config-card__title">Pedidos Estados</span>
+                            <span class="config-card__subtitle">Seguimiento</span>
+                        </button>
+                    </div>
+
+                    <div class="col">
+                        <button type="button" class="config-card w-100"
+                                onclick="abrirConfiguracion('Color', 'Colores')">
+                            <img src="/Imagenes/configuraciones.png" alt="" class="config-card__img" loading="lazy">
+                            <span class="config-card__title">Colores</span>
+                            <span class="config-card__subtitle">Etiquetas y UI</span>
+                        </button>
+                    </div>
+
+                    <div class="col">
+                        <button type="button" class="config-card w-100"
+                                onclick="abrirConfiguracion('Unidad de Medida', 'UnidadesDeMedidas')">
+                            <img src="/Imagenes/configuraciones.png" alt="" class="config-card__img" loading="lazy">
+                            <span class="config-card__title">Unidades de Medida</span>
+                            <span class="config-card__subtitle">Gramos, litros, etc.</span>
+                        </button>
+                    </div>
+
+                    <div class="col">
+                        <button type="button" class="config-card w-100"
+                                onclick="abrirConfiguracion('Tipos de Insumos', 'InsumosTipos')">
+                            <img src="/Imagenes/configuraciones.png" alt="" class="config-card__img" loading="lazy">
+                            <span class="config-card__title">Tipos de Insumos</span>
+                            <span class="config-card__subtitle">Clasificación técnica</span>
+                        </button>
+                    </div>
+
+                    <div class="col">
+                        <button type="button" class="config-card w-100"
+                                onclick="abrirConfiguracion('Rol', 'Roles')">
+                            <img src="/Imagenes/configuraciones.png" alt="" class="config-card__img" loading="lazy">
+                            <span class="config-card__title">Roles</span>
+                            <span class="config-card__subtitle">Permisos</span>
+                        </button>
+                    </div>
+
+                    <div class="col">
+                        <button type="button" class="config-card w-100"
+                                onclick="abrirConfiguracion('Forma de Pago', 'FormasdePago')">
+                            <img src="/Imagenes/configuraciones.png" alt="" class="config-card__img" loading="lazy">
+                            <span class="config-card__title">Formas de Pago</span>
+                            <span class="config-card__subtitle">Tarjeta, efectivo…</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success px-4" data-bs-dismiss="modal">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="~/js/NavBarLogin.js?v=1.4" asp-append-version="true"></script>
