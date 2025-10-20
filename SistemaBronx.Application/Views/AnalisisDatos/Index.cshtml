@@ -113,6 +113,19 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-12">
+            <div class="ad-kpi">
+                <div class="ad-kpi__icon bg-grad-green"><i class="ti ti-hand-coin"></i></div>
+                <div class="flex-grow-1">
+                    <span class="ad-kpi__label">Ingreso real en mano</span>
+                    <div id="kpi_enmano" class="ad-kpi__value">—</div>
+                    <div class="small text-muted mt-1">
+                        Neto: <span id="kpi_neto">—</span> · IVA: <span id="kpi_iva">—</span> · CF: <span id="kpi_cf">—</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="col-md-3" hidden>
             <div class="ad-kpi">
                 <div class="ad-kpi__icon bg-grad-green"><i class="ti ti-chart-infographic"></i></div>
@@ -238,6 +251,49 @@
             </div>
         </div>
     </div>
+
+    <!-- ================= GASTOS ================= -->
+    <div class="row g-3 mt-1">
+        <div class="col-12">
+            <div class="ad-card p-3">
+                <div class="ad-card__header">Gastos: comparativa por tipo</div>
+                <div class="ad-chart" style="height: 340px"><canvas id="ch_gastos_comp"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mt-1">
+        <div class="col-12">
+            <div class="ad-card p-3">
+                <div class="ad-card__header">Gastos por tipo</div>
+
+                <!-- Tabs dinámicos -->
+                <div id="gastos-tabs" class="ad-tabs">
+                    <!-- botones de tipos (se rellenan por JS) -->
+                    <div id="gastos-tabs-head" class="ad-tabs__head"></div>
+                    <!-- contenedores por tipo -->
+                    <div id="gastos-tabs-body" class="ad-tabs__body"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mt-1">
+        <div class="col-xl-4">
+            <div class="ad-card p-3 h-100">
+                <div class="ad-card__header">Gastos por tipo</div>
+                <div class="ad-chart"><canvas id="ch_gastos_tipo"></canvas></div>
+            </div>
+        </div>
+        <div class="col-xl-8">
+            <div class="ad-card p-3 h-100">
+                <div class="ad-card__header">Comparativa real: En mano vs Gastos</div>
+                <div class="ad-chart" style="height: 360px"><canvas id="ch_comp_real"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+
 </div>
 
 @section Scripts {

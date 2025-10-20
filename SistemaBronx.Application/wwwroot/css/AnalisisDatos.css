@@ -536,3 +536,60 @@ canvas {
 .select2-container--default .select2-results__option--selected {
     background-color: #5b8cff !important;
 }
+
+.ad-tabs__head {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.ad-tab-btn {
+    padding: 6px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: linear-gradient(180deg,rgba(32,41,84,.95),rgba(18,24,54,.92));
+    color: #cfd6ff;
+    cursor: pointer;
+    user-select: none;
+    font-size: .9rem;
+}
+
+    .ad-tab-btn.active {
+        outline: 1px solid rgba(255,255,255,.18);
+        color: #fff
+    }
+
+.ad-tab-pane[hidden] {
+    display: none !important;
+}
+
+.gasto-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 14px;
+}
+
+@media (max-width: 1200px) {
+    .gasto-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Pager compacto para categorías en Gastos por tipo */
+.ad-pager--tiny {
+    transform: scale(.92);
+    right: 10px;
+    bottom: 8px;
+}
+
+    .ad-pager--tiny .btn {
+        width: 24px;
+        height: 24px;
+        border-radius: 8px;
+    }
+
+    .ad-pager--tiny .lbl {
+        font-size: .8rem;
+        opacity: .9;
+    }
