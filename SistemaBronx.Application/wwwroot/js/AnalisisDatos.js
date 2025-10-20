@@ -238,21 +238,49 @@ function render(vm) {
     const k = vm?.Kpis || {};
     const mensual = vm?.Mensual || [];
 
-    // KPIs
+    // ===== KPIs base =====
     const ingresos = pick(k, 'IngresosImporteTotal', 'VentasImporteTotal') || pick(k, 'IngresosSubTotal', 'VentasSubTotal');
     const egresos = pick(k, 'EgresosImporteTotal', 'GastosImporteTotal');
     const cantPed = pick(k, 'CantidadPedidos', 'CantidadTickets');
     const cantUnid = pick(k, 'CantidadUnidades', 'CantidadItems');
     const margenN = pick(k, 'MargenNeto', 'MargenNetoValor');
-    // const margenNP = (k.MargenNetoPct ?? k.MargenNetoPorc ?? null);
 
     $id('kpi_ingresos').textContent = fmtMon(ingresos);
     $id('kpi_egresos').textContent = fmtMon(egresos);
     $id('kpi_pedidos_unidades').textContent = `${fmtInt(cantPed)} / ${fmtInt(cantUnid)}`;
-    $id('kpi_margen').textContent = `${fmtMon(margenN)}`;
-    // $id('kpi_margen').textContent = `${fmtMon(margenN)} (${fmtPct(margenNP)})`;
+    const kpiMargEl = $id('kpi_margen'); if (kpiMargEl) kpiMargEl.textContent = fmtMon(margenN);
 
-    // Charts
+    // ===== KPIs nuevos: Neto / IVA / CF / En mano =====
+    const ivaRaw = pick(k, 'IVA_Total', 'IVATotal', 'IVA');
+    const cfRaw = pick(k, 'CostoFinanciero_Total', 'CostoFinancieroTotal', 'CostoFinanciero');
+    const netoRaw = pick(k, 'Neto_Total', 'IngresoNeto_Total', 'NetoTotal', 'Neto');  // si viene del SP
+
+    const iva = Number(ivaRaw ?? 0);
+    const cf = Number(cfRaw ?? 0);
+
+    // fallback correcto: Neto = SubTotal - IVA (con paréntesis)
+    const sub = Number(pick(k, 'IngresosSubTotal', 'VentasSubTotal') ?? 0);
+    let neto = Number(netoRaw ?? NaN);
+    if (!Number.isFinite(neto)) {
+        neto = sub - (Number.isFinite(iva) ? iva : 0);
+    }
+
+    // En mano preferido desde SP; si no, Neto - CF
+    let mano = Number(pick(k, 'IngresoEnMano_Total', 'IngresoRealEnMano_Total', 'IngresoEnManoTotal', 'EnMano') ?? NaN);
+    if (!Number.isFinite(mano)) {
+        mano = (Number.isFinite(neto) ? neto : 0) - (Number.isFinite(cf) ? cf : 0);
+    }
+
+    // Evitar -0
+    const fix0 = v => Math.abs(v) < 1e-9 ? 0 : v;
+
+    const setTxt = (id, val) => { const el = $id(id); if (el) el.textContent = fmtMon(fix0(Number(val || 0))); };
+    setTxt('kpi_enmano', mano);
+    setTxt('kpi_iva', iva);
+    setTxt('kpi_cf', cf);
+    setTxt('kpi_neto', neto);
+
+    // ===== Charts existentes =====
     renderEvolucion(mensual);
     renderMedios(vm?.MediosPago || []);
     renderCrecimiento(vm?.Crecimiento || []);
@@ -267,8 +295,15 @@ function render(vm) {
 
     renderGroupBars('ch_categoria', vm?.PorCategoria || [], g => g.GrupoNombre, g => g.MargenBruto);
     renderGroupBars('ch_proveedor', vm?.PorProveedor || [], g => g.GrupoNombre, g => g.MargenBruto);
-    syncHeights('ch_categoria', 'ch_proveedor');
 
+    // ===== Dashboards de gastos (nuevos) =====
+    renderGastosComparativa(vm?.GastosMensualPorTipo || []);                // líneas/areas por tipo
+    renderGastosPorTipo(vm?.GastosPorTipoCategoria || [], vm?.GastosMensualPorTipo || []); // por categoría dentro de cada tipo
+    renderGastosTipo(vm?.GastosTotalesPorTipo || []);                       // barra apilada/treemap por tipo
+    renderComparativaReal(vm?.ComparativaRealMensual || []);                // “en mano” vs egresos por mes
+
+    // ===== Ajuste de alturas entre pares =====
+    syncHeights('ch_categoria', 'ch_proveedor');
 }
 
 /* ==================== Chart helpers ==================== */
@@ -645,4 +680,424 @@ function syncHeights(aId, bId) {
     wa.style.height = h + 'px';
     wb.style.height = h + 'px';
 }
-// llamalo al final de render():
+
+/* ===================== GASTOS: Comparativa & por Tipo ===================== */
+function renderGastosComparativa(rows) {
+    const id = 'ch_gastos_comp'; kill(id);
+    const data = safe(rows);
+
+    // ejes
+    const key = r => `${r.Anio}-${String(r.Mes).padStart(2, '0')}`;
+    const meses = [...new Set(data.map(key))].sort();
+    const tipos = [...new Set(data.map(r => r.TipoGeneral || '(s/tipo)'))];
+
+    // matriz tipo x mes
+    const byTipoMes = {};
+    tipos.forEach(t => { byTipoMes[t] = {}; });
+    data.forEach(r => {
+        const k = key(r);
+        const t = r.TipoGeneral || '(s/tipo)';
+        byTipoMes[t][k] = (byTipoMes[t][k] || 0) + Number(r.Total || 0);
+    });
+
+    // datasets con gradiente, borde y radio
+    const datasets = tipos.map((t, i) => ({
+        label: t,
+        data: meses.map(m => byTipoMes[t][m] || 0),
+        type: 'bar',
+        backgroundColor: (ctx) => {
+            const { chart, chartArea } = ctx;
+            if (!chartArea) return colorFor(i, .7);                 // primer render
+            return gradientFill(chart.ctx, chartArea, i);
+        },
+        borderColor: colorFor(i, .95),
+        hoverBackgroundColor: colorFor(i, .95),
+        borderWidth: 1.2,
+        borderSkipped: false,
+        borderRadius: 8,
+        barPercentage: 0.9,
+        categoryPercentage: 0.72
+    }));
+
+    CH[id] = new Chart($id(id), {
+        type: 'bar',
+        data: { labels: meses, datasets },
+        options: {
+            ...oBase(),
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+                x: {
+                    stacked: true,
+                    grid: { color: 'rgba(255,255,255,.06)' },
+                    ticks: { color: C.tick }
+                },
+                y: {
+                    stacked: true,
+                    grid: { color: 'rgba(255,255,255,.06)' },
+                    ticks: {
+                        color: C.tick,
+                        callback: (v) => new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 })
+                            .format(Number(v || 0))
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'roundedRect',
+                        boxWidth: 12, boxHeight: 12,
+                        generateLabels: (chart) => {
+                            const { datasets } = chart.data;
+                            return datasets.map((ds, i) => ({
+                                text: ds.label,
+                                fillStyle: colorFor(i, .85),
+                                strokeStyle: colorFor(i, .95),
+                                lineWidth: 1,
+                                hidden: !chart.isDatasetVisible(i),
+                                datasetIndex: i
+                            }));
+                        }
+                    },
+                    onClick: (e, item, legend) => {
+                        const i = item.datasetIndex;
+                        const ci = legend.chart;
+                        ci.toggleDataVisibility(i);
+                        ci.update();
+                    }
+                },
+                tooltip: {
+                    ...oBase().plugins.tooltip,
+                    mode: 'index',
+                    callbacks: {
+                        title: (items) => `Mes: ${items[0].label}`,
+                        label: (ctx) => {
+                            const v = Number(ctx.parsed.y || 0);
+                            return ` ${ctx.dataset.label}: ${fmtMon(v)}`;
+                        },
+                        footer: (items) => {
+                            const tot = items.reduce((a, it) => a + (it.parsed.y || 0), 0);
+                            return ` Total: ${fmtMon(tot)}`;
+                        }
+                    },
+                    footerFont: { size: 11 }
+                }
+            }
+        }
+    });
+}
+
+function renderGastosPorTipo(rowsTipoCat, rowsMensual) {
+    const tiposBase = [...new Set(safe(rowsTipoCat).map(r => r.TipoGasto || '(s/tipo)'))];
+    const tipos = ['Todos', ...tiposBase]; // ⬅️ agregamos tab "Todos"
+    const head = document.getElementById('gastos-tabs-head');
+    const body = document.getElementById('gastos-tabs-body');
+    head.innerHTML = ''; body.innerHTML = '';
+
+    if (tipos.length === 1) {
+        head.innerHTML = '<div class="text-muted">Sin datos de gastos</div>';
+        return;
+    }
+
+    // util: agrega/mergea categorías (para "Todos")
+    const aggCats = (rows) => {
+        const map = new Map();
+        rows.forEach(r => {
+            const k = (r.Categoria || '(s/categoría)').trim();
+            map.set(k, (map.get(k) || 0) + Number(r.TotalGasto || 0));
+        });
+        return [...map.entries()]
+            .map(([Categoria, TotalGasto]) => ({ TipoGasto: 'Todos', Categoria, TotalGasto }))
+            .sort((a, b) => b.TotalGasto - a.TotalGasto);
+    };
+    // util: suma serie mensual por tipo (para "Todos")
+    const aggSerie = (rows) => {
+        const map = new Map(); // key: AAAA-MM
+        rows.forEach(r => {
+            const k = `${r.Anio}-${String(r.Mes).padStart(2, '0')}`;
+            map.set(k, (map.get(k) || 0) + Number(r.Total || 0));
+        });
+        return [...map.entries()]
+            .map(([k, Total]) => ({ Anio: Number(k.slice(0, 4)), Mes: Number(k.slice(5, 7)), TipoGeneral: 'Todos', Total }))
+            .sort((a, b) => a.Anio - b.Anio || a.Mes - b.Mes);
+    };
+
+    tipos.forEach((t, i) => {
+        // datos del tab i
+        const rowsCat = (t === 'Todos')
+            ? aggCats(safe(rowsTipoCat))
+            : safe(rowsTipoCat).filter(r => (r.TipoGasto || '(s/tipo)') === t);
+
+        const rowsSerie = (t === 'Todos')
+            ? aggSerie(safe(rowsMensual))
+            : safe(rowsMensual).filter(r => (r.TipoGeneral || '(s/tipo)') === t);
+
+        // botón tab
+        const btn = document.createElement('button');
+        btn.className = 'ad-tab-btn' + (i === 0 ? ' active' : '');
+        btn.textContent = t;
+        btn.dataset.key = String(i);
+        head.appendChild(btn);
+
+        // pane + pager
+        const pane = document.createElement('div');
+        pane.className = 'ad-tab-pane';
+        if (i > 0) pane.hidden = true;
+        pane.dataset.key = String(i);
+        pane.innerHTML = `
+      <div class="gasto-grid">
+        <div class="ad-chart" style="height:320px"><canvas id="ch_gasto_pie_${i}"></canvas></div>
+        <div class="ad-chart" style="height:320px; position:relative">
+          <canvas id="ch_gasto_cat_${i}"></canvas>
+          <div class="ad-pager ad-pager--tiny" data-scope="gcat" data-key="${i}">
+            <span class="lbl">—</span>
+            <button class="btn prev"><span class="ico">◀</span></button>
+            <button class="btn next"><span class="ico">▶</span></button>
+          </div>
+        </div>
+      </div>
+      <div class="ad-chart mt-2" style="height:280px"><canvas id="ch_gasto_line_${i}"></canvas></div>
+    `;
+        body.appendChild(pane);
+
+        // init pager con total de categorías
+        gSetupPager(String(i), rowsCat.length);
+        // listeners de pager
+        const pager = pane.querySelector('.ad-pager[data-scope="gcat"]');
+        pager.querySelector('.prev').addEventListener('click', () => gTurnPage(String(i), -1, rePaintTab));
+        pager.querySelector('.next').addEventListener('click', () => gTurnPage(String(i), +1, rePaintTab));
+
+        // función de repintado del tab i
+        function rePaintTab(key) {
+            const idx = key || String(i);
+            const p = G_PAGER[idx];
+            const start = (p.page - 1) * p.pageSize, end = start + p.pageSize;
+            const slice = rowsCat.slice(start, end);
+            renderGastoTipoCharts(Number(idx), slice, rowsSerie, true /*fromPager*/);
+            gUpdatePagerUI(idx);
+        }
+
+        // primer render
+        renderGastoTipoCharts(i, rowsCat.slice(0, G_PAGE_SIZE), rowsSerie, false);
+        gUpdatePagerUI(String(i));
+
+        // click tab
+        btn.addEventListener('click', () => {
+            head.querySelectorAll('.ad-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+            body.querySelectorAll('.ad-tab-pane').forEach(pn => pn.hidden = (pn !== pane));
+        });
+    });
+}
+
+function renderGastoTipoCharts(idx, rowsCatPaged, rowsSerie, fromPager = false) {
+    // DONUT categorías (muestra lo mismo que la página actual)
+    const idPie = `ch_gasto_pie_${idx}`; kill(idPie);
+    const cats = rowsCatPaged.map(r => r.Categoria || '(s/categoría)');
+    const vals = rowsCatPaged.map(r => +r.TotalGasto || 0);
+    CH[idPie] = new Chart($id(idPie), {
+        type: 'doughnut',
+        data: { labels: cats, datasets: [{ data: vals }] },
+        options: { ...oBase(), cutout: '60%' }
+    });
+
+    // BARRAS horizontales categorías (paginadas)
+    const idBar = `ch_gasto_cat_${idx}`; kill(idBar);
+    CH[idBar] = new Chart($id(idBar), {
+        type: 'bar',
+        data: {
+            labels: cats, datasets: [{
+                label: 'Total',
+                data: vals,
+                borderWidth: 1.2,
+                borderColor: 'rgba(255,255,255,0.16)',
+                borderSkipped: false,
+                backgroundColor: 'rgba(122,97,255,0.60)',
+                hoverBackgroundColor: 'rgba(122,97,255,0.85)'
+            }]
+        },
+        options: {
+            ...oBase(),
+            indexAxis: 'y',
+            scales: { y: { ticks: yTicksSmart(cats, 26), grid: { color: C.grid } }, x: { grid: { color: C.grid } } }
+        }
+    });
+
+    // LÍNEA mensual del tipo (no se pagina)
+    const idLin = `ch_gasto_line_${idx}`; kill(idLin);
+    const labels = rowsSerie.map(r => `${r.Anio}-${String(r.Mes).padStart(2, '0')}`);
+    const data = rowsSerie.map(r => +r.Total || 0);
+    CH[idLin] = new Chart($id(idLin), {
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Gasto mensual', data, tension: .35, borderWidth: 2, fill: false }] },
+        options: oBase()
+    });
+}
+
+function renderGastoTipoCharts(idx, rowsCat, rowsSerie) {
+    // DONUT categorías
+    const idPie = `ch_gasto_pie_${idx}`; kill(idPie);
+    const cats = rowsCat.map(r => r.Categoria || '(s/categoría)');
+    const vals = rowsCat.map(r => +r.TotalGasto || 0);
+    CH[idPie] = new Chart($id(idPie), {
+        type: 'doughnut',
+        data: { labels: cats, datasets: [{ data: vals }] },
+        options: { ...oBase(), cutout: '60%' }
+    });
+
+    // BARRAS horizontales categorías
+    const idBar = `ch_gasto_cat_${idx}`; kill(idBar);
+    CH[idBar] = new Chart($id(idBar), {
+        type: 'bar',
+        data: { labels: cats, datasets: [{ label: 'Total', data: vals, borderWidth: 1.2, borderColor: 'rgba(255,255,255,0.16)', borderSkipped: false }] },
+        options: {
+            ...oBase(),
+            indexAxis: 'y',
+            scales: { y: { ticks: yTicksSmart(cats, 26), grid: { color: C.grid } }, x: { grid: { color: C.grid } } }
+        }
+    });
+
+    // LÍNEA mensual del tipo
+    const idLin = `ch_gasto_line_${idx}`; kill(idLin);
+    const labels = rowsSerie.map(r => `${r.Anio}-${String(r.Mes).padStart(2, '0')}`);
+    const data = rowsSerie.map(r => +r.Total || 0);
+    CH[idLin] = new Chart($id(idLin), {
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Gasto mensual', data, tension: .35, borderWidth: 2, fill: false }] },
+        options: oBase()
+    });
+}
+
+
+
+
+// ===== Paleta y gradientes (para dar vida a las series) =====
+const PALETTE = [
+    { h: 222, s: 85, l: 61 }, // azul
+    { h: 280, s: 70, l: 62 }, // violeta
+    { h: 160, s: 55, l: 55 }, // verde
+    { h: 15, s: 80, l: 58 }, // naranja
+    { h: 340, s: 70, l: 60 }, // magenta
+    { h: 195, s: 70, l: 55 }, // cian
+];
+function hsl(h, s, l, a = 1) { return `hsla(${h} ${s}% ${l}% / ${a})`; }
+function colorFor(i, a = 0.85) {
+    const c = PALETTE[i % PALETTE.length];
+    return hsl(c.h, c.s, c.l, a);
+}
+function gradientFill(ctx, area, i) {
+    const g = ctx.createLinearGradient(0, area.bottom, 0, area.top);
+    const base = PALETTE[i % PALETTE.length];
+    g.addColorStop(0, hsl(base.h, base.s, Math.max(10, base.l - 22), .35));
+    g.addColorStop(.55, hsl(base.h, base.s, base.l, .60));
+    g.addColorStop(1, hsl(base.h, base.s, Math.min(92, base.l + 14), .95));
+    return g;
+}
+
+
+// ====== Pager para categorías por tipo ======
+const G_PAGE_SIZE = 12; // cantidad de categorías por página
+const G_PAGER = {};     // key = índice del tab
+
+function gSetupPager(key, total) {
+    G_PAGER[key] = { page: 1, pageSize: G_PAGE_SIZE, total };
+}
+function gPagesOf(key) {
+    const p = G_PAGER[key] || { total: 0, pageSize: G_PAGE_SIZE, page: 1 };
+    return Math.max(1, Math.ceil((p.total || 0) / p.pageSize));
+}
+function gUpdatePagerUI(key) {
+    const p = G_PAGER[key]; if (!p) return;
+    const el = document.querySelector(`.ad-pager[data-scope="gcat"][data-key="${key}"]`);
+    if (!el) return;
+    const pages = gPagesOf(key);
+    el.querySelector('.lbl').textContent = `${p.total} ítems · pág. ${p.page}/${pages}`;
+    el.querySelector('.prev').disabled = (p.page <= 1);
+    el.querySelector('.next').disabled = (p.page >= pages);
+}
+function gTurnPage(key, delta, reRender) {
+    const p = G_PAGER[key]; if (!p) return;
+    const pages = gPagesOf(key);
+    p.page = Math.min(pages, Math.max(1, p.page + delta));
+    gUpdatePagerUI(key);
+    reRender?.(key);
+}
+
+
+const PAL = {
+    blue: 'rgba(91,140,255,0.85)',
+    purple: 'rgba(162,99,245,0.90)',
+    green: 'rgba(64,201,140,0.90)',
+    red: 'rgba(255,99,132,0.90)',
+    orange: 'rgba(255,168,76,0.90)',
+    cyan: 'rgba(73,199,235,0.90)',
+    lime: 'rgba(205,236,69,0.90)'
+};
+
+
+function renderGastosTipo(rows) {
+    const id = 'ch_gastos_tipo'; kill(id);
+    const data = safe(rows);
+    if (!data.length) { CH[id] = new Chart($id(id), { type: 'doughnut', data: { labels: [], datasets: [{ data: [] }] } }); return; }
+
+    // Normalizamos etiquetas y orden
+    const labels = data.map(r => r.TipoGeneral || 'N/D');
+    const values = data.map(r => +r.Total || 0);
+
+    CH[id] = new Chart($id(id), {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: [PAL.purple, PAL.orange, PAL.cyan, PAL.lime] }] },
+        options: {
+            ...oBase(),
+            cutout: '58%',
+            plugins: {
+                ...oBase().plugins,
+                legend: { position: 'bottom' },
+                tooltip: {
+                    ...oBase().plugins.tooltip,
+                    callbacks: { label: ctx => `${ctx.label}: ${fmtMon(ctx.parsed)}` }
+                }
+            }
+        }
+    });
+}
+
+
+function renderComparativaReal(rows) {
+    const id = 'ch_comp_real'; kill(id);
+    const data = safe(rows);
+    const labels = data.map(r => `${r.Anio}-${String(r.Mes).padStart(2, '0')}`);
+    const enMano = data.map(r => +r.IngresoEnMano || 0);
+    const gFab = data.map(r => +r.GastoFabricacion || 0);
+    const gOp = data.map(r => +r.GastoOperativo || 0);
+    const res = data.map(r => +r.ResultadoMes || 0);
+
+    CH[id] = new Chart($id(id), {
+        data: {
+            labels,
+            datasets: [
+                { type: 'bar', label: 'Gasto fabricación', data: gFab, backgroundColor: PAL.orange, stack: 'g' },
+                { type: 'bar', label: 'Gasto operativos', data: gOp, backgroundColor: PAL.red, stack: 'g' },
+                { type: 'bar', label: 'En mano', data: enMano, backgroundColor: PAL.green, stack: 'm' },
+                { type: 'line', label: 'Resultado mes', data: res, borderWidth: 2, tension: .35 }
+            ]
+        },
+        options: {
+            ...oBase(),
+            scales: {
+                x: { stacked: true, grid: { color: C.grid }, ticks: { color: C.tick } },
+                y: { stacked: true, grid: { color: C.grid }, ticks: { color: C.tick } }
+            },
+            plugins: {
+                ...oBase().plugins,
+                tooltip: {
+                    ...oBase().plugins.tooltip,
+                    callbacks: {
+                        label: (ctx) => `${ctx.dataset.label}: ${fmtMon(ctx.parsed.y ?? ctx.parsed)}`
+                    }
+                },
+                legend: { position: 'top' }
+            }
+        }
+    });
+}

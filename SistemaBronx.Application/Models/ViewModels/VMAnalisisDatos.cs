@@ -16,6 +16,10 @@ namespace SistemaBronx.Application.Models.ViewModels
         public List<ProdVM> TopMenosRentables { get; init; } = new();
         public List<GrupoVM> PorCategoria { get; init; } = new();
         public List<GrupoVM> PorProveedor { get; init; } = new();
+        public List<GastoTipoCategoriaVM> GastosPorTipoCategoria { get; init; } = new();
+        public List<GastoMensualTipoVM> GastosMensualPorTipo { get; init; } = new();
+        public List<GastoTipoTotalVM> GastosTotalesPorTipo { get; init; } = new();
+        public List<ComparativaRealMensualVM> ComparativaRealMensual { get; init; } = new();
     }
 
     // ================= KPIs =================
@@ -25,7 +29,6 @@ namespace SistemaBronx.Application.Models.ViewModels
         public decimal IngresosImporteTotal { get; init; }
         public decimal EgresosImporteTotal { get; init; }
 
-        // ✅ Nombres de negocio
         public int CantidadPedidos { get; init; }
         public decimal CantidadUnidades { get; init; }
         public decimal VentaPromedioPorPedido { get; init; }
@@ -38,7 +41,14 @@ namespace SistemaBronx.Application.Models.ViewModels
         public decimal? MargenBrutoPct { get; init; }
         public decimal? MargenOperativoPct { get; init; }
         public decimal? MargenNetoPct { get; init; }
+
+        // 👇 nuevos
+        public decimal NetoTotal { get; init; }
+        public decimal IVATotal { get; init; }
+        public decimal CostoFinancieroTotal { get; init; }
+        public decimal IngresoEnManoTotal { get; init; }
     }
+
 
     // ============= Serie mensual =============
     public record MensualVM
@@ -115,4 +125,37 @@ namespace SistemaBronx.Application.Models.ViewModels
         public decimal MargenBruto { get; init; }
         public decimal? MargenBrutoPct { get; init; }
     }
+
+    public record GastoTipoCategoriaVM
+    {
+        public string TipoGasto { get; init; } = "";
+        public string Categoria { get; init; } = "";
+        public decimal TotalGasto { get; init; }
+    }
+
+    public record GastoMensualTipoVM
+    {
+        public int Anio { get; init; }
+        public int Mes { get; init; }
+        public string TipoGeneral { get; init; } = "";
+        public decimal Total { get; init; }
+    }
+
+    public record GastoTipoTotalVM
+    {
+        public string TipoGeneral { get; init; } = ""; // "Fabricación" | "Operativos"
+        public decimal Total { get; init; }
+    }
+
+    public record ComparativaRealMensualVM
+    {
+        public int Anio { get; init; }
+        public int Mes { get; init; }
+        public decimal IngresoEnMano { get; init; }
+        public decimal GastoFabricacion { get; init; }
+        public decimal GastoOperativo { get; init; }
+        public decimal ResultadoMes { get; init; }
+    }
+
+
 }
