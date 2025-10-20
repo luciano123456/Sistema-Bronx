@@ -517,7 +517,7 @@ async function configurarDataTable(data) {
 
 async function guardarCambiosFila(rowData) {
     try {
-        const response = await fetch('/Cotizaciones/ActualizarDetalleProceso', {
+        const response = await fetch('/Pedidos/ActualizarDetalleProceso', {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -601,13 +601,13 @@ function editarPedido(id) {
     // Redirige a la vista 'PedidoNuevoModif' con el parámetro id
     guardarFiltrosPantalla('#grd_Fabricaciones', 'estadoFabricaciones', false);
     localStorage.setItem("RedireccionFabricaciones", 1);
-    window.location.href = '/Cotizaciones/NuevoModif/' + id;
+    window.location.href = '/Pedidos/NuevoModif/' + id;
 }
 
 
 
 async function listaEstadosFilter() {
-    const url = `/CotizacionesEstados/Lista`;
+    const url = `/PedidosEstados/Lista`;
     const response = await fetch(url);
     const data = await response.json();
 
