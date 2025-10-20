@@ -32,17 +32,17 @@
                 <li class="nav-item dropdown" id="configDropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="configDropdownLink"
                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Pedidos
+                        Cotizaciones
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="configDropdownLink">
                         <li>
                             <a class="dropdown-item"
-                               href="@Url.Action("NuevoModif","Pedidos",new { Id = 0 })"
+                               href="@Url.Action("NuevoModif","Cotizaciones",new { Id = 0 })"
                                onclick="return navTo(this)">Nuevo</a>
                         </li>
                         <li>
                             <a class="dropdown-item"
-                               href="@Url.Action("Index","Pedidos")"
+                               href="@Url.Action("Index","Cotizaciones")"
                                onclick="return navTo(this)">Historial</a>
                         </li>
                     </ul>
@@ -304,4 +304,4 @@
         </div>
     </div>
 </div>
-<script src="~/js/NavBarLogin.js?v=1.4" asp-append-version="true"></script>
+<script src="~/js/NavBarLogin.js?v=1.5" asp-append-version="true"></script>
