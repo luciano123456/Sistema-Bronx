@@ -159,17 +159,26 @@ async function configurarDataTable(data) {
                 {
                     data: 'Finalizado',
                     title: 'Finalizado',
-                    render: function (data) {
-                        if (data === 1) {
-                            return `<i class="fa fa-check-circle text-success" title="Finalizado"></i>`; // Green check
-                        } else if (data === 0) {
-                            return `<i class="fa fa-times-circle text-danger" title="No Finalizado"></i>`; // Red cross
-                        }
-                        return ''; // In case the data is null or doesn't match 0 or 1
+                    render: function (data, type) {
+                        if (type !== 'display') return String(data ?? '');
+                        return data === 1
+                            ? `<i class="fa fa-check-circle text-success" title="Finalizado"></i>`
+                            : `<i class="fa fa-times-circle text-danger" title="No Finalizado"></i>`;
                     },
-                    orderable: false,
-                    searchable: false,
+                    orderable: false, searchable: true
                 },
+                {
+                    data: 'Facturado',
+                    title: 'Facturado',
+                    render: function (data, type) {
+                        if (type !== 'display') return String(data ?? '');
+                        return data === 1
+                            ? `<i class="fa fa-check-circle text-success" title="Facturado"></i>`
+                            : `<i class="fa fa-times-circle text-danger" title="No Facturado"></i>`;
+                    },
+                    orderable: false, searchable: true
+                }
+
                
             ],
             dom: 'Bfrtip',
@@ -304,6 +313,51 @@ async function configurarDataTable(data) {
                     }
                 }
                 $('.filters th').eq(12).html(''); // Limpiar la última columna si es necesario
+
+                const addTriStateFilter = (api, colIndex) => {
+                    const $cell = $('.filters th').eq(colIndex);
+                    $cell.empty().addClass('tri-filter');
+
+                    // wrapper custom para poder estilizar lindo
+                    const $wrap = $('<button type="button" class="tri-switch" data-state="all" title="Todos → Sí → No"></button>');
+                    const $cb = $('<input type="checkbox" class="tri-switch-input" />'); // oculto, solo para indeterminate
+                    const $ui = $('<span class="tri-switch-ui"></span>');
+                    $wrap.append($cb, $ui);
+                    $cell.append($wrap);
+
+                    let state = 'all';
+                    $cb.prop('indeterminate', true);
+
+                    const apply = () => {
+                        if (state === '1') api.column(colIndex).search('^1$', true, false).draw();
+                        else if (state === '0') api.column(colIndex).search('^$', true, false).draw();
+                        else api.column(colIndex).search('').draw();
+                    };
+
+                    // prevenir que el header ordene la columna
+                    $wrap.on('click', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if ($cb.prop('indeterminate')) {
+                            $cb.prop('indeterminate', false).prop('checked', true);
+                            state = '1'; $wrap.attr('data-state', 'on');
+                        } else if ($cb.prop('checked')) {
+                            $cb.prop('checked', false);
+                            state = '0'; $wrap.attr('data-state', 'off');
+                        } else {
+                            $cb.prop('indeterminate', true);
+                            state = 'all'; $wrap.attr('data-state', 'all');
+                        }
+                        apply();
+                    });
+                };
+
+                // crear los dos filtros
+                addTriStateFilter(api, 12); // Finalizado
+                addTriStateFilter(api, 13); // Facturado
+
+
 
                 await configurarOpcionesColumnas();
 
@@ -531,3 +585,5 @@ async function listaClientesFiltro() {
 
     }
 }
+
+

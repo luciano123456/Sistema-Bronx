@@ -24,6 +24,11 @@ namespace SistemaBronx.Application.Models.ViewModels
 
         public int? IdTipo { get; set; }
 
+        public int? Facturado { get; set; }
+
+        public string? NroFactura { get; set; }
+
+
 
         public int? Finalizado { get; set; }
 

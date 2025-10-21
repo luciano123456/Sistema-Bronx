@@ -232,10 +232,20 @@
                         <label for="Comentarios">Comentarios</label>
                         <input type="text" class="form-control" id="Comentarios" name="Comentarios">
                     </div>
+
+                    <div class="form-group d-none" id="divNroFactura">
+                        <label for="Comentarios">Nro. de Factura</label>
+                        <input type="text" class="form-control" id="NroFactura" name="NroFactura">
+                    </div>
+
                 </div>
 
-                <!-- Contenedor para alinear el switch a la derecha -->
                 <div class="d-flex justify-content-end mt-3">
+
+                    <div class="form-check form-switch pretty-switch">
+                        <input class="form-check-input" type="checkbox" id="Facturado" />
+                        <label class="form-check-label ms-2" for="Facturado">Facturado</label>
+                    </div>
                     <div class="form-check form-switch d-flex align-items-center">
                         <label class="form-check-label" style="margin-right:4rem" for="Finalizado">Finalizado</label>
                         <input class="form-check-input" type="checkbox" id="Finalizado">

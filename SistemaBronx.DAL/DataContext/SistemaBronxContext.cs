@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using SistemaBronx.Models;
 
 namespace SistemaBronx.DAL.DataContext;
@@ -15,18 +14,6 @@ public partial class SistemaBronxContext : DbContext
     public SistemaBronxContext(DbContextOptions<SistemaBronxContext> options)
         : base(options)
     {
-    }
-
-    private readonly IConfiguration _configuration;
-
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured)
-        {
-            var connectionString = _configuration.GetConnectionString("SistemaDB");
-            optionsBuilder.UseSqlServer(connectionString);
-        }
     }
 
     public virtual DbSet<Cliente> Clientes { get; set; }
@@ -86,6 +73,10 @@ public partial class SistemaBronxContext : DbContext
     public virtual DbSet<UnidadesDeMedida> UnidadesDeMedida { get; set; }
 
     public virtual DbSet<User> Usuarios { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=DESKTOP-3MT5F5F; Database=Sistema_Bronx; Integrated Security=true; Trusted_Connection=True; Encrypt=False");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -349,6 +340,9 @@ public partial class SistemaBronxContext : DbContext
             entity.Property(e => e.Fecha).HasColumnType("datetime");
             entity.Property(e => e.ImporteAbonado).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.ImporteTotal).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.NroFactura)
+                .HasMaxLength(100)
+                .IsUnicode(false);
             entity.Property(e => e.PorcDescuento).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Saldo).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.SubTotal).HasColumnType("decimal(20, 2)");
