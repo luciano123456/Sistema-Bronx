@@ -27,6 +27,10 @@ public partial class Pedido
 
     public string? Comentarios { get; set; }
 
+    public int? Facturado { get; set; }
+
+    public string? NroFactura { get; set; }
+
     public virtual Cliente? IdClienteNavigation { get; set; }
 
     public virtual FormasdePago? IdFormaPagoNavigation { get; set; }

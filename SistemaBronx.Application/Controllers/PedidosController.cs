@@ -43,7 +43,9 @@ namespace SistemaBronx.Application.Controllers
                     PorcDescuento = model.PorcDescuento ?? 0,
                     Saldo = model.Saldo ?? 0,
                     Comentarios = model.Comentarios,
-                    Finalizado = model.Finalizado
+                    Finalizado = model.Finalizado,
+                    Facturado = model.Facturado,
+                    NroFactura = model.NroFactura
 
                 };
 
@@ -129,6 +131,8 @@ namespace SistemaBronx.Application.Controllers
                 pedido.Saldo = model.Saldo ?? 0;
                 pedido.Comentarios = model.Comentarios;
                 pedido.Finalizado = (int)model.Finalizado;
+                pedido.Facturado = (int)model.Facturado;
+                pedido.NroFactura = model.NroFactura;
 
                 // Actualizar Detalles de Productos
                 List<PedidosDetalle> pedidoDetalle = new List<PedidosDetalle>();
@@ -243,6 +247,7 @@ namespace SistemaBronx.Application.Controllers
                     Id = c.Id,
                     Fecha = c.Fecha,
                     Finalizado = c.Finalizado,
+                    Facturado = c.Facturado,
                     SubTotal = c.SubTotal,
                     FormaPago = c.IdFormaPagoNavigation?.Nombre ?? "",
                     Saldo = c.Saldo,
@@ -292,6 +297,8 @@ namespace SistemaBronx.Application.Controllers
                 Id = pedido.Id,
                 Fecha = pedido.Fecha,
                 Finalizado = pedido.Finalizado,
+                Facturado = pedido.Facturado,
+                NroFactura = pedido.NroFactura,
                 SubTotal = pedido.SubTotal,
                 FormaPago = pedido.IdFormaPagoNavigation?.Nombre ?? "",
                 Saldo = pedido.Saldo,

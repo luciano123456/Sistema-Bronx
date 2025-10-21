@@ -141,7 +141,12 @@ async function insertarDatosPedido(datosPedido) {
     document.getElementById("Finalizado").checked = datosPedido.pedido.Finalizado === 1;
 
 
-
+    // === NUEVO: facturado + nro de factura ===
+    const fueFacturado = Number(datosPedido.pedido.Facturado) === 1;
+    document.getElementById("Facturado").checked = fueFacturado;
+    document.getElementById("NroFactura").value = datosPedido.pedido.NroFactura ?? "";
+    // Muestra/oculta y habilita/deshabilita el input según el switch
+    if (typeof toggleFacturaGroup === "function") toggleFacturaGroup();
 
     document.getElementById("btnNuevoModificar").textContent = "Guardar";
 
@@ -2050,8 +2055,10 @@ async function guardarCambios(redirecciona = true) {
             "Saldo": parseFloat(convertirMonedaAFloat($("#Saldo").val())),
             "Comentarios": $("#Comentarios").val(),
             "Finalizado": $("#Finalizado").prop('checked') ? 1 : 0,
+            "Facturado": $("#Facturado").prop('checked') ? 1 : 0,
+            "NroFactura": $("#NroFactura").val(),
             "PedidosDetalles": productos,
-            "PedidosDetalleProcesos": insumos
+            "PedidosDetalleProcesos": insumos,
         };
 
         // --- Endpoint ---
@@ -2716,3 +2723,18 @@ function fmtMoneda(v) {
     return typeof v === 'string' ? v : formatNumber(v ?? 0);
 }
 
+
+
+function toggleFacturaGroup() {
+    const on = $("#Facturado").prop("checked");
+    const $grp = $("#divNroFactura");
+    const $nro = $("#NroFactura");
+    if (on) { $grp.removeClass("d-none"); $nro.prop("disabled", false); }
+    else { $grp.addClass("d-none"); $nro.val("").prop("disabled", true); }
+}
+
+
+$("#Facturado").prop("checked", false);
+toggleFacturaGroup();
+// Listener
+$("#Facturado").on("change", toggleFacturaGroup);
