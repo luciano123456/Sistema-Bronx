@@ -183,7 +183,6 @@ body {
 /* ===== DataTables – Skin oscuro ===== */
 .dt-dark-wrap .dataTables_scrollHead,
 .dt-dark-wrap .dataTables_scrollHeadInner {
-    background: red !important;
     border-bottom: 1px solid var(--dt-head-b) !important;
 }
 
@@ -383,7 +382,7 @@ body {
 }
 
 .modal .form-control, .modal .form-select {
-    background: var(--dt-row-zebra) !important;
+    background: var(--dt-row-zebra2) !important;
     border: 1px solid rgba(255,255,255,.12) !important;
     color: #e8eef7 !important;
 }
@@ -1439,11 +1438,15 @@ table.dataTable.display tbody tr.selected td {
     display: block;
 }
 
+.filter-bar .select2-container .select2-selection--single {
+    background: white !important;
+}
+
     .select2-container .select2-selection--single {
         height: 44px !important;
         display: flex;
         align-items: center;
-        background: var(--dt-row-zebra) !important;
+        background: var(--dt-row-zebra2) !important;
         border-radius: 12px !important;
     }
 
