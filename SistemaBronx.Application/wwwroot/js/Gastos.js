@@ -1025,3 +1025,73 @@ document.getElementById("FormasdePago").addEventListener("change", function () {
 document.getElementById("txtPorcIva").addEventListener("blur", function () {
     calcularGasto();
 });
+
+
+// ===== Helpers de fecha por defecto =====
+function _defaultDesde() { return moment().add(-7, 'days').format('YYYY-MM-DD'); }
+function _defaultHasta() { return moment().format('YYYY-MM-DD'); }
+function _setDefaultFechas() {
+    document.getElementById("txtFechaDesde").value = _defaultDesde();
+    document.getElementById("txtFechaHasta").value = _defaultHasta();
+}
+
+// ===== Aplicar filtros (rename para evitar colisión con id="aplicarFiltros") =====
+function aplicarFiltrosGastos() {
+    const fd = document.getElementById("txtFechaDesde").value;
+    const fh = document.getElementById("txtFechaHasta").value;
+    const cat = document.getElementById("CategoriasFiltro").value;
+    const fp = document.getElementById("FormasdePagoFiltro").value;
+    listaGastos(fd, fh, cat, fp);
+}
+
+// ===== Limpiar filtros: Select2 + fechas + (opcional) filtros de columnas =====
+function limpiarFiltrosGastos({ resetColumnFilters = false } = {}) {
+    // Fechas al default (últimos 7 días)
+    _setDefaultFechas();
+
+    // Select2 del panel
+    // En tus cargadores usás -1 como "Todos"
+    $('#CategoriasFiltro').val('-1').trigger('change.select2');
+    $('#FormasdePagoFiltro').val('-1').trigger('change.select2');
+
+    // (Opcional) limpiar filtros de columnas en el thead clonado
+    if (resetColumnFilters && window.gridGastos) {
+        const api = $('#grd_Gastos').DataTable();
+        // limpia inputs
+        $('#grd_Gastos thead tr.filters th input').each(function () {
+            this.value = '';
+        });
+        // limpia selects (incluye los select2 internos)
+        $('#grd_Gastos thead tr.filters th select').each(function () {
+            $(this).val(null).trigger('change.select2');
+        });
+        api.columns().search('').draw();
+    }
+
+    // Volver a cargar con defaults
+    aplicarFiltrosGastos();
+}
+
+// ===== Inicialización: reemplazá las 2 líneas sueltas que setean fechas por esto =====
+$(document).ready(() => {
+    _setDefaultFechas(); // fechas default
+    listaGastos($('#txtFechaDesde').val(), $('#txtFechaHasta').val(), -1, -1);
+
+
+    $("#CategoriasFiltro").select2({ placeholder: "Selecciona una opción", allowClear: false });
+    $("#Categorias").select2({
+        dropdownParent: $("#modalEdicion"),
+        width: "100%",
+        placeholder: "Selecciona una opción",
+        allowClear: false
+    });
+
+    $('#txtNombre').on('input', validarCampos);
+
+    // (opcional) toggle de barra de filtros como en Pedidos
+    $('#btnToggleFiltrosG').on('click', function () {
+        const $bar = $('#formFiltrosGastos');
+        $bar.toggleClass('d-none');
+        $('#iconFiltrosG').toggleClass('fa-arrow-up fa-arrow-down');
+    });
+});

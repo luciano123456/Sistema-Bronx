@@ -1,122 +1,146 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Gastos";
 }
 
-
-@*GOOGLEAR CARD BOOTSTRAP 5*@
 @section Estilos {
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.2.2/css/fixedHeader.dataTables.min.css" />
 
-      <link href="~/css/Gastos.css" rel="stylesheet" />
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
 
-    <link href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css" rel="stylesheet" />
+    <!-- Base del proyecto (mismo tema) -->
+    <link rel="stylesheet" href="~/css/usuarios.css" />
+    <link rel="stylesheet" href="~/css/Gastos.css" />
+    <link rel="stylesheet" href="~/css/redisenopantallas.css" />
+   
 
-    @*ESTILOS DE BOTONES*@
-    <link href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css" rel="stylesheet" />
-
-    @*filter columns*@
-    <link href="https://cdn.datatables.net/fixedheader/3.2.2/css/fixedHeader.dataTables.min.css" rel="stylesheet" />
-
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-
-
-
-  
-  
-  
+    <!-- Select2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" />
 }
 
-<div class="container-fluid mt-5">
-
-    <div class="row mt-4 table-bordered table-borderless">
-
-        <div id="Filtros" class="divFiltros">
-
-            <label for="txtFechaDesde" class="lblfiltro">Fecha Desde</label>
-            <input type="date" class="input-nuevo" id="txtFechaDesde">
-
-            <label for="txtFechaHasta" class="lblfiltro">Fecha Hasta</label>
-            <input type="date" class="input-nuevo" id="txtFechaHasta">
-
-            <br />
-                
-            <label class="lblfiltro">Categoria</label>
-            <select id="CategoriasFiltro" name="select" class="input-nuevo">
-                <option value="" selected>Categoria</option>
-            </select>
-
-            <label class="lblfiltro">Forma de Pago</label>
-            <select id="FormasdePagoFiltro" name="select" class="input-nuevo">
-                <option value="" selected>Forma de Pago</option>
-            </select>
-
-            
-
-            <div class="vw-75 d-flex float-lg-end mt-2">
-                <a class="btn btn-success" id="aplicarFiltros" onclick="aplicarFiltros()">Aplicar</a>
+<div class="container page-99" style="margin-top: 100px">
+    <!-- Header tipo KPI -->
+    <div class="cc-header shadow-lg rounded-4 p-4 mb-4">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div class="d-flex align-items-center gap-3">
+                <span class="cc-badge"><i class="fa fa-credit-card"></i></span>
+                <div>
+                    <h2 class="m-0 fw-800">Gastos</h2>
+                    <small class="text-muted-cc">Listado y sumatorias del período</small>
+                </div>
             </div>
 
+            <!-- KPIs -->
+            <div class="ms-auto d-flex gap-3 flex-wrap">
+                <div class="cc-stat"><div class="label">Cantidad</div><div class="value" id="kpiCantGastos">0</div></div>
+                <div class="cc-stat"><div class="label">Importe Total</div><div class="value" id="kpiImporteTotalG">0,00</div></div>
+                <div class="cc-stat d-none d-md-block"><div class="label">Abonado</div><div class="value" id="kpiAbonadoG">0,00</div></div>
+                <div class="cc-stat d-none d-md-block"><div class="label">Saldo</div><div class="value kpi-azul" id="kpiSaldoG">0,00</div></div>
+            </div>
         </div>
     </div>
 
+    <!-- Tabla + Filtros -->
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="card-glass p-3">
+                <div class="tabla-wrap position-relative">
 
-    <div class="row mt-5">
-        <div class="col-lg-10">
-            <div class="card" style="width: 88%; position: absolute; left: 7vw; border: none;">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Gastos</span>
-
-                    <div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle d-flex align-items-center" type="button" id="dropdownColumnas" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fa fa-cog me-2"></i> Config. Columnas
+                    <!-- Controles top -->
+                    <div class="tabla-controls-top d-flex gap-2 flex-wrap align-items-center">
+                        <button class="btn btn-success d-flex align-items-center px-3 py-2" onclick="nuevoGasto()">
+                            <i class="fa fa-plus-square me-2"></i> Nuevo Gasto
                         </button>
-                        <ul class="dropdown-menu" aria-labelledby="dropdownColumnas" id="configColumnasMenu">
-                        </ul>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <table class="display nowrap" id="grd_Gastos" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th>Fecha</th>
-                                <th>Categoria</th>
-                                <th>Forma de Pago</th>
-                                <th>Importe Total</th>
-                                <th>IVA</th>
-                                <th>Sub Total</th>
-                                <th>Importe Abonado</th>
-                                <th>Saldo</th>
-                                <th>Comentarios</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Aquí va el contenido de tu datatable -->
-                        </tbody>
-                    </table>
-                </div>
 
-                <div class="d-flex justify-content-between align-items-center mt-2 mb-4">
-                    <div class="col-md-3">
-                        <label for="sumaTotalGastos" class="form-label fw-bold">Suma Total</label>
-                        <input type="text" id="sumaTotalGastos" class="form-control" readonly>
+                        <!-- Toggle de filtros (si querés ocultar/mostrar como en Pedidos) -->
+                        <button class="btn btn-outline-primary d-flex align-items-center" type="button" id="btnToggleFiltrosG">
+                            <i class="fa fa-arrow-up me-2" id="iconFiltrosG"></i> Filtros
+                        </button>
+
+                        <div class="dropdown">
+                            <button class="btn btn-secondary dropdown-toggle d-flex align-items-center" type="button" id="btnConfigColsG"
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fa fa-cog me-2"></i> Config. Columnas
+                            </button>
+                            <ul class="dropdown-menu" id="configColumnasMenu" aria-labelledby="btnConfigColsG"></ul>
+                        </div>
                     </div>
-                    <a class="btn btn-warning btnnuevo" onclick="nuevoGasto()">Nuevo</a>
-                </div>
-            </div>
+
+                    <!-- Panel de filtros (mismos IDs que ya usa tu JS) -->
+                    <form id="formFiltrosGastos" class="filter-bar shadow-sm rounded-3 mb-3 p-3">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-6 col-md-2">
+                                <label for="txtFechaDesde" class="form-label">Fecha Desde</label>
+                                <input type="date" class="form-control" id="txtFechaDesde">
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <label for="txtFechaHasta" class="form-label">Fecha Hasta</label>
+                                <input type="date" class="form-control" id="txtFechaHasta">
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label for="CategoriasFiltro" class="form-label">Categoría</label>
+                                <select id="CategoriasFiltro" class="form-select">
+                                    <option value="">Todas</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <label for="FormasdePagoFiltro" class="form-label">Forma de Pago</label>
+                                <select id="FormasdePagoFiltro" class="form-select">
+                                    <option value="">Todas</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-md-2 d-flex gap-2 mt-2 mt-md-0">
+                                <button type="button" id="aplicarFiltros" class="btn btn-primary flex-fill" onclick="aplicarFiltrosGastos()">
+                                    <i class="fa fa-search me-1"></i> Buscar
+                                </button>
+
+                                <button type="button" class="btn btn-outline-secondary" onclick="limpiarFiltrosGastos()">
+                                    <i class="fa fa-eraser me-1"></i> Limpiar
+                                </button>
+
+
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- DataTable -->
+                    <div class="dt-dark-wrap">
+                        <table class="dt-dark display nowrap compact" id="grd_Gastos" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Fecha</th>
+                                    <th>Categoria</th>
+                                    <th>Forma de Pago</th>
+                                    <th>Importe Total</th>
+                                    <th>IVA</th>
+                                    <th>Sub Total</th>
+                                    <th>Importe Abonado</th>
+                                    <th>Saldo</th>
+                                    <th>Comentarios</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                </div><!-- /tabla-wrap -->
+            </div><!-- /card-glass -->
         </div>
     </div>
 </div>
 
-
-<!-- Modal Gastos-->
+<!-- ===== Modal Gastos (MISMO markup; sólo estilos del skin) ===== -->
 <div class="modal fade" id="modalEdicion" tabindex="-1" role="dialog" aria-labelledby="modalEdicionLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-edicion" role="document">
-        <div class="modal-content">
+        <div class="modal-content cc-modal">
             <div class="modal-header colorEncabezado">
                 <h5 class="modal-title fw-bold" id="modalEdicionLabel">Editar Gasto</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                <button type="button" class="btn-close custom-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
 
             <div class="modal-body">
@@ -179,7 +203,7 @@
                 </form>
             </div>
 
-            <div class="modal-footer">
+            <div class="modal-footer modal-footer-cc">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                 <button type="button" id="btnGuardar" class="btn btn-warning" onclick="guardarCambios()">Registrar</button>
             </div>
@@ -187,37 +211,30 @@
     </div>
 </div>
 
-
-
 <partial name="~/Views/Utils/Modals.cshtml" />
 
 @section Scripts {
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-
-    @*SCRIPTS DE BOTONES*@
-    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js">
-
-    </script><script src="~/js/site.js"></script>
-    <script src="~/js/utils/moment.js"></script>
-
-    @*excel*@
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <!-- DataTables + extensiones -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
-
-    @*pdf*@
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
-
-    @*imprimir*@
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
-
-    @*filter columns*@
     <script src="https://cdn.datatables.net/fixedheader/3.2.2/js/dataTables.fixedHeader.min.js"></script>
 
+    <!-- Export deps -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+
+    <!-- Select2 -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
 
+    <!-- Utilidades -->
+    <script src="~/js/site.js"></script>
+    <script src="~/js/utils/moment.js"></script>
 
-    <script src="~/js/Gastos.js?v=1.5"></script>
+    <!-- Lógica -->
+    <script src="~/js/Gastos.js?v=1.6"></script>
 
 }
