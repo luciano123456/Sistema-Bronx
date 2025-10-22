@@ -25,6 +25,22 @@
     --chip-out: #ff7a66;
     --chip-stock: #7cc2ff;
     --color-general: #05225E;
+    --bg: #0a111f;
+    --panel: #141c2b;
+    --panel2: #101726;
+    --soft: rgba(255,255,255,.06);
+    --b1: rgba(255,255,255,.12);
+    --head: #1b2740;
+    --primary: #4c8dff;
+    --accent: #7b5cff;
+    --ok: #1ecf93;
+    --warn: #ffb200;
+    --danger: #ff5a6a;
+    --txt: #eaf1ff;
+    --muted: #9db1d2;
+    --dt-row-hover: #152037;
+    --dt-row-zebra: #363659;
+    --dt-row-zebra2: #525285;
 }
 
 /* ===== Layout y contenedores ===== */
@@ -354,9 +370,7 @@ body {
     color: var(--dt-row-zebra);
 }
 
-.modal-body {
-    background: #1d2636;
-}
+
 
 .modal-footer {
     background: #1b2434;
@@ -1405,8 +1419,9 @@ table.dataTable tbody tr.selected {
 }
 
 
-.modal-body{
-    background: var(--dt-row-zebra2)
+/* Fondo para modal-body en general, excepto exito/Error/Advertencia */
+.modal:not(#exitoModal):not(#ErrorModal):not(#AdvertenciaModal) .modal-body {
+    background: var(--dt-row-zebra2) !important;
 }
 
 
@@ -1414,4 +1429,31 @@ table.dataTable tbody tr.selected {
 table.dataTable.display tbody tr.selected td {
     background-color: antiquewhite !important;
     color: black !important;
+}
+
+
+
+.select2-container {
+    width: 100% !important;
+    min-width: 0;
+    display: block;
+}
+
+    .select2-container .select2-selection--single {
+        height: 44px !important;
+        display: flex;
+        align-items: center;
+        background: var(--dt-row-zebra) !important;
+        border-radius: 12px !important;
+    }
+
+    .select2-container .select2-selection__arrow {
+        height: 48px !important;
+    }
+
+
+
+.select2-results__option {
+    color: #eaf1ff;
+    font-weight: 700;
 }

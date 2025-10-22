@@ -123,24 +123,3 @@
   .cta-footer-sticky .btn{ width:100%; }
 }
 
-
-.select2-container {
-    width: 100% !important;
-    min-width: 0;
-    display: block;
-}
-
-    .select2-container .select2-selection--single {
-        height: 44px !important;
-        display: flex;
-        align-items: center;
-        background: var(--dt-row-zebra) !important;
-       
-        border-radius: 12px !important;
-    }
-
-    .select2-container .select2-selection__arrow {
-        height: 48px !important;
-    }
-
-
