@@ -1,7 +1,7 @@
-﻿let gridProductos;
-let isEditing = false;
+﻿// ============================== Productos.js ==============================
+let gridProductos;
 
-const columnConfig = [
+const columnConfigProductos = [
     { index: 1, name: 'Nombre', filterType: 'text' },
     { index: 2, name: 'Categoria', filterType: 'select', fetchDataFunc: listaProductosCategoriaFilter },
     { index: 3, name: 'Porc. IVA', filterType: 'text' },
@@ -9,199 +9,80 @@ const columnConfig = [
     { index: 5, name: 'Costo Unitario', filterType: 'text' },
 ];
 
+/* ============================
+   Arranque
+   ============================ */
+$(document).ready(async () => {
+    await listaProductos();
+});
 
-$(document).ready(() => {
-
-    listaProductos(-1);
-
-    $('#txtNombre, #txtCodigo').on('input', function () {
-        validarCampos()
-    });
-
-
-})
-
-
-
-function guardarCambios() {
-    if (validarCampos()) {
-        const idProducto = $("#txtId").val();
-        const nuevoModelo = {
-            "Id": idProducto !== "" ? idProducto : 0,
-            "Nombre": $("#txtNombre").val(),
-            "IdUnidadMedida": $("#UnidadesMedida").val(),
-            "IdUnidadNegocio": $("#UnidadesNegocio").val(),
-            "IdCategoria": $("#Categorias").val(),
-            "Sku": $("#txtSku").val(),
-            "CostoUnitario": $("#txtCostoUnitario").val(),
-        };
-
-        const url = idProducto === "" ? "Productos/Insertar" : "Productos/Actualizar";
-        const method = idProducto === "" ? "POST" : "PUT";
-
-        fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json;charset=utf-8'
-            },
-            body: JSON.stringify(nuevoModelo)
-        })
-            .then(response => {
-                if (!response.ok) throw new Error(response.statusText);
-                return response.json();
-            })
-            .then(dataJson => {
-                const mensaje = idProducto === "" ? "Producto registrado correctamente" : "Producto modificado correctamente";
-                $('#modalEdicion').modal('hide');
-                exitoModal(mensaje);
-                aplicarFiltros();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    } else {
-        errorModal('Debes completar los campos requeridos');
-    }
+/* ============================
+   Acciones / navegación
+   ============================ */
+function nuevoProducto() { window.location.href = '/Productos/NuevoModif'; }
+function editarProducto(id) {
+    guardarFiltrosPantalla?.('#grd_Productos', 'estadoProductos', false);
+    window.location.href = '/Productos/NuevoModif/' + id;
+}
+function duplicarProducto(id) {
+    guardarFiltrosPantalla?.('#grd_Productos', 'estadoProductos', false);
+    localStorage.setItem("DuplicarProducto", true);
+    window.location.href = '/Productos/NuevoModif/' + id;
+}
+async function eliminarProducto(id) {
+    if (!window.confirm("¿Desea eliminar el Producto?")) return;
+    try {
+        const response = await fetch("Productos/Eliminar?id=" + id, { method: "DELETE" });
+        if (!response.ok) throw new Error("Error al eliminar el Producto.");
+        const ok = await response.json();
+        if (ok?.valor ?? ok) { exitoModal?.("Producto eliminado correctamente"); await listaProductos(); }
+    } catch (e) { console.error(e); }
 }
 
-
-function validarCampos() {
-    const Nombre = $("#txtNombre").val();
-    const campoValidoNombre = Nombre !== "";
-    const campoValidoCodigo = codigo !== "";
-
-    $("#lblNombre").css("color", campoValidoNombre ? "" : "red");
-    $("#txtNombre").css("border-color", campoValidoNombre ? "" : "red");
-
-    return campoValidoNombre;
-}
-
-function nuevoProducto() {
-    window.location.href = '/Productos/NuevoModif';
-}
-
-async function mostrarModal(modelo) {
-    const campos = ["Id", "Sku", "CostoUnitario", "Nombre"];
-    campos.forEach(campo => {
-        $(`#txt${campo}`).val(modelo[campo]);
-    });
-
-    listaUnidadesNegocio();
-    listaUnidadesMedida();
-    listaProductosCategoria();
-
-    $('#modalEdicion').modal('show');
-    $("#btnGuardar").text("Guardar");
-    $("#modalEdicionLabel").text("Editar Producto");
-
-    $('#lblNombre, #txtNombre').css('color', '').css('border-color', '');
-    $('#lblSku, #txtSku').css('color', '').css('border-color', '');
-    $('#lblCostoUnitario, #txtCostoUnitario').css('color', '').css('border-color', '');
-}
-
-
-
-
-function limpiarModal() {
-    const campos = ["Id", "Sku", "CostoUnitario", "Nombre"];
-    campos.forEach(campo => {
-        $(`#txt${campo}`).val("");
-    });
-
-    $('#lblNombre, #txtNombre').css('color', '').css('border-color', '');
-    $('#lblSku, #txtSku').css('color', '').css('border-color', '');
-    $('#lblCostoUnitario, #txtCostoUnitario').css('color', '').css('border-color', '');
-}
-
-
-async function aplicarFiltros() {
-    listaProductos()
-}
-
-
+/* ============================
+   Datos / Listado
+   ============================ */
 async function listaProductos() {
     const url = `/Productos/Lista`;
     const response = await fetch(url);
     const data = await response.json();
-    await configurarDataTable(data);
+    await configurarDataTableProductos(data);
 }
 
-function editarProducto(id) {
-    guardarFiltrosPantalla('#grd_Productos', 'estadoProductos', false);
-    window.location.href = '/Productos/NuevoModif/' + id;
-}
-
-function duplicarProducto(id) {
-    guardarFiltrosPantalla('#grd_Productos', 'estadoProductos', false);
-    localStorage.setItem("DuplicarProducto", true);
-    window.location.href = '/Productos/NuevoModif/' + id;
-}
-
-
-async function eliminarProducto(id) {
-    let resultado = window.confirm("¿Desea eliminar el Producto?");
-
-    if (resultado) {
-        try {
-            const response = await fetch("Productos/Eliminar?id=" + id, {
-                method: "DELETE"
-            });
-
-            if (!response.ok) {
-                throw new Error("Error al eliminar el Producto.");
-            }
-
-            const dataJson = await response.json();
-
-            if (dataJson.valor) {
-                aplicarFiltros();
-                exitoModal("Producto eliminado correctamente")
-            }
-        } catch (error) {
-            console.error("Ha ocurrido un error:", error);
-        }
-    }
-}
-
-async function configurarDataTable(data) {
+async function configurarDataTableProductos(data) {
     if (!gridProductos) {
+        // Header con filtros clonados
         $('#grd_Productos thead tr').clone(true).addClass('filters').appendTo('#grd_Productos thead');
+
         gridProductos = $('#grd_Productos').DataTable({
-            data: data,
-            language: {
-                sLengthMenu: "Mostrar MENU registros",
-                lengthMenu: "Anzeigen von _MENU_ Einträgen",
-                url: "//cdn.datatables.net/plug-ins/2.0.7/i18n/es-MX.json"
-            },
-            scrollX: "100px",
-            pageLength: 50,
+            data,
+            language: { url: "//cdn.datatables.net/plug-ins/2.0.7/i18n/es-MX.json" },
+            scrollX: true,
             scrollCollapse: true,
+            pageLength: 50,
             columns: [
                 {
-                    data: "Id",
-                    title: '',
-                    width: "1%", // Ancho fijo para la columna
+                    data: "Id", title: '', width: "1%",
                     render: function (data) {
                         return `
-                <div class="acciones-menu" data-id="${data}">
-                    <button class='btn btn-sm btnacciones' type='button' onclick='toggleAcciones(${data})' title='Acciones'>
-                        <i class='fa fa-ellipsis-v fa-lg text-white' aria-hidden='true'></i>
-                    </button>
-                    <div class="acciones-dropdown" style="display: none;">
-                        <button class='btn btn-sm btneditar' type='button' onclick='editarProducto(${data})' title='Editar'>
-                            <i class='fa fa-pencil-square-o fa-lg text-success' aria-hidden='true'></i> Editar
-                        </button>
-                        <button class='btn btn-sm btneliminar' type='button' onclick='eliminarProducto(${data})' title='Eliminar'>
-                            <i class='fa fa-trash-o fa-lg text-danger' aria-hidden='true'></i> Eliminar
-                        </button>
-                        <button class='btn btn-sm btneliminar' type='button' onclick='duplicarProducto(${data})' title='Duplicar'>
-                            <i class='fa fa-clone fa-lg text-warning' aria-hidden='true'></i> Duplicar
-                        </button>
-                    </div>
-                </div>`;
+            <div class="acciones-menu" data-id="${data}">
+              <button class='btn btn-sm btnacciones' type='button' onclick='toggleAccionesProd(${data})' title='Acciones'>
+                <i class='fa fa-ellipsis-v fa-lg text-white'></i>
+              </button>
+              <div class="acciones-dropdown" style="display:none;">
+                <button class='btn btn-sm btneditar' type='button' onclick='editarProducto(${data})'>
+                  <i class='fa fa-pencil-square-o fa-lg text-success'></i> Editar
+                </button>
+                <button class='btn btn-sm btneliminar' type='button' onclick='eliminarProducto(${data})'>
+                  <i class='fa fa-trash-o fa-lg text-danger'></i> Eliminar
+                </button>
+                <button class='btn btn-sm btneliminar' type='button' onclick='duplicarProducto(${data})'>
+                  <i class='fa fa-clone fa-lg text-warning'></i> Duplicar
+                </button>
+              </div>
+            </div>`;
                     },
-                    orderable: false,
-                    searchable: false,
+                    orderable: false, searchable: false,
                 },
                 { data: 'Nombre' },
                 { data: 'Categoria' },
@@ -216,315 +97,265 @@ async function configurarDataTable(data) {
                     text: 'Exportar Excel',
                     filename: `Reporte Productos_${moment().format('YYYY-MM-DD')}`,
                     title: '',
-                    exportOptions: {
-                        columns: [1, 2, 3, 4,5]
-                    },
+                    exportOptions: { columns: [1, 2, 3, 4, 5] },
                     className: 'btn-exportar-excel',
-                },
-                {
-                    extend: 'pdfHtml5',
-                    text: 'Exportar PDF',
-                    filename: `Reporte Productos_${moment().format('YYYY-MM-DD')}`,
-                    title: '',
-                    exportOptions: {
-                        columns: [1, 2, 3, 4, 5]
-                    },
-                    className: 'btn-exportar-pdf',
                 },
                 {
                     extend: 'print',
                     text: 'Imprimir',
                     title: '',
-                    exportOptions: {
-                        columns: [1, 2, 3, 4, 5]
-                    },
+                    exportOptions: { columns: [1, 2, 3, 4, 5] },
                     className: 'btn-exportar-print'
                 },
                 'pageLength'
             ],
             orderCellsTop: true,
             fixedHeader: false,
-
-            "columnDefs": [
-                {
-                    "render": function (data, type, row) {
-                        return formatNumber(redondearCien(data)); // Formatear números
-                    },
-                    "targets": [5] // Índices de las columnas de números
-                },
-                
+            columnDefs: [
+                { targets: [5], render: (data) => formatNumber(redondearCien(data)) },
             ],
             initComplete: async function () {
                 const api = this.api();
                 const idTabla = '#grd_Productos';
                 const estadoGuardado = JSON.parse(localStorage.getItem('estadoProductos')) || {};
 
-                const visibilidadActual = api.columns().visible().toArray();
+                // ===== Filtros por columna (thead clonado) =====
+                for (const cfg of columnConfigProductos) {
+                    const idx = cfg.index;
+                    const name = cfg.name;
+                    const $cell = $('.filters th').eq(idx);
+                    const valorGuardado = estadoGuardado?.filtrosPorNombre?.[name];
 
-                for (const config of columnConfig) {
-                    const index = config.index;
-                    const name = config.name;
-                    const cell = $('.filters th').eq(index);
-                    const valorGuardado = estadoGuardado.filtrosPorNombre?.[name];
+                    if (!api.column(idx).visible()) continue;
 
-                    if (!api.column(index).visible()) continue;
+                    $cell.attr('data-colname', name).empty();
 
-                    cell.attr('data-colname', name);
-                    cell.empty();
-
-                    if (config.filterType === 'select') {
-                        const select = $('<select id="filter' + index + '" multiple="multiple"><option value="">Seleccionar...</option></select>')
-                            .attr('data-index', index)
-                            .appendTo(cell)
+                    if (cfg.filterType === 'select') {
+                        const $sel = $(`<select id="filter${idx}" multiple="multiple"><option value=""></option></select>`)
+                            .attr('data-index', idx)
+                            .appendTo($cell)
                             .on('change', async function () {
-                                const selectedValues = $(this).val();
-                                if (selectedValues && selectedValues.length > 0) {
-                                    const regex = '^(' + selectedValues.map(val => $.fn.dataTable.util.escapeRegex(val)).join('|') + ')$';
-                                    await api.column(index).search(regex, true, false).draw();
+                                const values = $(this).val();
+                                if (values && values.length > 0) {
+                                    const rx = '^(' + values.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|') + ')$';
+                                    await api.column(idx).search(rx, true, false).draw();
                                 } else {
-                                    await api.column(index).search('').draw();
+                                    await api.column(idx).search('').draw();
                                 }
                             });
 
-                        const data = await config.fetchDataFunc();
-                        data.forEach(item => {
-                            select.append('<option value="' + item.Nombre + '">' + item.Nombre + '</option>');
+                        const dataSel = await cfg.fetchDataFunc();
+                        dataSel.forEach(item => $sel.append(`<option value="${item.Nombre}">${item.Nombre}</option>`));
+
+                        // Select2 dentro del wrapper de DataTable (no hay panel)
+                        $sel.select2({
+                            placeholder: 'Seleccionar...',
+                            width: '100%',
+                            dropdownParent: $('#grd_Productos').closest('.dataTables_wrapper')
                         });
 
-                        select.select2({ placeholder: 'Seleccionar...', width: '100%' });
 
-                        // Aplicar filtro guardado
                         if (valorGuardado) {
-                            const valores = Array.isArray(valorGuardado) ? valorGuardado : [valorGuardado];
-                            const opcionesActuales = data.map(x => x.Nombre);
-                            const valoresValidos = valores.filter(v => opcionesActuales.includes(v));
-                            if (valoresValidos.length > 0) {
-                                select.val(valoresValidos).trigger('change.select2');
-
-                                // Aplicar búsqueda al DataTable
-                                const regex = '^(' + valoresValidos.map(val => $.fn.dataTable.util.escapeRegex(val)).join('|') + ')$';
-                                await api.column(index).search(regex, true, false).draw();
+                            const vals = Array.isArray(valorGuardado) ? valorGuardado : [valorGuardado];
+                            const opciones = dataSel.map(x => x.Nombre);
+                            const validos = vals.filter(v => opciones.includes(v));
+                            if (validos.length) {
+                                $sel.val(validos).trigger('change.select2');
+                                const rx = '^(' + validos.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|') + ')$';
+                                await api.column(idx).search(rx, true, false).draw();
                             }
-
                         }
-
-                    } else if (config.filterType === 'text') {
-                        const input = $('<input type="text" />')
-                            .attr('data-index', index)
+                    } else {
+                        const $input = $('<input type="text" class="form-control form-control-sm dt-input-dark" placeholder="Buscar..." />')
+                            .attr('data-index', idx)
                             .val(valorGuardado || '')
-                            .attr('placeholder', valorGuardado ? '' : 'Buscar...')
-                            .appendTo(cell)
+                            .appendTo($cell)
                             .on('keyup change', function () {
-                                const regexr = '(((' + this.value + ')))';
-                                const cursorPosition = this.selectionStart;
-                                api.column(index)
-                                    .search(this.value !== '' ? regexr : '', this.value !== '', this.value === '')
-                                    .draw();
-                                $(this).focus()[0].setSelectionRange(cursorPosition, cursorPosition);
+                                const rx = this.value ? '(((' + $.fn.dataTable.util.escapeRegex(this.value) + ')))' : '';
+                                const cur = this.selectionStart || 0;
+                                api.column(idx).search(rx, !!this.value, !this.value).draw();
+                                $(this).focus()[0].setSelectionRange(cur, cur);
                             });
 
-                        // Aplicar búsqueda al inicializar
                         if (valorGuardado) {
-                            const regexr = '(((' + valorGuardado + ')))';
-                            api.column(index).search(regexr, true, false);
+                            api.column(idx).search('(((' + $.fn.dataTable.util.escapeRegex(valorGuardado) + ')))', true, false);
                         }
                     }
                 }
+                // sin filtro en col 0 (acciones)
+                $('.filters th').eq(0).empty();
 
-
-                $('.filters th').eq(0).html('');
-
-               
-
-                await configurarOpcionesColumnas();
-
-
-
-                await aplicarFiltrosRestaurados(api, idTabla, 'estadoProductos', true);
+                // Menú columnas + restaurar estado (si tenés esa helper global)
+                await configurarOpcionesColumnasProductos();
+                await aplicarFiltrosRestaurados?.(api, idTabla, 'estadoProductos', true);
                 localStorage.removeItem('estadoProductos');
 
-                setTimeout(() => {
-                    gridProductos.columns.adjust();
-                }, 10);
+                // Ajuste + primer cálculo de KPIs
+                setTimeout(() => { gridProductos?.columns.adjust(); calcularTotalesProductos(); }, 10);
 
-                $('#grd_Productos tbody')
-                    .on('mouseenter', 'tr', function () {
-                        $(this).css('cursor', 'pointer');
-                    })
-                    .on('dblclick', 'tr', function () {
-                        const id = gridProductos.row(this).data().Id;
-                        editarProducto(id);
-                    })
-                    .on('click', 'tr', function () {
-                        $('.seleccionada').removeClass('seleccionada');
-                        $(this).addClass('seleccionada').children('td').addClass('seleccionada');
-                    });
+                // Recalcular en cada draw
+                $('#grd_Productos').off('draw.dt.calc').on('draw.dt.calc', calcularTotalesProductos);
+
+                // UX filas
+                $('#grd_Productos tbody').on('mouseenter', 'tr', function () { $(this).css('cursor', 'pointer'); });
+                $('#grd_Productos tbody').on('dblclick', 'tr', function () {
+                    const id = gridProductos.row(this).data().Id;
+                    editarProducto(id);
+                });
+
+                // selección visual
+                let filaSel = null;
+                $('#grd_Productos tbody').on('click', 'tr', function () {
+                    if (filaSel) {
+                        $(filaSel).removeClass('seleccionada');
+                        $('td', filaSel).removeClass('seleccionada');
+                    }
+                    filaSel = $(this);
+                    $(filaSel).addClass('seleccionada');
+                    $('td', filaSel).addClass('seleccionada');
+                });
             }
-
-
-
         });
-
     } else {
         gridProductos.clear().rows.add(data).draw();
+        calcularTotalesProductos();
     }
 }
 
-
-function configurarOpcionesColumnas() {
-    const grid = $('#grd_Productos').DataTable(); // Accede al objeto DataTable utilizando el id de la tabla
-    const columnas = grid.settings().init().columns; // Obtiene la configuración de columnas
-    const container = $('#configColumnasMenu'); // El contenedor del dropdown específico para configurar columnas
-
-
-    const storageKey = `Productos_Columnas`; // Clave única para esta pantalla
-
-    const savedConfig = JSON.parse(localStorage.getItem(storageKey)) || {}; // Recupera configuración guardada o inicializa vacía
-
-    container.empty(); // Limpia el contenedor
+/* ============================
+   Menú columnas
+   ============================ */
+function configurarOpcionesColumnasProductos() {
+    const grid = $('#grd_Productos').DataTable();
+    const columnas = grid.settings().init().columns;
+    const container = $('#configColumnasMenuProductos');
+    const storageKey = `Productos_Columnas`;
+    const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
+    container.empty();
 
     columnas.forEach((col, index) => {
-        if (col.data && col.data !== "Id") { // Solo agregar columnas que no sean "Id"
-            // Recupera el valor guardado en localStorage, si existe. Si no, inicializa en 'false' para no estar marcado.
-            const isChecked = savedConfig && savedConfig[`col_${index}`] !== undefined ? savedConfig[`col_${index}`] : true;
-
-            // Asegúrate de que la columna esté visible si el valor es 'true'
+        if (col.data && col.data !== "Id") {
+            const isChecked = saved?.[`col_${index}`] !== undefined ? saved[`col_${index}`] : true;
             grid.column(index).visible(isChecked);
-
-            const columnName = col.data;
-
-            // Ahora agregamos el checkbox, asegurándonos de que se marque solo si 'isChecked' es 'true'
+            const name = col.data;
             container.append(`
-                <li>
-                    <label class="dropdown-item">
-                        <input type="checkbox" class="toggle-column" data-column="${index}" ${isChecked ? 'checked' : ''}>
-                        ${columnName}
-                    </label>
-                </li>
-            `);
+        <li>
+          <label class="dropdown-item">
+            <input type="checkbox" class="toggle-column-prod" data-column="${index}" ${isChecked ? 'checked' : ''}>
+            ${name}
+          </label>
+        </li>
+      `);
         }
     });
 
-    // Asocia el evento para ocultar/mostrar columnas
-    $('.toggle-column').on('change', function () {
-        const columnIdx = parseInt($(this).data('column'), 10);
-        const isChecked = $(this).is(':checked');
-        savedConfig[`col_${columnIdx}`] = isChecked;
-        localStorage.setItem(storageKey, JSON.stringify(savedConfig));
-        grid.column(columnIdx).visible(isChecked);
+    $('.toggle-column-prod').on('change', function () {
+        const idx = parseInt($(this).data('column'), 10);
+        const on = $(this).is(':checked');
+        saved[`col_${idx}`] = on;
+        localStorage.setItem(storageKey, JSON.stringify(saved));
+        grid.column(idx).visible(on);
     });
 }
 
+/* ============================
+   Acciones (3 puntitos)
+   ============================ */
+function toggleAccionesProd(id) {
+    const $dd = $(`.acciones-menu[data-id="${id}"] .acciones-dropdown`);
+    if ($dd.is(":visible")) $dd.hide();
+    else { $('.acciones-dropdown').hide(); $dd.show(); }
+}
 $(document).on('click', function (e) {
-    // Verificar si el clic está fuera de cualquier dropdown
-    if (!$(e.target).closest('.acciones-menu').length) {
-        $('.acciones-dropdown').hide(); // Cerrar todos los dropdowns
-    }
+    if (!$(e.target).closest('.acciones-menu').length) $('.acciones-dropdown').hide();
 });
 
-
-async function listaColoresFilter() {
-    const url = `/Colores/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    return data.map(x => ({
-        Id: x.Id,
-        Nombre: x.Nombre
-    }));
-
-}
-
-
-
+/* ============================
+   Datos auxiliares
+   ============================ */
 async function listaProductosCategoriaFilter() {
     const url = `/Productos/ListaCategorias`;
     const response = await fetch(url);
     const data = await response.json();
-
-    return data.map(x => ({
-        Id: x.Id,
-        Nombre: x.Nombre
-    }));
-
+    return (data || []).map(x => ({ Id: x.Id, Nombre: x.Nombre }));
 }
 
-
-async function listaUnidadesNegocio() {
-    const data = await listaUnidadesNegocioFilter();
-
-    $('#UnidadesNegocio option').remove();
-
-    select = document.getElementById("UnidadesNegocio");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
-    }
+/* ============================
+   KPIs / Sumatorias
+   ============================ */
+if (typeof window.formatNumber !== 'function') {
+    window.formatNumber = function (n) {
+        const v = Number(n || 0);
+        return v.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
 }
-
-async function listaUnidadesMedida() {
-    const data = await listaUnidadesMedidaFilter();
-
-    $('#UnidadesMedida option').remove();
-
-    select = document.getElementById("UnidadesMedida");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
-    }
-}
-
-async function listaProductosCategoria() {
-    const data = await listaProductosCategoriaFilter();
-
-    $('#Categorias option').remove();
-
-    select = document.getElementById("Categorias");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
-    }
-}
-
-
-
-
-
-async function listaUnidadesNegocioFiltro() {
-    const data = await listaUnidadesNegocioFilter();
-
-    $('#UnidadNegocioFiltro option').remove();
-
-    select = document.getElementById("UnidadNegocioFiltro");
-
-    option = document.createElement("option");
-    option.value = -1;
-    option.text = "-";
-    select.appendChild(option);
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
-    }
-}
-
 function redondearCien(value) {
-    if (value == null) return '';
-    return Math.ceil(value / 100) * 100;
+    if (value == null || value === '') return '';
+    const num = Number(value);
+    if (Number.isNaN(num)) return value;
+    return Math.ceil(num / 100) * 100;
 }
+
+function calcularTotalesProductos() {
+    if (!gridProductos) return;
+    const rows = gridProductos.rows({ search: 'applied' }).data().toArray();
+
+    const cant = rows.length;
+    const categorias = new Set(rows.map(r => r.Categoria).filter(Boolean));
+    let sumaCostos = 0;
+    for (const r of rows) sumaCostos += (+r.CostoUnitario || 0);
+
+    // KPIs (si existen en la vista)
+    const $cant = $('#kpiCantProductos');
+    const $cat = $('#kpiCantCategorias');
+    if ($cant.length) $cant.text(cant.toLocaleString('es-AR'));
+    if ($cat.length) $cat.text(categorias.size.toLocaleString('es-AR'));
+
+    const $sumCost = $('#kpiSumaCostos'); // opcional
+    if ($sumCost.length) $sumCost.text(formatNumber(sumaCostos));
+}
+
+
+// Muestra solo N chips y agrega un badge "+N" con tooltip de los ocultos
+function enhanceSelect2ChipSummary($select, maxVisible = 2) {
+    const s2 = $select.data('select2');
+    if (!s2) return;
+    const $selection = s2.$container.find('.select2-selection--multiple');
+
+    function updateSummary() {
+        // Aseguramos que existan los chips
+        const $chips = $selection.find('.select2-selection__choice');
+        // Mostrar todos para recalcular y luego ocultar excedentes
+        $chips.show();
+
+        const extra = Math.max(0, $chips.length - maxVisible);
+        if (extra > 0) {
+            // oculto visualmente el excedente (no lo saco del DOM)
+            $chips.slice(maxVisible).hide();
+
+            // tooltip con los ocultos
+            const hidden = $chips.slice(maxVisible).map(function () {
+                return $(this).attr('title') || $(this).text().trim();
+            }).get();
+
+            $selection.attr('data-overflow-count', `+${extra}`);
+            $selection.attr('title', hidden.join(', '));
+        } else {
+            $selection.removeAttr('data-overflow-count').removeAttr('title');
+        }
+    }
+
+    // Actualizar cuando select2 agrega/remueve chips
+    $select.on('change select2:select select2:unselect', () => setTimeout(updateSummary, 0));
+
+    // Click en el badge (o en la caja) abre el dropdown
+    $selection.on('mousedown', function (e) {
+        // Evita que el click se "pierda" si se hace sobre el badge
+        if (!s2.isOpen()) { $select.select2('open'); }
+    });
+
+    // Primer render
+    setTimeout(updateSummary, 0);
+}
+
 

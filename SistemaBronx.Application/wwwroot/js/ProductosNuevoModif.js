@@ -1,8 +1,8 @@
-﻿let gridInsumos = null;
-
+﻿// ============================== ProductosNuevoModif.js ==============================
+let gridInsumos = null;
 let insumos = [];
 
-
+// Filtros de columnas (dejado por compatibilidad)
 const columnConfig = [
     { index: 1, filterType: 'text' },
     { index: 2, filterType: 'text' },
@@ -11,33 +11,56 @@ const columnConfig = [
     { index: 5, filterType: 'text' },
 ];
 
+/* -----------------------------------------------------------------------------
+   Helpers de respaldo (no pisan si ya existen en site.js)
+----------------------------------------------------------------------------- */
+if (typeof window.formatNumber !== 'function') {
+    window.formatNumber = function (n) {
+        const v = Number(n || 0);
+        return v.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+}
+if (typeof window.formatoMoneda !== 'object') {
+    window.formatoMoneda = new Intl.NumberFormat('es-AR', {
+        style: 'currency', currency: 'ARS', minimumFractionDigits: 2, maximumFractionDigits: 2
+    });
+}
+if (typeof window.formatMoneda !== 'function') {
+    window.formatMoneda = function (n) { return formatoMoneda.format(Number(n || 0)); };
+}
+if (typeof window.convertirMonedaAFloat !== 'function') {
+    window.convertirMonedaAFloat = function (s) {
+        if (s == null) return 0;
+        const clean = String(s).replace(/[^0-9,.-]/g, '').replace(/\./g, '').replace(',', '.');
+        const v = parseFloat(clean);
+        return isNaN(v) ? 0 : v;
+    };
+}
+function toNumberSoft(v) {
+    if (v == null || v === '') return 0;
+    if (typeof v === 'number') return v;
+    const n = Number(v);
+    return Number.isNaN(n) ? convertirMonedaAFloat(v) : n;
+}
 
-$(document).ready(() => {
+/* -----------------------------------------------------------------------------
+   Arranque
+----------------------------------------------------------------------------- */
+$(document).ready(async () => {
+    // Título dinámico (si existe el elemento)
+    setTituloProducto();
 
+    // Cargar catálogo de categorías
+    await listaCategorias();
 
-    listaCategorias();
-
-   
-
-    if (ProductoData && ProductoData > 0) {
-        cargarDatosProducto()
+    // Si viene id en ViewBag -> editar, si no -> alta
+    if (window.ProductoData && Number(ProductoData) > 0) {
+        await cargarDatosProducto();
     } else {
-        configurarDataTable(null);
+        await configurarDataTable(null);
     }
 
-    $('#UnidadesNegocio').on('change', function () {
-        // Limpiar el DataTable
-        gridInsumos.clear().draw();
-        calcularDatosProducto();
-    });
-
-    
-    calcularDatosProducto();
-    $('#Nombre').on('input', function () {
-        validarCampos()
-    });
-
-
+    // Select2
     $("#Categorias").select2({
         width: "100%",
         placeholder: "Selecciona una opción",
@@ -46,85 +69,100 @@ $(document).ready(() => {
 
     $("#insumoSelect").select2({
         width: "100%",
-        dropdownParent: $("#insumosModal"), // Asegura que el dropdown se muestre dentro del modal
+        dropdownParent: $("#insumosModal"),
         placeholder: "Selecciona una opción",
         allowClear: false
     });
-   
-    validarCampos()
 
-  
-})
+    // Cambios que recalculan
+    $('#UnidadesNegocio').on('change', () => {
+        if (gridInsumos) gridInsumos.clear().draw();
+        calcularDatosProducto();
+    });
 
+    $('#Nombre').on('input', validarCampos);
 
+    // Eventos del modal para cálculos
+    $(document).on('input', '#precioInput, #cantidadInput', calcularTotal);
+    $(document).on('blur', '#precioInput', function () {
+        this.value = formatMoneda(convertirMonedaAFloat(this.value));
+        calcularTotal();
+    });
 
-async function cargarDatosProducto() {
-    if (ProductoData && ProductoData > 0) {
+    // Cálculo inicial
+    calcularDatosProducto();
+});
 
-        const datosProducto = await ObtenerDatosProducto(ProductoData);
-        await configurarDataTable(datosProducto.Insumos);
-        await insertarDatosProducto(datosProducto.Producto);
+/* -----------------------------------------------------------------------------
+   UI: título + botón principal
+----------------------------------------------------------------------------- */
+function setTituloProducto() {
+    const $title = $('#tituloProducto, .cc-header h2').first(); // cualquiera de los dos que tengas
+    const $btn = $('#btnNuevoModificar');
+    let duplicar = localStorage.getItem('DuplicarProducto');
 
-        validarCampos();
+    if (window.ProductoData && Number(ProductoData) > 0) {
+        // Editando
+        if ($title.length) $title.text('Editar Producto');
+        if ($btn.length) $btn.text(duplicar === 'true' ? 'Registrar' : 'Guardar');
+    } else {
+        // Nuevo
+        if ($title.length) $title.text('Nuevo Producto');
+        if ($btn.length) $btn.text('Registrar');
     }
 }
 
+/* -----------------------------------------------------------------------------
+   Carga/edición de datos
+----------------------------------------------------------------------------- */
+async function cargarDatosProducto() {
+    if (!(window.ProductoData && Number(ProductoData) > 0)) return;
+    const datos = await ObtenerDatosProducto(Number(ProductoData));
+    await configurarDataTable(datos?.Insumos);
+    await insertarDatosProducto(datos?.Producto);
+    validarCampos();
+}
 
 async function ObtenerDatosProducto(id) {
     const url = `/Productos/EditarInfo?id=${id}`;
     const response = await fetch(url);
-    const data = await response.json();
-    return data;
+    return await response.json();
 }
 
 async function insertarDatosProducto(datos) {
+    if (!datos) return;
 
-    document.getElementById("IdProducto").value = datos.Id;
-   
+    $('#IdProducto').val(datos.Id);
+    $('#Nombre').val(datos.Nombre);
+    $('#Categorias').val(datos.IdCategoria);
+    $('#porcIVA').val(datos.PorcIva);
+    $('#porcGanancia').val(datos.PorcGanancia);
 
-    //Cargamos Datos del Cliente
-    document.getElementById("Nombre").value = datos.Nombre;
-    document.getElementById("Categorias").value = datos.IdCategoria;
-    document.getElementById("porcIVA").value = datos.PorcIva;
-    document.getElementById("porcGanancia").value = datos.PorcGanancia;
+    // Re-init select2 para reflejar el valor
+    $("#Categorias").trigger('change.select2');
 
-    $("#Categorias").select2({
-        width: "100%",
-        placeholder: "Selecciona una opción",
-        allowClear: false
-    });
-
-    $("#insumoSelect").select2({
-        width: "100%",
-        dropdownParent: $("#insumosModal"), // Asegura que el dropdown se muestre dentro del modal
-        placeholder: "Selecciona una opción",
-        allowClear: false
-    });
-
-    duplicarProducto = localStorage.getItem("DuplicarProducto");
-
-    if (duplicarProducto == 'true') {
-        document.getElementById("btnNuevoModificar").textContent = "Registrar";
+    const duplicar = localStorage.getItem("DuplicarProducto");
+    if (duplicar === 'true') {
+        $('#btnNuevoModificar').text('Registrar');
     } else {
-        document.getElementById("btnNuevoModificar").textContent = "Guardar";
+        $('#btnNuevoModificar').text('Guardar');
     }
 
-    await calcularDatosProducto ();
+    await calcularDatosProducto();
 }
 
-
+/* -----------------------------------------------------------------------------
+   Validación mínima
+----------------------------------------------------------------------------- */
 function validarCampos() {
     const Nombre = $("#Nombre").val();
+    const okNombre = !!Nombre;
 
-    const NombreValida = Nombre !== "";
+    $("#lblNombre").css("color", okNombre ? "" : "red");
+    $("#Nombre").css("border-color", okNombre ? "" : "red");
 
-    $("#lblNombre").css("color", NombreValida ? "" : "red");
-    $("#Nombre").css("border-color", NombreValida ? "" : "red");
-
-
-    return NombreValida ;
+    return okNombre;
 }
-
 
 async function configurarDataTable(data) {
     if (!gridInsumos) {
@@ -228,253 +266,96 @@ async function configurarDataTable(data) {
     }
 }
 
-async function listaUnidadesNegocioFilter() {
-    const url = `/UnidadesNegocio/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    return data.map(x => ({
-        Id: x.Id,
-        Nombre: x.Nombre
-    }));
-
-}
-
-
-async function listaUnidadesNegocio() {
-    const data = await listaUnidadesNegocioFilter();
-
-    $('#UnidadesNegocio option').remove();
-
-    select = document.getElementById("UnidadesNegocio");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
-    }
-}
-
+/* -----------------------------------------------------------------------------
+   Catálogos
+----------------------------------------------------------------------------- */
 async function listaCategoriasFilter() {
     const url = `/Productos/ListaCategorias`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    return data.map(x => ({
-        Id: x.Id,
-        Nombre: x.Nombre
-    }));
-
+    const resp = await fetch(url);
+    const data = await resp.json();
+    return (data || []).map(x => ({ Id: x.Id, Nombre: x.Nombre }));
 }
-
 
 async function listaCategorias() {
     const data = await listaCategoriasFilter();
-
-    $('#Categorias option').remove();
-
-    select = document.getElementById("Categorias");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
-    }
+    const $sel = $('#Categorias').empty();
+    (data || []).forEach(x => $sel.append(new Option(x.Nombre, x.Id)));
+    // Mantener selección si ya había un valor
+    const val = $sel.data('value') || $sel.val();
+    if (val) $sel.val(val).trigger('change');
 }
 
-
+/* -----------------------------------------------------------------------------
+   Insumos (listado para modal)
+----------------------------------------------------------------------------- */
 async function obtenerInsumosUnidadNegocio() {
     const url = `/Insumos/Lista`;
     const response = await fetch(url);
     const data = await response.json();
-
-
-    return data.map(x => ({
+    return (data || []).map(x => ({
         Id: x.Id,
+        IdInsumo: x.Id,           // compat
         Nombre: x.Descripcion,
         CostoUnitario: x.PrecioCosto,
         Proveedor: x.Proveedor
     }));
-
 }
 
-
+/* -----------------------------------------------------------------------------
+   ABM Insumos en modal
+----------------------------------------------------------------------------- */
 async function anadirInsumo() {
-    const IdUnidadNegocio = $("#UnidadesNegocio").val();
     const insumosEnTabla = [];
-
-    gridInsumos.rows().every(function () {
-        const data = this.data();
-        insumosEnTabla.push(Number(data.IdInsumo));
-    });
-
-    insumos = await cargarInsumosModal(IdUnidadNegocio, insumosEnTabla);
-
-
-    const todosYaAgregados = insumos.every(x => insumosEnTabla.includes(x.Id));
-
-    if (todosYaAgregados) {
-        advertenciaModal("¡Ya has agregado todos los insumos!");
-        return false; // Detener si no hay más insumos para añadir
+    if (gridInsumos) {
+        gridInsumos.rows().every(function () {
+            const r = this.data();
+            insumosEnTabla.push(Number(r.IdInsumo));
+        });
     }
 
-    if (!insumos) return;
+    insumos = await cargarInsumosModal(null, insumosEnTabla);
 
-    const insumoSelect = $("#insumoSelect");
-    const precioInput = $("#precioInput");
-    const cantidadInput = $("#cantidadInput");
-    const totalInput = $("#totalInput");
-    const proveedorInput = $("#insumoProveedor");
+    const todosYaAgregados = insumos.length > 0 && insumos.every(x => insumosEnTabla.includes(x.Id));
+    if (todosYaAgregados) { advertenciaModal?.("¡Ya agregaste todos los insumos!"); return; }
+    if (!insumos || !insumos.length) return;
 
-    insumoSelect.on("change", async function () {
-        const selectedProductId = parseInt(this.value);
-        const selectedProduct = insumos.find(p => p.Id === selectedProductId);
+    const $insumoSelect = $("#insumoSelect");
+    const $precioInput = $("#precioInput");
+    const $cantidadInput = $("#cantidadInput");
+    const $totalInput = $("#totalInput");
+    const $proveedorInput = $("#insumoProveedor");
 
-        const costoUnitario = selectedProduct.CostoUnitario;
-        cantidadInput.val(1);
-        precioInput.val(formatoMoneda.format(costoUnitario));
-        totalInput.val(formatoMoneda.format(costoUnitario));
-        proveedorInput.val(selectedProduct.Proveedor);
+    $insumoSelect.off('change').on("change", function () {
+        const idSel = Number($(this).val());
+        const item = insumos.find(p => p.Id === idSel);
+        const costo = item?.CostoUnitario ?? 0;
+        $cantidadInput.val(1);
+        $precioInput.val(formatoMoneda.format(costo));
+        $totalInput.val(formatoMoneda.format(costo));
+        $proveedorInput.val(item?.Proveedor || '');
     });
 
+    $insumoSelect.trigger("change");
 
-
-    insumoSelect.trigger("change");
-
-    $('#insumosModal').data('edit-id', null);
-    $('#insumosModal').data('data-editing', false);
+    const $modal = $('#insumosModal');
+    $modal.attr('data-editing', 'false').attr('edit-id', '');
     $('#btnGuardarInsumo').text('Añadir');
-    $("#insumosModal").modal('show');
-}
-
-
-async function calcularTotal() {
-    const precioRaw = document.getElementById('precioInput').value;
-    const cantidad = parseFloat(document.getElementById('cantidadInput').value) || 0;
-
-    // Extraer solo el número del campo precio
-    const precio = formatoNumero(precioRaw);
-
-    const total = precio * cantidad;
-
-    // Mostrar el total formateado en el campo
-    document.getElementById('totalInput').value = formatoMoneda.format(total);
-}
-
-document.getElementById('precioInput').addEventListener('input', function () {
-    calcularTotal();
-});
-
-document.getElementById('cantidadInput').addEventListener('input', function () {
-    calcularTotal();
-});
-
-document.getElementById('precioInput').addEventListener('blur', function () {
-
-
-    // Formatear el número al finalizar la edición
-    this.value = formatMoneda(convertirMonedaAFloat(this.value));
-
-    // Recalcular el total cada vez que cambia el precio
-    calcularTotal();
-});
-
-
-
-async function guardarInsumo() {
-    const insumoSelect = document.getElementById('insumoSelect');
-    const precioManual = parseFloat(convertirMonedaAFloat(document.getElementById('precioInput').value));
-    const totalInput = parseFloat(convertirMonedaAFloat(document.getElementById('totalInput').value));
-    const cantidadInput = parseFloat(document.getElementById('cantidadInput').value) || 1; // Obtener cantidad, por defecto 1 si no es válida
-    const InsumoId = insumoSelect.value;
-    const ProductoNombre = insumoSelect.options[insumoSelect.selectedIndex]?.text || '';
-    const proveedorNombre = $("#insumoProveedor").val();
-
-    let i = 0;
-
-
-    const modal = $('#insumosModal');
-    const isEditing = modal.attr('data-editing') === 'true';
-    const editId = modal.attr('edit-id');
-
-    const selectedProduct = insumos.find(p => p.IdInsumo === parseInt(InsumoId));
-
-    // Verificar si el Producto ya existe en la tabla
-    let ProductoExistente = false;
-
-    if (isEditing) {
-        // Si estamos editando, solo actualizamos la fila correspondiente
-        gridInsumos.rows().every(function () {
-            const data = this.data();
-            if (data.IdInsumo == editId) {
-                data.Nombre = ProductoNombre;
-                data.CostoUnitario = precioManual; // Guardar PrecioVenta
-                data.Cantidad = cantidadInput; // Usar la cantidad del input
-                data.Proveedor = proveedorNombre;
-                data.SubTotal = totalInput; // Recalcular el total con formato de moneda
-                this.data(data).draw();
-            }
-        });
-    } else {
-        // Buscar si el Producto ya existe en la tabla
-        gridInsumos.rows().every(function () {
-            const data = this.data();
-            if (data.IdInsumo == InsumoId) {
-                // Producto existe, sumamos las cantidades y recalculamos el total
-                data.Cantidad = cantidadInput; // Sumar la cantidad proporcionada
-                data.CostoUnitario = precioManual; // Guardar PrecioVenta
-                data.Proveedor = proveedorNombre;
-                data.SubTotal = precioManual * data.Cantidad; // Recalcular el total con formato de moneda
-                this.data(data).draw();
-                ProductoExistente = true;
-            }
-        });
-
-        if (!ProductoExistente) {
-            // Si no existe, agregar un nuevo Producto
-            gridInsumos.row.add({
-                IdInsumo: InsumoId,
-                Id: 0,
-                Proveedor: proveedorNombre,
-                Nombre: ProductoNombre,
-                CostoUnitario: precioManual, // Agregar PrecioVenta
-                Cantidad: cantidadInput, // Usar la cantidad proporcionada
-                SubTotal: totalInput // Recalcular el total con formato de moneda
-            }).draw();
-        }
-    }
-
-    // Limpiar y cerrar el modal
-    modal.modal('hide');
-
-    calcularDatosProducto();
-
+    $modal.modal('show');
 }
 
 async function editarInsumo(id) {
-    const IdUnidadNegocio = parseInt($("#UnidadesNegocio").val());
     const insumosEnTabla = [];
     let insumoData = null;
 
-    gridInsumos.rows().every(function () {
-        const data = this.data();
-        insumosEnTabla.push(Number(data.IdInsumo));
-
-        if (data.IdInsumo == id) {
-            insumoData = data;
-        }
+    gridInsumos?.rows().every(function () {
+        const r = this.data();
+        insumosEnTabla.push(Number(r.IdInsumo));
+        if (Number(r.IdInsumo) === Number(id)) insumoData = r;
     });
 
-    if (!insumoData) {
-        advertenciaModal("No se encontró el insumo a editar.");
-        return;
-    }
+    if (!insumoData) { advertenciaModal?.("No se encontró el insumo a editar."); return; }
 
-    insumos = await cargarInsumosModal(IdUnidadNegocio, insumosEnTabla, insumoData.IdInsumo);
+    insumos = await cargarInsumosModal(null, insumosEnTabla, insumoData.IdInsumo);
     if (!insumos) return;
 
     $("#cantidadInput").val(insumoData.Cantidad);
@@ -482,189 +363,181 @@ async function editarInsumo(id) {
     $("#totalInput").val(formatoMoneda.format(insumoData.SubTotal));
     $("#insumoProveedor").val(insumoData.Proveedor);
 
-    $("#insumoSelect").prop("disabled", true);
+    $("#insumoSelect").prop("disabled", true).val(insumoData.IdInsumo).trigger('change');
 
-    $('#insumosModal').data('edit-id', insumoData.Id);
+    const $modal = $('#insumosModal');
+    $modal.attr('data-editing', 'true').attr('edit-id', String(insumoData.IdInsumo));
     $('#btnGuardarInsumo').text('Editar');
-    $("#insumosModal").modal('show');
+    $modal.modal('show');
 }
-async function cargarInsumosModal(IdUnidadNegocio, insumosEnTabla, insumoSeleccionado = null) {
-    insumos = await obtenerInsumosUnidadNegocio(IdUnidadNegocio);
-    const insumoSelect = $("#insumoSelect");
 
-    insumoSelect.empty();
+async function cargarInsumosModal(_idUnidad, insumosEnTabla, insumoSeleccionado = null) {
+    const lista = await obtenerInsumosUnidadNegocio();
+    const $sel = $("#insumoSelect").empty();
 
-    let primerHabilitadoId = null;
+    let primerHabilitado = null;
 
-    insumos.forEach(insumo => {
-        const option = $(`<option value="${insumo.Id}">${insumo.Nombre}</option>`);
-
-        if (insumosEnTabla.includes(insumo.Id)) {
-            option.prop('disabled', true);
-        } else if (primerHabilitadoId === null) {
-            primerHabilitadoId = insumo.Id;
+    lista.forEach(x => {
+        const $opt = $(`<option value="${x.Id}">${x.Nombre}</option>`);
+        if (insumosEnTabla.includes(x.Id) && x.Id !== insumoSeleccionado) {
+            $opt.prop('disabled', true);
+        } else if (primerHabilitado == null) {
+            primerHabilitado = x.Id;
         }
-
-        insumoSelect.append(option);
+        $sel.append($opt);
     });
 
-
-    if (insumoSeleccionado !== null) {
-        insumoSelect.val(insumoSeleccionado).prop("disabled", true);
-    } else if (primerHabilitadoId !== null) {
-        insumoSelect.val(primerHabilitadoId).prop("disabled", false);
+    if (insumoSeleccionado != null) {
+        $sel.val(insumoSeleccionado).prop('disabled', true);
+    } else if (primerHabilitado != null) {
+        $sel.val(primerHabilitado).prop('disabled', false);
     }
 
-    return insumos; // Devolver los insumos cargados para su uso posterior
+    $sel.trigger('change.select2');
+    return lista;
 }
 
 function eliminarInsumo(id) {
-    gridInsumos.rows().every(function (rowIdx, tableLoop, rowLoop) {
-        const data = this.data();
-        if (data != null && data.IdInsumo == id) {
-            gridInsumos.row(rowIdx).remove().draw();
+    if (!gridInsumos) return;
+    gridInsumos.rows().every(function (rowIdx) {
+        const d = this.data();
+        if (d && Number(d.IdInsumo) === Number(id)) {
+            gridInsumos.row(rowIdx).remove().draw(false);
         }
     });
     calcularDatosProducto();
 }
 
-$(document).on('click', function (e) {
-    // Verificar si el clic está fuera de cualquier dropdown
-    if (!$(e.target).closest('.acciones-menu').length) {
-        $('.acciones-dropdown').hide(); // Cerrar todos los dropdowns
-    }
-});
+/* -----------------------------------------------------------------------------
+   Cálculos (modal)
+----------------------------------------------------------------------------- */
+function calcularTotal() {
+    const precioRaw = $('#precioInput').val();
+    const cantidad = toNumberSoft($('#cantidadInput').val());
+    const precio = convertirMonedaAFloat(precioRaw);
+    const total = (precio || 0) * (cantidad || 0);
+    $('#totalInput').val(formatoMoneda.format(total));
+}
 
+/* -----------------------------------------------------------------------------
+   Recalcular totales del producto + KPIs
+----------------------------------------------------------------------------- */
 async function calcularDatosProducto() {
     let InsumoTotal = 0;
 
-    if (gridInsumos != null && gridInsumos.rows().count() > 0) {
+    if (gridInsumos && gridInsumos.rows().count() > 0) {
         gridInsumos.rows().every(function () {
-            const producto = this.data();
-            InsumoTotal += parseFloat(producto.SubTotal) || 0;
+            const r = this.data();
+            InsumoTotal += toNumberSoft(r?.SubTotal);
         });
     }
 
-    // Mostrar total de insumos formateado
-    document.getElementById("TotalInsumos").value = formatoMoneda.format(InsumoTotal);
+    // Campo total de insumos
+    $('#TotalInsumos').val(formatoMoneda.format(InsumoTotal));
 
-    // Llamar a la función de cálculo de IVA y ganancia
+    // Recalcular IVA + Ganancia + costo total
     calcularIVAyGanancia();
+
+    // KPI: Total Insumos
+    const $kpiIns = $('#kpiTotalInsumos');
+    if ($kpiIns.length) $kpiIns.text(formatNumber(InsumoTotal));
 }
 
 function calcularIVAyGanancia() {
-    // Obtener valores y asegurarse de que sean números
-    const totalInsumos = parseFloat(convertirMonedaAFloat(document.getElementById("TotalInsumos").value));
-    const porcIVA = parseFloat(document.getElementById("porcIVA").value) || 0;
-    const porcGanancia = parseFloat(document.getElementById("porcGanancia").value) || 0;
+    const totalInsumos = convertirMonedaAFloat($('#TotalInsumos').val());
+    const porcIVA = toNumberSoft($('#porcIVA').val());
+    const porcGanancia = toNumberSoft($('#porcGanancia').val());
 
-    // Calcular valores
     const totalGanancia = (totalInsumos * porcGanancia) / 100;
-
     const totalIVA = ((totalGanancia + totalInsumos) * porcIVA) / 100;
-    
-
-    // Calcular costo total y redondear a múltiplos de 100
     let costoTotal = totalInsumos + totalGanancia + totalIVA;
+    costoTotal = Math.ceil(costoTotal / 100) * 100;
 
+    $('#totalIVA').val(formatoMoneda.format(totalIVA));
+    $('#totalGanancia').val(formatoMoneda.format(totalGanancia));
+    $('#costoTotal').val(formatNumber(costoTotal));
 
-    // Mostrar resultados formateados
-    document.getElementById("totalIVA").value = formatoMoneda.format(totalIVA);
-    document.getElementById("totalGanancia").value = formatoMoneda.format(totalGanancia);
-    document.getElementById("costoTotal").value = formatNumber(Math.ceil(costoTotal / 100) * 100);
+    // KPIs
+    const $kpiIns = $('#kpiTotalInsumos');
+    const $kpiIva = $('#kpiIva');
+    const $kpiGan = $('#kpiGanancia');
+    const $kpiCost = $('#kpiCostoTotal');
 
+    if ($kpiIns.length) $kpiIns.text(formatNumber(totalInsumos));
+    if ($kpiIva.length) $kpiIva.text(porcIVA.toLocaleString('es-AR'));
+    if ($kpiGan.length) $kpiGan.text(porcGanancia.toLocaleString('es-AR'));
+    if ($kpiCost.length) $kpiCost.text(formatNumber(costoTotal));
 }
 
-// Agregar eventos para actualizar cálculos cuando cambian los porcentajes
-document.getElementById("porcIVA").addEventListener("input", calcularIVAyGanancia);
-document.getElementById("porcGanancia").addEventListener("input", calcularIVAyGanancia);
+// Eventos para recalcular al tipear % IVA/Ganancia
+$(document).on('input', '#porcIVA, #porcGanancia', calcularIVAyGanancia);
 
-
+/* -----------------------------------------------------------------------------
+   Guardar
+----------------------------------------------------------------------------- */
 function guardarCambios() {
     let idProducto = $("#IdProducto").val();
+    const duplicar = localStorage.getItem("DuplicarProducto");
 
-    duplicarProducto = localStorage.getItem("DuplicarProducto");
+    if (duplicar === 'true') idProducto = ""; // forzamos alta
 
-    if (duplicarProducto == 'true') {
-        idProducto = "";
+    if (!validarCampos()) { errorModal?.("Debes completar los campos requeridos."); return; }
+
+    function obtenerInsumos(grd) {
+        const arr = [];
+        grd.rows().every(function () {
+            const it = this.data();
+            arr.push({
+                "IdProducto": idProducto !== "" ? Number(idProducto) : 0,
+                "IdInsumo": Number(it.IdInsumo),
+                "Id": it.Id ? Number(it.Id) : 0,
+                "Nombre": it.Nombre,
+                "Cantidad": toNumberSoft(it.Cantidad)
+            });
+        });
+        return arr;
     }
 
+    const items = obtenerInsumos(gridInsumos);
+    if (!items.length) { advertenciaModal?.("Debes agregar al menos un insumo"); return; }
 
-    if (validarCampos()) {
+    const nuevoModelo = {
+        "Id": idProducto !== "" ? Number(idProducto) : 0,
+        "Nombre": $("#Nombre").val(),
+        "IdColor": $("#Colores").val(), // si no existe en el form, backend lo ignorará
+        "IdCategoria": Number($("#Categorias").val()),
+        "PorcGanancia": toNumberSoft($("#porcGanancia").val()),
+        "PorcIVA": toNumberSoft($("#porcIVA").val()),
+        "CostoUnitario": convertirMonedaAFloat($("#costoTotal").val()),
+        "ProductosInsumos": items
+    };
 
-        function obtenerInsumos(grd) {
-            let insumos = [];
-            grd.rows().every(function () {
-                const insumo = this.data();
-                const insumoJson = {
-                    "IdProducto": idProducto != ""  ? idProducto : 0,
-                    "IdInsumo": parseInt(insumo.IdInsumo),
-                    "Id": insumo.Id != "" ? insumo.Id : 0,
-                    "Nombre": insumo.Nombre,
-                    "Cantidad": parseFloat(insumo.Cantidad),
+    const url = idProducto === "" ? "/Productos/Insertar" : "/Productos/Actualizar";
+    const method = idProducto === "" ? "POST" : "PUT";
 
-                };
-                insumos.push(insumoJson);
-            });
-            return insumos;
-        }
-
-        const insumos = obtenerInsumos(gridInsumos);
-
-        if (insumos.length == 0) {
-            advertenciaModal("Debes agregar al menos un insumo");
-            return;
-        }
-
-        // Construcción del objeto para el modelo
-        const nuevoModelo = {
-            "Id": idProducto !== "" ? parseInt(idProducto) : 0,
-            "Nombre": $("#Nombre").val(),
-            "IdColor": $("#Colores").val(),
-            "IdCategoria": parseInt($("#Categorias").val()),
-            "PorcGanancia": $("#porcGanancia").val() != "" ? parseFloat($("#porcGanancia").val()) : 0,
-            "PorcIVA": $("#porcIVA").val() != "" ? parseFloat($("#porcIVA").val()) : 0,
-            "CostoUnitario": $("#costoTotal").val() != "" ? parseFloat(convertirMonedaAFloat($("#costoTotal").val())) : 0,
-            "ProductosInsumos": insumos
-        };
-
-        // Definir la URL y el método para el envío
-        const url = idProducto === ""  ? "/Productos/Insertar" : "/Productos/Actualizar";
-        const method = idProducto === "" ? "POST" : "PUT";
-
-   
-        console.log(JSON.stringify(nuevoModelo))
-
-        // Enviar los datos al servidor
-        fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json;charset=utf-8'
-            },
-            body: JSON.stringify(nuevoModelo)
+    fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json;charset=utf-8' },
+        body: JSON.stringify(nuevoModelo)
+    })
+        .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
+        .then(dataJson => {
+            if (duplicar === 'true') localStorage.removeItem("DuplicarProducto");
+            const msg = idProducto === "" ? "Producto registrado correctamente" : "Producto modificado correctamente";
+            exitoModal?.(msg);
+            window.location.href = "/Productos/Index";
         })
-            .then(response => {
-
-                if (!response.ok) throw new Error(response.statusText);
-                return response.json();
-            })
-            .then(dataJson => {
-                if (duplicarProducto == 'true') {
-                    localStorage.removeItem("DuplicarProducto");
-                }
-
-                console.log("Respuesta del servidor:", dataJson);
-                const mensaje = idProducto === "" ? "Producto registrado correctamente" : "Pedido modificado correctamente";
-                exitoModal(mensaje);
-                window.location.href = "/Productos/Index";
-
-
-
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    } else {
-        errorModal("Debes completar los campos requeridos.")
-    }
+        .catch(err => {
+            console.error('Error:', err);
+            errorModal?.('Ocurrió un error al guardar el producto.');
+        });
 }
+
+/* -----------------------------------------------------------------------------
+   Click-out para cerrar cualquier dropdown de acciones (si lo hubiese)
+----------------------------------------------------------------------------- */
+$(document).on('click', function (e) {
+    if (!$(e.target).closest('.acciones-menu').length) {
+        $('.acciones-dropdown').hide();
+    }
+});
