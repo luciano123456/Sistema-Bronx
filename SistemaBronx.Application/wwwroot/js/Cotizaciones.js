@@ -1,6 +1,6 @@
-﻿let gridCotizaciones;
+﻿// ============================== Cotizaciones.js ==============================
+let gridCotizaciones;
 let isEditing = false;
-
 
 const columnConfig = [
     { index: 1, name: 'Nro', filterType: 'text' },
@@ -16,134 +16,154 @@ const columnConfig = [
     { index: 11, name: 'Comentarios', filterType: 'text' }
 ];
 
+/* ============================
+   Arranque
+   ============================ */
+$(document).ready(async () => {
+    // Fechas default (últimos 7 días)
+    $('#FechaDesde').val(moment().add(-7, 'days').format('YYYY-MM-DD'));
+    $('#FechaHasta').val(moment().format('YYYY-MM-DD'));
 
-$(document).ready(() => {
+    // Cargar clientes y armar Select2 robusto
+    await listaClientesFiltro();
+    initSelect2Simple('#ClientesFiltro', '#formFiltrosCotizaciones', 'Todos', -1);
 
-    listaClientesFiltro();
 
-    $("#ClientesFiltro").select2({
-        placeholder: "Selecciona una opción",
-        allowClear: false
+    // Primera carga
+    await listaCotizaciones(-1, "TODOS", 0, -1, -1);
+
+    // Validación rápida
+    $('#txtNombre, #txtCodigo').on('input', validarCampos);
+
+    var userSession = JSON.parse(localStorage.getItem('userSession'));
+
+    const divImporteTotal = document.getElementById('divImporteTotal');
+    const divImporteAbonado = document.getElementById('divImporteAbonado');
+    const divSaldo = document.getElementById('divSaldo');
+    if (userSession && Number(userSession.IdRol) === 1) {
+        divImporteTotal.removeAttribute('hidden');   // habilitar para admin
+        divImporteAbonado.removeAttribute('hidden');   // habilitar para admin
+        divSaldo.removeAttribute('hidden');   // habilitar para admin
+    }
+
+    // Toggle filtros con persistencia (igual Ventas)
+    initToggleFiltrosPersistente();
+
+    // Recalcular Select2 al abrir/cerrar panel
+    $('#btnToggleFiltros').on('click', () => {
+        setTimeout(() => $('#ClientesFiltro').trigger('change.select2'), 30);
+    });
+});
+
+/* ============================
+   Util — Select2 (genérico, estable)
+   ============================ */
+function initSelect2Simple(selector, dropdownParentSelector, placeholderText) {
+    const $el = $(selector);
+    if (!$el.length) return;
+
+    // Evitar dobles inits
+    if ($el.data('select2')) $el.select2('destroy');
+
+    // Asegurar placeholder real
+    if (!$el.find('option[value=""]').length) $el.prepend('<option value=""></option>');
+
+    const $parent = $(dropdownParentSelector);
+    $el.select2({
+        placeholder: placeholderText || 'Seleccionar...',
+        allowClear: true,
+        width: '100%',
+        dropdownParent: $parent.length ? $parent : $('body')
     });
 
+    // Limpia textos huérfanos (evita “Todos” duplicado)
+    $el.parent().contents().filter(function () {
+        return this.nodeType === 3 && this.nodeValue.trim() !== '';
+    }).remove();
+}
 
-    document.getElementById("FechaDesde").value = moment().add(-7, 'days').format('YYYY-MM-DD');
-    document.getElementById("FechaHasta").value = moment().format('YYYY-MM-DD');
-
-
-    listaCotizaciones(-1, "TODOS", 0, -1, -1);
-
-    $('#txtNombre, #txtCodigo').on('input', function () {
-        validarCampos()
-    });
-
-
-})
-
-
-
-
+/* ============================
+   Acciones / navegación
+   ============================ */
+function nuevoCotizacion() { window.location.href = '/Cotizaciones/NuevoModif/0'; }
 
 function validarCampos() {
     const Nombre = $("#txtNombre").val();
     const campoValidoNombre = Nombre !== "";
-    const campoValidoCodigo = codigo !== "";
-
+    const campoValidoCodigo = (typeof codigo !== 'undefined') ? (codigo !== "") : true;
     $("#lblNombre").css("color", campoValidoNombre ? "" : "red");
     $("#txtNombre").css("border-color", campoValidoNombre ? "" : "red");
-
-    return campoValidoNombre;
+    return campoValidoNombre && campoValidoCodigo;
 }
-
-function nuevoCotizacion() {
-    window.location.href = '/Cotizaciones/NuevoModif/0';
-}
-
 
 async function aplicarFiltros() {
-    listaCotizaciones(document.getElementById("ClientesFiltro").value, document.getElementById("EstadosFiltro").value, document.getElementById("FinalizadosFiltro").value, document.getElementById("FechaDesde").value, document.getElementById("FechaHasta").value)
+    listaCotizaciones(
+        document.getElementById("ClientesFiltro").value,
+        document.getElementById("EstadosFiltro").value,
+        document.getElementById("FinalizadosFiltro").value,
+        document.getElementById("FechaDesde").value,
+        document.getElementById("FechaHasta").value
+    );
 }
 
+function editarCotizacion(id) {
+    guardarFiltrosPantalla?.('#grd_Cotizaciones', 'estadoCotizaciones', false);
+    window.location.href = '/Cotizaciones/NuevoModif/' + id;
+}
 
+async function eliminarCotizacion(id) {
+    if (!window.confirm("¿Desea eliminar el Cotizacion?")) return;
+    try {
+        const response = await fetch("Cotizaciones/Eliminar?id=" + id, { method: "DELETE" });
+        if (!response.ok) { errorModal?.("Error al eliminar el Cotizacion."); return; }
+        const ok = await response.json();
+        if (ok) { aplicarFiltros(); exitoModal?.("Cotizacion eliminado correctamente"); }
+    } catch (e) { console.error(e); }
+}
+
+/* ============================
+   Listado / DataTable
+   ============================ */
 async function listaCotizaciones(IdCliente, Estado, Finalizado, FechaDesde = null, FechaHasta = null) {
     let url = `/Cotizaciones/Lista?IdCliente=${IdCliente}&Estado=${Estado}&Finalizado=${Finalizado}`;
-
     if (FechaDesde) url += `&FechaDesde=${FechaDesde}`;
     if (FechaHasta) url += `&FechaHasta=${FechaHasta}`;
-
     const response = await fetch(url);
     const data = await response.json();
     await configurarDataTable(data);
 }
 
-
-function editarCotizacion(id) {
-    // Redirige a la vista 'CotizacionNuevoModif' con el parámetro id
-    guardarFiltrosPantalla('#grd_Cotizaciones', 'estadoCotizaciones', false);
-    window.location.href = '/Cotizaciones/NuevoModif/' + id;
-}
-
-async function eliminarCotizacion(id) {
-    let resultado = window.confirm("¿Desea eliminar la cotizacion?");
-
-    if (resultado) {
-        try {
-            const response = await fetch("Cotizaciones/Eliminar?id=" + id, {
-                method: "DELETE"
-            });
-
-            if (!response.ok) {
-                errorModal("Error al eliminar la cotizacion.")
-            }
-
-            const dataJson = await response.json();
-
-            if (dataJson) {
-                aplicarFiltros();
-                exitoModal("Cotizacion eliminado correctamente")
-            }
-        } catch (error) {
-            console.error("Ha ocurrido un error:", error);
-        }
-    }
-}
-
 async function configurarDataTable(data) {
     if (!gridCotizaciones) {
+        // Header con filtros clonados
         $('#grd_Cotizaciones thead tr').clone(true).addClass('filters').appendTo('#grd_Cotizaciones thead');
+
         gridCotizaciones = $('#grd_Cotizaciones').DataTable({
-            data: data,
-            language: {
-                sLengthMenu: "Mostrar MENU registros",
-                lengthMenu: "Anzeigen von _MENU_ Einträgen",
-                url: "//cdn.datatables.net/plug-ins/2.0.7/i18n/es-MX.json"
-            },
-            scrollX: "100px",
+            data,
+            language: { url: "//cdn.datatables.net/plug-ins/2.0.7/i18n/es-MX.json" },
+            scrollX: true,
             scrollCollapse: true,
             pageLength: 50,
             columns: [
                 {
-                    data: "Id",
-                    title: '',
-                    width: "1%", // Ancho fijo para la columna
+                    data: "Id", title: '', width: "1%",
                     render: function (data) {
                         return `
-                <div class="acciones-menu" data-id="${data}">
-                    <button class='btn btn-sm btnacciones' type='button' onclick='toggleAcciones(${data})' title='Acciones'>
-                        <i class='fa fa-ellipsis-v fa-lg text-white' aria-hidden='true'></i>
-                    </button>
-                    <div class="acciones-dropdown" style="display: none;">
-                        <button class='btn btn-sm btneditar' type='button' onclick='editarCotizacion(${data})' title='Editar'>
-                            <i class='fa fa-pencil-square-o fa-lg text-success' aria-hidden='true'></i> Editar
-                        </button>
-                        <button class='btn btn-sm btneliminar' type='button' onclick='eliminarCotizacion(${data})' title='Eliminar'>
-                            <i class='fa fa-trash-o fa-lg text-danger' aria-hidden='true'></i> Eliminar
-                        </button>
-                    </div>
-                </div>`;
+              <div class="acciones-menu" data-id="${data}">
+                <button class='btn btn-sm btnacciones' type='button' onclick='toggleAcciones(${data})' title='Acciones'>
+                  <i class='fa fa-ellipsis-v fa-lg text-white'></i>
+                </button>
+                <div class="acciones-dropdown" style="display:none;">
+                  <button class='btn btn-sm btneditar' type='button' onclick='editarCotizacion(${data})'>
+                    <i class='fa fa-pencil-square-o fa-lg text-success'></i> Editar
+                  </button>
+                  <button class='btn btn-sm btneliminar' type='button' onclick='eliminarCotizacion(${data})'>
+                    <i class='fa fa-trash-o fa-lg text-danger'></i> Eliminar
+                  </button>
+                </div>
+              </div>`;
                     },
-                    orderable: false,
-                    searchable: false,
+                    orderable: false, searchable: false,
                 },
                 { data: 'Id' },
                 { data: 'Fecha' },
@@ -157,377 +177,260 @@ async function configurarDataTable(data) {
                 { data: 'Estado' },
                 { data: 'Comentarios' },
                 {
-                    data: 'Finalizado',
-                    title: 'Finalizado',
-                    render: function (data) {
-                        if (data === 1) {
-                            return `<i class="fa fa-check-circle text-success" title="Finalizado"></i>`; // Green check
-                        } else if (data === 0) {
-                            return `<i class="fa fa-times-circle text-danger" title="No Finalizado"></i>`; // Red cross
+                    data: 'Finalizado', title: 'Finalizado',
+                    render: function (data, type) {
+                        if (type !== 'display') {
+                            return (data === 1 || data === true) ? '1'
+                                : (data === 0 || data === false) ? '0' : '';
                         }
-                        return ''; // In case the data is null or doesn't match 0 or 1
+                        return (data === 1 || data === true)
+                            ? `<i class="fa fa-check-circle text-success" title="Finalizado"></i>`
+                            : `<i class="fa fa-times-circle text-danger" title="No Finalizado"></i>`;
                     },
-                    orderable: false,
-                    searchable: false,
+                    orderable: false, searchable: true
                 },
-               
+                {
+                    data: 'Facturado', title: 'Facturado',
+                    render: function (data, type) {
+                        if (type !== 'display') {
+                            return (data === 1 || data === true) ? '1'
+                                : (data === 0 || data === false) ? '0' : '';
+                        }
+                        return (data === 1 || data === true)
+                            ? `<i class="fa fa-check-circle text-success" title="Facturado"></i>`
+                            : `<i class="fa fa-times-circle text-danger" title="No Facturado"></i>`;
+                    },
+                    orderable: false, searchable: true
+                }
             ],
             dom: 'Bfrtip',
             buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: 'Exportar Excel',
-                    filename: `Reporte Cotizaciones_${moment().format('YYYY-MM-DD')}`,
-                    title: '',
-                    exportOptions: {
-                        columns: [1, 2, 3, 4,5]
-                    },
-                    className: 'btn-exportar-excel',
-                },
-                {
-                    extend: 'pdfHtml5',
-                    text: 'Exportar PDF',
-                    filename: `Reporte Cotizaciones_${moment().format('YYYY-MM-DD')}`,
-                    title: '',
-                    exportOptions: {
-                        columns: [1, 2, 3, 4, 5]
-                    },
-                    className: 'btn-exportar-pdf',
-                },
-                {
-                    extend: 'print',
-                    text: 'Imprimir',
-                    title: '',
-                    exportOptions: {
-                        columns: [1, 2, 3, 4, 5]
-                    },
-                    className: 'btn-exportar-print'
-                },
-                'pageLength'
+                { extend: 'excelHtml5', text: 'Exportar Excel', filename: `Reporte Cotizaciones_${moment().format('YYYY-MM-DD')}`, title: '', exportOptions: { columns: [1, 2, 3, 4, 5] }, className: 'btn-exportar-excel' },
+                { extend: 'print', text: 'Imprimir', title: '', exportOptions: { columns: [1, 2, 3, 4, 5] }, className: 'btn-exportar-print' },
             ],
             orderCellsTop: true,
             fixedHeader: false,
-
-            "columnDefs": [
-                {
-                    "render": function (data, type, row) {
-                        return formatNumber(data); // Formatear números
-                    },
-                    "targets": [4,6,7,8] // Índices de las columnas de números
-                },
-                {
-                    "render": function (data, type, row) {
-                        if (data) {
-                            const date = new Date(data); // Convierte la cadena en un objeto Date
-                            return date.toLocaleDateString('es-ES'); // Formato: 'DD/MM/YYYY'
-                        }
-                    },
-                    "targets": [2] // Índices de las columnas de fechas
-                },
-                
+            columnDefs: [
+                { targets: [4, 6, 7, 8], render: (data) => formatNumber(data) },
+                { targets: [2], render: (data) => data ? new Date(data).toLocaleDateString('es-ES') : '' }
             ],
-
             initComplete: async function () {
                 const api = this.api();
                 const idTabla = '#grd_Cotizaciones';
                 const estadoGuardado = JSON.parse(localStorage.getItem('estadoCotizaciones')) || {};
 
-                const visibilidadActual = api.columns().visible().toArray();
+                // ===== Filtros por columna (thead clonado) =====
+                for (const cfg of columnConfig) {
+                    const idx = cfg.index;
+                    const name = cfg.name;
+                    const $cell = $('.filters th').eq(idx);
+                    const valorGuardado = estadoGuardado?.filtrosPorNombre?.[name];
 
-                for (const config of columnConfig) {
-                    const index = config.index;
-                    const name = config.name;
-                    const cell = $('.filters th').eq(index);
-                    const valorGuardado = estadoGuardado.filtrosPorNombre?.[name];
+                    if (!api.column(idx).visible()) continue;
 
-                    if (!api.column(index).visible()) continue;
+                    $cell.attr('data-colname', name).empty();
 
-                    cell.attr('data-colname', name);
-                    cell.empty();
-
-                    if (config.filterType === 'select') {
-                        const select = $('<select id="filter' + index + '" multiple="multiple"><option value="">Seleccionar...</option></select>')
-                            .attr('data-index', index)
-                            .appendTo(cell)
-                            .on('change', async function () {
-                                const selectedValues = $(this).val();
-                                if (selectedValues && selectedValues.length > 0) {
-                                    const regex = '^(' + selectedValues.map(val => $.fn.dataTable.util.escapeRegex(val)).join('|') + ')$';
-                                    await api.column(index).search(regex, true, false).draw();
-                                } else {
-                                    await api.column(index).search('').draw();
-                                }
-                            });
-
-                        const data = await config.fetchDataFunc();
-                        data.forEach(item => {
-                            select.append('<option value="' + item.Nombre + '">' + item.Nombre + '</option>');
+                    // Texto por defecto
+                    const $input = $('<input type="text" class="form-control form-control-sm dt-input-dark" placeholder="Buscar..." />')
+                        .attr('data-index', idx)
+                        .val(valorGuardado || '')
+                        .appendTo($cell)
+                        .on('keyup change', function () {
+                            const rx = this.value ? '(((' + $.fn.dataTable.util.escapeRegex(this.value) + ')))' : '';
+                            const cur = this.selectionStart || 0;
+                            api.column(idx).search(rx, !!this.value, !this.value).draw();
+                            $(this).focus()[0].setSelectionRange(cur, cur);
                         });
 
-                        select.select2({ placeholder: 'Seleccionar...', width: '100%' });
-
-                        // Aplicar filtro guardado
-                        if (valorGuardado) {
-                            const valores = Array.isArray(valorGuardado) ? valorGuardado : [valorGuardado];
-                            const opcionesActuales = data.map(x => x.Nombre);
-                            const valoresValidos = valores.filter(v => opcionesActuales.includes(v));
-                            if (valoresValidos.length > 0) {
-                                select.val(valoresValidos).trigger('change.select2');
-
-                                // Aplicar búsqueda al DataTable
-                                const regex = '^(' + valoresValidos.map(val => $.fn.dataTable.util.escapeRegex(val)).join('|') + ')$';
-                                await api.column(index).search(regex, true, false).draw();
-                            }
-
-                        }
-
-                    } else if (config.filterType === 'text') {
-                        const input = $('<input type="text" />')
-                            .attr('data-index', index)
-                            .val(valorGuardado || '')
-                            .attr('placeholder', valorGuardado ? '' : 'Buscar...')
-                            .appendTo(cell)
-                            .on('keyup change', function () {
-                                const regexr = '(((' + this.value + ')))';
-                                const cursorPosition = this.selectionStart;
-                                api.column(index)
-                                    .search(this.value !== '' ? regexr : '', this.value !== '', this.value === '')
-                                    .draw();
-                                $(this).focus()[0].setSelectionRange(cursorPosition, cursorPosition);
-                            });
-
-                        // Aplicar búsqueda al inicializar
-                        if (valorGuardado) {
-                            const regexr = '(((' + valorGuardado + ')))';
-                            api.column(index).search(regexr, true, false);
-                        }
-                    }
+                    if (valorGuardado) api.column(idx).search('(((' + $.fn.dataTable.util.escapeRegex(valorGuardado) + ')))', true, false);
                 }
-                $('.filters th').eq(12).html(''); // Limpiar la última columna si es necesario
+                // Sin filtro en col 0 (acciones)
+                $('.filters th').eq(0).empty();
 
+                // ===== Chips (Todos / Sí / No) Finalizado/Facturado =====
+                function addTriChips(api, colIndex, etiqueta) {
+                    const $cell = $('.filters th').eq(colIndex);
+                    if (!$cell.length) return;
+
+                    $cell.empty().addClass('tri-filter');
+                    const html = `
+            <div class="tri-chips" role="group" aria-label="${etiqueta}">
+              <button type="button" class="chip active" data-val="all" title="Mostrar todos">Todos</button>
+              <button type="button" class="chip" data-val="1" title="Solo Sí">Sí</button>
+              <button type="button" class="chip" data-val="0" title="Solo No">No</button>
+            </div>`;
+                    const $wrap = $(html).appendTo($cell);
+
+                    const apply = (val) => {
+                        const s = String(val);
+                        if (s === '1') {
+                            api.column(colIndex).search('^1$', true, false).draw();
+                        } else if (s === '0') {
+                            // “No”: 0 o vacío (porque normalizamos a '1'/'0'/'' en render no-display)
+                            api.column(colIndex).search('^(0|)$', true, false).draw();
+                        } else {
+                            api.column(colIndex).search('').draw();
+                        }
+                        $wrap.find('.chip').removeClass('active');
+                        $wrap.find(`.chip[data-val="${s}"]`).addClass('active');
+                    };
+
+                    $wrap.on('click', '.chip', function (e) { e.preventDefault(); e.stopPropagation(); apply($(this).data('val')); });
+                    $wrap.on('keydown', '.chip', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $(this).trigger('click'); } });
+
+                    apply('all'); // default
+                }
+                addTriChips(api, 12, 'Finalizado');
+                addTriChips(api, 13, 'Facturado');
+
+                // ===== Totales en cada draw =====
+                $('#grd_Cotizaciones').off('draw.dt.calc').on('draw.dt.calc', calcularTotalesCotizaciones);
+
+                // Menú columnas + restaurar estado (tuyos)
                 await configurarOpcionesColumnas();
-
-                await aplicarFiltrosRestaurados(api, idTabla, 'estadoCotizaciones', true);
+                await aplicarFiltrosRestaurados?.(api, idTabla, 'estadoCotizaciones', true);
                 localStorage.removeItem('estadoCotizaciones');
 
-                setTimeout(function () {
-                    gridCotizaciones.columns.adjust();
-                }, 10);
+                // Ajuste y primer cálculo
+                setTimeout(() => { gridCotizaciones?.columns.adjust(); calcularTotalesCotizaciones(); }, 10);
 
-                // Cambiar el cursor a 'pointer' cuando pase sobre cualquier fila o columna
-                $('#grd_Cotizaciones tbody').on('mouseenter', 'tr', function () {
-                    $(this).css('cursor', 'pointer');
-                });
-
-                // Doble clic para ejecutar la función editarCotizacion(id)
+                // UX filas
+                $('#grd_Cotizaciones tbody').on('mouseenter', 'tr', function () { $(this).css('cursor', 'pointer'); });
                 $('#grd_Cotizaciones tbody').on('dblclick', 'tr', function () {
-                    var id = gridCotizaciones.row(this).data().Id; // Obtener el ID de la fila seleccionada
-                    editarCotizacion(id); // Llamar a la función de editar
+                    const id = gridCotizaciones.row(this).data().Id;
+                    editarCotizacion(id);
                 });
 
-                let filaSeleccionada = null; // Variable para almacenar la fila seleccionada
+                let filaSeleccionada = null;
                 $('#grd_Cotizaciones tbody').on('click', 'tr', function () {
-                    // Remover la clase de la fila anteriormente seleccionada
                     if (filaSeleccionada) {
                         $(filaSeleccionada).removeClass('seleccionada');
                         $('td', filaSeleccionada).removeClass('seleccionada');
-
                     }
-
-                    // Obtener la fila actual
                     filaSeleccionada = $(this);
-
-                    // Agregar la clase a la fila actual
                     $(filaSeleccionada).addClass('seleccionada');
                     $('td', filaSeleccionada).addClass('seleccionada');
-
                 });
-
-
-
-              
-            },
+            }
         });
-
     } else {
         gridCotizaciones.clear().rows.add(data).draw();
+        calcularTotalesCotizaciones();
     }
 }
 
-
+/* ============================
+   Menú columnas (tu lógica)
+   ============================ */
 function configurarOpcionesColumnas() {
-    const grid = $('#grd_Cotizaciones').DataTable(); // Accede al objeto DataTable utilizando el id de la tabla
-    const columnas = grid.settings().init().columns; // Obtiene la configuración de columnas
-    const container = $('#configColumnasMenu'); // El contenedor del dropdown específico para configurar columnas
-
-
-    const storageKey = `Cotizaciones_Columnas`; // Clave única para esta pantalla
-
-    const savedConfig = JSON.parse(localStorage.getItem(storageKey)) || {}; // Recupera configuración guardada o inicializa vacía
-
-    container.empty(); // Limpia el contenedor
+    const grid = $('#grd_Cotizaciones').DataTable();
+    const columnas = grid.settings().init().columns;
+    const container = $('#configColumnasMenu');
+    const storageKey = `Cotizaciones_Columnas`;
+    const saved = JSON.parse(localStorage.getItem(storageKey)) || {};
+    container.empty();
 
     columnas.forEach((col, index) => {
-        if (col.data && col.data != "Id" || index == 1) { // Solo agregar columnas que no sean "Id"
-            // Recupera el valor guardado en localStorage, si existe. Si no, inicializa en 'false' para no estar marcado.
-            const isChecked = savedConfig && savedConfig[`col_${index}`] !== undefined ? savedConfig[`col_${index}`] : true;
-
-            // Asegúrate de que la columna esté visible si el valor es 'true'
+        if ((col.data && col.data != "Id") || index == 1) {
+            const isChecked = saved?.[`col_${index}`] !== undefined ? saved[`col_${index}`] : true;
             grid.column(index).visible(isChecked);
-
             const columnName = index == 1 ? "NroCotizacion" : col.data;
-
-            // Ahora agregamos el checkbox, asegurándonos de que se marque solo si 'isChecked' es 'true'
             container.append(`
-                <li>
-                    <label class="dropdown-item">
-                        <input type="checkbox" class="toggle-column" data-column="${index}" ${isChecked ? 'checked' : ''}>
-                        ${columnName}
-                    </label>
-                </li>
-            `);
+        <li>
+          <label class="dropdown-item">
+            <input type="checkbox" class="toggle-column" data-column="${index}" ${isChecked ? 'checked' : ''}>
+            ${columnName}
+          </label>
+        </li>`);
         }
     });
 
-    // Asocia el evento para ocultar/mostrar columnas
     $('.toggle-column').on('change', function () {
-        const columnIdx = parseInt($(this).data('column'), 10);
-        const isChecked = $(this).is(':checked');
-        savedConfig[`col_${columnIdx}`] = isChecked;
-        localStorage.setItem(storageKey, JSON.stringify(savedConfig));
-        grid.column(columnIdx).visible(isChecked);
+        const idx = parseInt($(this).data('column'), 10);
+        const on = $(this).is(':checked');
+        saved[`col_${idx}`] = on;
+        localStorage.setItem(storageKey, JSON.stringify(saved));
+        grid.column(idx).visible(on);
     });
 }
 
+/* ============================
+   Acciones (3 puntitos)
+   ============================ */
+function toggleAcciones(id) {
+    const $dd = $(`.acciones-menu[data-id="${id}"] .acciones-dropdown`);
+    if ($dd.is(":visible")) $dd.hide();
+    else { $('.acciones-dropdown').hide(); $dd.show(); }
+}
 $(document).on('click', function (e) {
-    // Verificar si el clic está fuera de cualquier dropdown
-    if (!$(e.target).closest('.acciones-menu').length) {
-        $('.acciones-dropdown').hide(); // Cerrar todos los dropdowns
-    }
+    if (!$(e.target).closest('.acciones-menu').length) $('.acciones-dropdown').hide();
 });
 
-
-async function listaColoresFilter() {
-    const url = `/Colores/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    return data.map(x => ({
-        Id: x.Id,
-        Nombre: x.Nombre
-    }));
-
-}
-
-
-
-async function listaCotizacionesCategoriaFilter() {
-    const url = `/Cotizaciones/ListaCategorias`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    return data.map(x => ({
-        Id: x.Id,
-        Nombre: x.Nombre
-    }));
-
-}
-
-
-async function listaUnidadesNegocio() {
-    const data = await listaUnidadesNegocioFilter();
-
-    $('#UnidadesNegocio option').remove();
-
-    select = document.getElementById("UnidadesNegocio");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
-    }
-}
-
-async function listaUnidadesMedida() {
-    const data = await listaUnidadesMedidaFilter();
-
-    $('#UnidadesMedida option').remove();
-
-    select = document.getElementById("UnidadesMedida");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
-    }
-}
-
-async function listaCotizacionesCategoria() {
-    const data = await listaCotizacionesCategoriaFilter();
-
-    $('#Categorias option').remove();
-
-    select = document.getElementById("Categorias");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
-    }
-}
-
-
-
-
-
-async function listaUnidadesNegocioFiltro() {
-    const data = await listaUnidadesNegocioFilter();
-
-    $('#UnidadNegocioFiltro option').remove();
-
-    select = document.getElementById("UnidadNegocioFiltro");
-
-    option = document.createElement("option");
-    option.value = -1;
-    option.text = "-";
-    select.appendChild(option);
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
-    }
-}
-
+/* ============================
+   Datos auxiliares
+   ============================ */
 async function listaClientesFiltro() {
     const url = `/Clientes/Lista`;
     const response = await fetch(url);
     const data = await response.json();
 
-    $('#ClientesFiltro option').remove();
-
-
-
-    select = document.getElementById("ClientesFiltro");
-
-    option = document.createElement("option");
-    option.value = -1;
-    option.text = "Todos";
-    select.appendChild(option);
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
-    }
+    const $sel = $('#ClientesFiltro').empty();
+    $sel.append(new Option('Todos', -1));
+    (data || []).forEach(x => $sel.append(new Option(x.Nombre, x.Id)));
 }
+
+/* ============================
+   Totales (KPIs)
+   ============================ */
+if (typeof window.formatNumber !== 'function') {
+    window.formatNumber = function (n) {
+        const v = Number(n || 0);
+        return v.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+}
+function calcularTotalesCotizaciones() {
+    if (!gridCotizaciones) return;
+    const rows = gridCotizaciones.rows({ search: 'applied' }).data().toArray();
+    let cant = rows.length, tot = 0, abo = 0, sal = 0, sub = 0;
+
+    for (const r of rows) {
+        sub += (+r.SubTotal || 0);
+        tot += (+r.ImporteTotal || 0);
+        abo += (+r.ImporteAbonado || 0);
+        sal += (+r.Saldo || 0);
+    }
+    $('#kpiCantCotizaciones').text(cant.toLocaleString('es-AR'));
+    $('#kpiImporteTotal').text(formatNumber(tot));
+    $('#kpiAbonado').text(formatNumber(abo));
+    $('#kpiSaldo').text(formatNumber(sal));
+}
+
+/* ============================
+   Toggle filtros con persistencia (igual Ventas)
+   ============================ */
+function initToggleFiltrosPersistente() {
+    const btn = document.getElementById('btnToggleFiltros');
+    const icon = document.getElementById('iconFiltros');
+    const panel = document.getElementById('formFiltrosCotizaciones');
+    const STORAGE_KEY = 'Cotizaciones_FiltrosVisibles';
+
+    if (!btn || !icon || !panel) return;
+
+    // Restaurar
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const visible = (saved === null) ? true : (saved === 'true');
+
+    panel.classList.toggle('d-none', !visible);
+    icon.classList.toggle('fa-arrow-down', !visible);
+    icon.classList.toggle('fa-arrow-up', visible);
+
+    // Toggle + persistencia
+    btn.addEventListener('click', () => {
+        const hide = panel.classList.toggle('d-none');
+        const nowVisible = !hide;
+        icon.classList.toggle('fa-arrow-down', hide);
+        icon.classList.toggle('fa-arrow-up', nowVisible);
+        localStorage.setItem(STORAGE_KEY, String(nowVisible));
+    });
+}
+// ======================================================================
