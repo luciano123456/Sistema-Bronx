@@ -574,6 +574,7 @@ async function configurarDataTable(data) {
                                     await api.column(config.index).search(regex, true, false).draw(); // Realizar búsqueda con regex
                                 } else {
                                     await api.column(config.index).search('').draw(); // Limpiar filtro
+
                                 }
                             });
 
@@ -612,7 +613,10 @@ async function configurarDataTable(data) {
 
                 setTimeout(function () {
                     gridInsumos.columns.adjust();
+                    calcularTotalesInsumos();
                 }, 300);
+
+               
             },
         });
 
@@ -888,6 +892,7 @@ async function configurarDataTable(data) {
                 // Actualizar la fila en la tabla con los nuevos datos
                 gridInsumos.row(trElement).data(rowData).draw();
 
+
                 // Si el texto cambió, aplicar el parpadeo a la celda editada (usando el índice visible ya obtenido)
                 if (originalText !== newText) {
                     celda.addClass('blinking');
@@ -907,7 +912,7 @@ async function configurarDataTable(data) {
                 }, 3000);
             }
 
-
+            
 
 
 
@@ -921,6 +926,7 @@ async function configurarDataTable(data) {
         });
     } else {
         gridInsumos.clear().rows.add(data).draw();
+        calcularTotalesInsumos(); // <- recalcular tras recargar datos
     }
 }
 
@@ -1121,4 +1127,44 @@ function configurarOpcionesColumnas() {
         localStorage.setItem(storageKey, JSON.stringify(savedConfig));
         grid.column(columnIdx).visible(isChecked);
     });
+}
+
+
+// ===== Helpers numéricos (compatibles con tus otros archivos)
+if (typeof window.formatNumber !== 'function') {
+    window.formatNumber = function (n) {
+        const v = Number(n || 0);
+        return v.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+}
+function toNumber(v) {
+    if (v == null || v === '') return 0;
+    if (typeof v === 'number') return v;
+    // limpia $ . , y espacios - soporta "1.234,56" y "1,234.56"
+    const s = String(v).replace(/[^\d,-.]/g, '').replace(/\./g, '').replace(',', '.');
+    const n = Number(s);
+    return Number.isNaN(n) ? 0 : n;
+}
+
+// ===== KPIs / Sumatorias (igual estilo que Productos)
+function calcularTotalesInsumos() {
+    if (!gridInsumos) return;
+
+    const rows = gridInsumos.rows({ search: 'applied' }).data().toArray();
+
+    const cant = rows.length;
+    const categorias = new Set(rows.map(r => r.Categoria).filter(Boolean));
+
+    // elegí qué sumar: PrecioCosto o PrecioVenta. Acá sumo PrecioCosto (cambia a r.PrecioVenta si preferís)
+    let sumaCostos = 0;
+    for (const r of rows) sumaCostos += toNumber(r.PrecioCosto);
+
+    // Pinta KPIs (si existen en la vista)
+    const $cant = $('#kpiCantInsumos');
+    const $cat = $('#kpiCantCategoriasInsumos');
+    const $sum = $('#kpiSumaCostosInsumos');
+
+    if ($cant.length) $cant.text(cant.toLocaleString('es-AR'));
+    if ($cat.length) $cat.text(categorias.size.toLocaleString('es-AR'));
+    if ($sum.length) $sum.text(formatNumber(sumaCostos));
 }
