@@ -304,6 +304,79 @@ async function obtenerInsumosUnidadNegocio() {
 /* -----------------------------------------------------------------------------
    ABM Insumos en modal
 ----------------------------------------------------------------------------- */
+
+async function guardarInsumo() {
+    const insumoSelect = document.getElementById('insumoSelect');
+    const precioManual = parseFloat(convertirMonedaAFloat(document.getElementById('precioInput').value));
+    const totalInput = parseFloat(convertirMonedaAFloat(document.getElementById('totalInput').value));
+    const cantidadInput = parseFloat(document.getElementById('cantidadInput').value) || 1; // Obtener cantidad, por defecto 1 si no es válida
+    const InsumoId = insumoSelect.value;
+    const ProductoNombre = insumoSelect.options[insumoSelect.selectedIndex]?.text || '';
+    const proveedorNombre = $("#insumoProveedor").val();
+
+    let i = 0;
+
+
+    const modal = $('#insumosModal');
+    const isEditing = modal.attr('data-editing') === 'true';
+    const editId = modal.attr('edit-id');
+
+    const selectedProduct = insumos.find(p => p.IdInsumo === parseInt(InsumoId));
+
+    // Verificar si el Producto ya existe en la tabla
+    let ProductoExistente = false;
+
+    if (isEditing) {
+        // Si estamos editando, solo actualizamos la fila correspondiente
+        gridInsumos.rows().every(function () {
+            const data = this.data();
+            if (data.IdInsumo == editId) {
+                data.Nombre = ProductoNombre;
+                data.CostoUnitario = precioManual; // Guardar PrecioVenta
+                data.Cantidad = cantidadInput; // Usar la cantidad del input
+                data.Proveedor = proveedorNombre;
+                data.SubTotal = totalInput; // Recalcular el total con formato de moneda
+                this.data(data).draw();
+            }
+        });
+    } else {
+        // Buscar si el Producto ya existe en la tabla
+        gridInsumos.rows().every(function () {
+            const data = this.data();
+            if (data.IdInsumo == InsumoId) {
+                // Producto existe, sumamos las cantidades y recalculamos el total
+                data.Cantidad = cantidadInput; // Sumar la cantidad proporcionada
+                data.CostoUnitario = precioManual; // Guardar PrecioVenta
+                data.Proveedor = proveedorNombre;
+                data.SubTotal = precioManual * data.Cantidad; // Recalcular el total con formato de moneda
+                this.data(data).draw();
+                ProductoExistente = true;
+            }
+        });
+
+        if (!ProductoExistente) {
+            // Si no existe, agregar un nuevo Producto
+            gridInsumos.row.add({
+                IdInsumo: InsumoId,
+                Id: 0,
+                Proveedor: proveedorNombre,
+                Nombre: ProductoNombre,
+                CostoUnitario: precioManual, // Agregar PrecioVenta
+                Cantidad: cantidadInput, // Usar la cantidad proporcionada
+                SubTotal: totalInput // Recalcular el total con formato de moneda
+            }).draw();
+        }
+    }
+
+    // Limpiar y cerrar el modal
+    modal.modal('hide');
+
+    calcularDatosProducto();
+
+}
+
+
+
 async function anadirInsumo() {
     const insumosEnTabla = [];
     if (gridInsumos) {
@@ -344,18 +417,25 @@ async function anadirInsumo() {
 }
 
 async function editarInsumo(id) {
+    const IdUnidadNegocio = parseInt($("#UnidadesNegocio").val());
     const insumosEnTabla = [];
     let insumoData = null;
 
-    gridInsumos?.rows().every(function () {
-        const r = this.data();
-        insumosEnTabla.push(Number(r.IdInsumo));
-        if (Number(r.IdInsumo) === Number(id)) insumoData = r;
+    gridInsumos.rows().every(function () {
+        const data = this.data();
+        insumosEnTabla.push(Number(data.IdInsumo));
+
+        if (data.IdInsumo == id) {
+            insumoData = data;
+        }
     });
 
-    if (!insumoData) { advertenciaModal?.("No se encontró el insumo a editar."); return; }
+    if (!insumoData) {
+        advertenciaModal("No se encontró el insumo a editar.");
+        return;
+    }
 
-    insumos = await cargarInsumosModal(null, insumosEnTabla, insumoData.IdInsumo);
+    insumos = await cargarInsumosModal(IdUnidadNegocio, insumosEnTabla, insumoData.IdInsumo);
     if (!insumos) return;
 
     $("#cantidadInput").val(insumoData.Cantidad);
@@ -363,14 +443,12 @@ async function editarInsumo(id) {
     $("#totalInput").val(formatoMoneda.format(insumoData.SubTotal));
     $("#insumoProveedor").val(insumoData.Proveedor);
 
-    $("#insumoSelect").prop("disabled", true).val(insumoData.IdInsumo).trigger('change');
+    $("#insumoSelect").prop("disabled", true);
 
-    const $modal = $('#insumosModal');
-    $modal.attr('data-editing', 'true').attr('edit-id', String(insumoData.IdInsumo));
+    $('#insumosModal').data('edit-id', insumoData.Id);
     $('#btnGuardarInsumo').text('Editar');
-    $modal.modal('show');
+    $("#insumosModal").modal('show');
 }
-
 async function cargarInsumosModal(_idUnidad, insumosEnTabla, insumoSeleccionado = null) {
     const lista = await obtenerInsumosUnidadNegocio();
     const $sel = $("#insumoSelect").empty();
