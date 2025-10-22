@@ -382,7 +382,7 @@ body {
 }
 
 .modal .form-control, .modal .form-select {
-    background: var(--dt-row-zebra2) !important;
+    background: var(--dt-row-zebra) !important;
     border: 1px solid rgba(255,255,255,.12) !important;
     color: #e8eef7 !important;
 }
@@ -399,7 +399,6 @@ body {
         box-shadow: none !important;
     }
 
-/* ===== Select2 (si lo usás en filtros/modales) ===== */
 
 
 
@@ -1446,7 +1445,7 @@ table.dataTable.display tbody tr.selected td {
         height: 44px !important;
         display: flex;
         align-items: center;
-        background: var(--dt-row-zebra2) !important;
+        background: var(--dt-row-zebra) !important;
         border-radius: 12px !important;
     }
 

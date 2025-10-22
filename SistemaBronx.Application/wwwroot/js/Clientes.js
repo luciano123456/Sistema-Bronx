@@ -342,6 +342,7 @@ async function configurarDataTable(data) {
 
                 setTimeout(function () {
                     gridClientes.columns.adjust();
+                    updateKPIsClientes();     // <-- actualizar al cargar
                 }, 10);
 
                 $('body').on('mouseenter', '#grd_clientes .fa-map-marker', function () {
@@ -623,4 +624,14 @@ async function listaProvincias() {
         selectProvincias.appendChild(option);
 
     }
+}
+
+function updateKPIsClientes() {
+    if (!$.fn.DataTable.isDataTable('#grd_clientes')) {
+        $('#kpiCantClientes').text(0);
+        return;
+    }
+    const api = $('#grd_clientes').DataTable();
+    const cant = api.rows({ search: 'applied' }).count(); // respeta filtros/búsqueda
+    $('#kpiCantClientes').text(cant.toLocaleString('es-AR'));
 }

@@ -1,74 +1,103 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Clientes";
 }
 
-
-@*GOOGLEAR CARD BOOTSTRAP 5*@
 @section Estilos {
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.2.2/css/fixedHeader.dataTables.min.css" />
 
-    <link href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css" rel="stylesheet" />
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
 
-    @*ESTILOS DE BOTONES*@
-    <link href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css" rel="stylesheet" />
+    <!-- Estilos base proyecto -->
+    <link rel="stylesheet" href="~/css/usuarios.css" />
+    <link rel="stylesheet" href="~/css/redisenopantallas.css" />
+    <link rel="stylesheet" href="~/css/Clientes.css?v=1.0" />
 
-    @*filter columns*@
-    <link href="https://cdn.datatables.net/fixedheader/3.2.2/css/fixedHeader.dataTables.min.css" rel="stylesheet" />
+    <!-- Select2 (opcional, por si luego lo usás en Provincias) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" />
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-
-    <link href="~/css/Clientes.css?v=1.0" rel="stylesheet" />
 }
 
-<div class="container-fluid mt-5">
-    <div class="row">
-        <div class="col-lg-10">
-            <div class="card" style="width: 88%; position: absolute; left: 7vw; border: none;">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Clientes</span>
-
-                    <div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle d-flex align-items-center" type="button" id="dropdownColumnas" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fa fa-cog me-2"></i> Config. Columnas
-                        </button>
-                        <ul class="dropdown-menu" aria-labelledby="dropdownColumnas" id="configColumnasMenu">
-                        </ul>
-                    </div>
+<div class="container page-99" style="margin-top:100px">
+    <!-- Header KPI -->
+    <div class="cc-header shadow-lg rounded-4 p-4 mb-4">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div class="d-flex align-items-center gap-3">
+                <span class="cc-badge"><i class="fa fa-users"></i></span>
+                <div>
+                    <h2 class="m-0 fw-800">Clientes</h2>
+                    <small class="text-muted-cc">Gestión y listado de clientes</small>
                 </div>
-                <div class="card-body">
-                    <table class="display nowrap" id="grd_clientes" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th>Nombre</th>
-                                <th>Telefono</th>
-                                <th>Direccion</th>
-                                <th>Provincia</th>
-                                <th>Localidad</th>
-                                <th>DNI/CUIT</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Aquí va el contenido de tu datatable -->
-                        </tbody>
-                    </table>
-                </div>
+            </div>
 
-                <div class="d-flex justify-content-end mt-2 mb-4">
-                    <a class="btn btn-warning btnnuevo" onclick="nuevoCliente()">Nuevo</a>
+            <div class="ms-auto d-flex gap-3 flex-wrap">
+                <div class="cc-stat">
+                    <div class="label">Cantidad</div>
+                    <div class="value" id="kpiCantClientes">0</div>
                 </div>
             </div>
         </div>
     </div>
+
+
+    <!-- Tabla -->
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="card-glass p-3">
+                <div class="tabla-wrap position-relative">
+                    <!-- Controles top -->
+                    <div class="tabla-controls-top d-flex gap-2 flex-wrap align-items-center">
+
+                        <button class="btn btn-success d-flex align-items-center px-3 py-2" onclick="nuevoCliente()">
+                            <i class="fa fa-plus-square me-2"></i> Nuevo Cliente
+                        </button>
+
+                        <div class="dropdown">
+                            <button class="btn btn-secondary dropdown-toggle d-flex align-items-center" type="button"
+                                    id="btnConfigColsClientes" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fa fa-cog me-2"></i> Config. Columnas
+                            </button>
+                            <ul class="dropdown-menu" id="configColumnasMenu" aria-labelledby="btnConfigColsClientes"></ul>
+                        </div>
+                    </div>
+
+                    <!-- DataTable -->
+                    <div class="dt-dark-wrap">
+                        <table class="dt-dark display nowrap compact" id="grd_clientes" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Nombre</th>
+                                    <th>Telefono</th>
+                                    <th>Direccion</th>
+                                    <th>Provincia</th>
+                                    <th>Localidad</th>
+                                    <th>DNI/CUIT</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                </div><!-- /tabla-wrap -->
+
+               
+            </div><!-- /card-glass -->
+        </div>
+    </div>
 </div>
 
-
-<!-- Modal Clientes-->
-<div class="modal fade" id="modalEdicion" tabindex="-1" role="dialog" aria-labelledby="modalEdicionLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-edicion" role="document">
-        <div class="modal-content">
+<!-- Modal Clientes -->
+<!-- Modal Clientes -->
+<div class="modal fade" id="modalEdicion" tabindex="-1" aria-labelledby="modalEdicionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-edicion">
+        <div class="modal-content cc-modal">
             <div class="modal-header colorEncabezado">
                 <h5 class="modal-title fw-bold" id="modalEdicionLabel">Editar Cliente</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                <button type="button" class="btn-close custom-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
 
             <div class="modal-body">
@@ -76,7 +105,7 @@
                     <input type="text" id="txtId" hidden readonly>
 
                     <div class="col-md-6">
-                        <label for="txtNombre" class="form-label">Nombre (*)</label>
+                        <label for="txtNombre" class="form-label" id="lblNombre">Nombre (*)</label>
                         <input type="text" class="form-control" id="txtNombre" required>
                     </div>
 
@@ -92,7 +121,7 @@
 
                     <div class="col-md-6">
                         <label for="Provincias" class="form-label">Provincia</label>
-                        <select id="Provincias" name="select" class="form-control">
+                        <select id="Provincias" class="form-select">
                             <option value="" selected>Provincias</option>
                         </select>
                     </div>
@@ -109,43 +138,50 @@
                 </form>
             </div>
 
-            <div class="modal-footer">
+            <div class="modal-footer modal-footer-cc">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" id="btnGuardar" class="btn btn-primary" onclick="guardarCambios()">Registrar</button>
+                <button type="button" id="btnGuardar" class="btn btn-warning" onclick="guardarCambios()">Guardar</button>
             </div>
         </div>
     </div>
 </div>
 
-
-
 <partial name="~/Views/Utils/Modals.cshtml" />
 
 @section Scripts {
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-
-    @*SCRIPTS DE BOTONES*@
-    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js">
-
-    </script><script src="~/js/site.js"></script>
-    <script src="~/js/utils/moment.js"></script>
-
-    @*excel*@
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <!-- DataTables + extensiones -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
-
-    @*pdf*@
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
-
-    @*imprimir*@
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
-
-    @*filter columns*@
     <script src="https://cdn.datatables.net/fixedheader/3.2.2/js/dataTables.fixedHeader.min.js"></script>
 
+    <!-- Export deps -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
 
-    <script src="~/js/clientes.js?v=1.5"></script>
+    <!-- Select2 (opcional para Provincias) -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
 
+    <!-- Utilidades base -->
+    <script src="~/js/site.js"></script>
+    <script src="~/js/utils/moment.js"></script>
+
+    <!-- Lógica de la vista -->
+    <script src="~/js/clientes.js?v=1.7"></script>
+
+    <script>
+        // Si usás Select2 en Provincias dentro del modal:
+        $(function () {
+            if ($('#Provincias').length) {
+                $('#Provincias').select2({
+                    placeholder: 'Seleccionar...',
+                    dropdownParent: $('#modalEdicion'),
+                    width: '100%'
+                });
+            }
+        });
+    </script>
 }

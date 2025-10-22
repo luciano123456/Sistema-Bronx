@@ -92,7 +92,7 @@
 .select2-container{ width:100% !important; font:inherit; }
 .select2-container .select2-selection--single{
   height:42px !important; display:flex; align-items:center;
-  background:#0f1625 !important; border:1px solid rgba(255,255,255,.12) !important;
+  background:var(--dt-row-zebra) !important; border:1px solid rgba(255,255,255,.12) !important;
   border-radius:10px !important;
 }
 .select2-container .select2-selection__rendered{
