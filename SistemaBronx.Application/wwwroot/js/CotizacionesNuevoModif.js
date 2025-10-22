@@ -14,7 +14,7 @@ const IdCotizacion = document.getElementById('IdCotizacion').value;
 
 $(document).ready(async function () {
 
-    $('#btnRegistrarPedido').on('click', registrarComoPedido);
+
     $('#txtNombreClienteModal').on('input', function () {
         validarCamposCliente()
     });
@@ -141,7 +141,12 @@ async function insertarDatosCotizacion(datosCotizacion) {
     document.getElementById("Finalizado").checked = datosCotizacion.Cotizacion.Finalizado === 1;
 
 
-
+    // === NUEVO: facturado + nro de factura ===
+    const fueFacturado = Number(datosCotizacion.Cotizacion.Facturado) === 1;
+    document.getElementById("Facturado").checked = fueFacturado;
+    document.getElementById("NroFactura").value = datosCotizacion.Cotizacion.NroFactura ?? "";
+    // Muestra/oculta y habilita/deshabilita el input según el switch
+    if (typeof toggleFacturaGroup === "function") toggleFacturaGroup();
 
     document.getElementById("btnNuevoModificar").textContent = "Guardar";
 
@@ -340,7 +345,7 @@ async function configurarDataTableInsumosModal(data, editando) {
             columns: [
                 { data: 'Nombre' },
                 { data: 'Cantidad' },
-                
+
                 { data: 'CostoUnitario' },
                 { data: 'SubTotal' },
                 { data: 'IdCategoria', visible: false, name: 'IdCategoria' },
@@ -676,7 +681,7 @@ $('#ProductoModalCantidad').on('keyup', function () {
             }
 
             // Actualizar el objeto rowData
-           /* rowData.Cantidad = parseInt(cantidad);  // Actualizar la cantidad en rowData*/
+            /* rowData.Cantidad = parseInt(cantidad);  // Actualizar la cantidad en rowData*/
             rowData.Cantidad = Math.round(rowData.CantidadInicial * parseInt(cantidad, 10) * 100) / 100;
             //rowData.SubTotal = parseFloat(rowData.CostoUnitario) * parseInt(cantidad);  // Actualizar la cantidad en rowData
 
@@ -701,7 +706,7 @@ $('#ProductoModalCantidad').on('keyup', function () {
 
 
             // Actualizar el objeto rowData
-           
+
             //rowData.SubTotal = parseFloat(rowData.CostoUnitario) * parseInt(cantidad);  // Actualizar la cantidad en rowData
 
             calcularIVAyGanancia();
@@ -899,7 +904,7 @@ async function configurarDataTableInsumos(data) {
             pageLength: 100,
             searching: false, // 🔹 Esto oculta el campo de búsqueda
             columns: [
-                { data: 'IdDetalle'},
+                { data: 'IdDetalle' },
                 { data: 'IdProducto', visible: false },
                 { data: 'Producto' },
                 { data: 'Cantidad' },
@@ -922,7 +927,7 @@ async function configurarDataTableInsumos(data) {
                     data: 'FechaActualizacion',
                     render: function (data) {
                         if (!data) return '-';
-                        return new Date(data).toLocaleString('es-AR'); 
+                        return new Date(data).toLocaleString('es-AR');
                     }
                 },
                 {
@@ -1333,7 +1338,7 @@ async function guardarProducto() {
                     data.Categoria = Categoria,
                     data.CostoUnitario = CostoUnitario,
                     data.PorcGanancia = PorcGanancia,
-                    data.PrecioVentaUnitario  = PrecioVenta / Cantidad,
+                    data.PrecioVentaUnitario = PrecioVenta / Cantidad,
                     data.Ganancia = Ganancia,
                     data.PorcIva = PorcIva,
                     data.IVA = TotalIva,
@@ -1644,7 +1649,7 @@ async function editarProducto(producto) {
 
         $('#productoModal .modal-dialog').css({
             'max-width': '100%',
-            'width': '50%',
+            'width': '70%',
 
         });
 
@@ -2050,8 +2055,10 @@ async function guardarCambios(redirecciona = true) {
             "Saldo": parseFloat(convertirMonedaAFloat($("#Saldo").val())),
             "Comentarios": $("#Comentarios").val(),
             "Finalizado": $("#Finalizado").prop('checked') ? 1 : 0,
+            "Facturado": $("#Facturado").prop('checked') ? 1 : 0,
+            "NroFactura": $("#NroFactura").val(),
             "CotizacionesDetalles": productos,
-            "CotizacionesDetalleProcesos": insumos
+            "CotizacionesDetalleProcesos": insumos,
         };
 
         // --- Endpoint ---
@@ -2481,8 +2488,8 @@ async function descargarCotizacionPDF(datos) {
     } else {
         file = sanitizeFileName(`Cotizacion ${nro}Cliente ${datos.Cotizacion.Cliente} ${fmtMoneda(datos.Cotizacion.SubTotal)}.pdf`);
     }
-   
-    
+
+
     doc.save(file);
 }
 
@@ -2717,6 +2724,91 @@ function fmtMoneda(v) {
 }
 
 
+
+function toggleFacturaGroup() {
+    const on = $("#Facturado").prop("checked");
+    const $grp = $("#divNroFactura");
+    const $nro = $("#NroFactura");
+    if (on) { $grp.removeClass("d-none"); $nro.prop("disabled", false); }
+    else { $grp.addClass("d-none"); $nro.val("").prop("disabled", true); }
+}
+
+
+$("#Facturado").prop("checked", false);
+toggleFacturaGroup();
+// Listener
+$("#Facturado").on("change", toggleFacturaGroup);
+
+
+// ====== NUEVO BLOQUE UI – pegalo en Cotizacionesnuevomodif.js ======
+
+function initNuevoModifUI() {
+    // Select2 robusto para #Clientes y #Formasdepago (sin romper layout)
+    initSelect2Dark('#Clientes');
+    initSelect2Dark('#Formasdepago');
+
+    // Set defaults de fecha si vienen vacías
+    if (!$('#Fecha').val()) {
+        $('#Fecha').val(moment().format('YYYY-MM-DD'));
+    }
+
+    // Si vino CotizacionData (desde la vista)
+    if (typeof CotizacionData !== 'undefined' && CotizacionData && CotizacionData.Id) {
+        $('#kpiNroCotizacion').text(CotizacionData.Id);
+        $('#tituloCotizacion').text('Cotizacion #' + CotizacionData.Id);
+    }
+
+    // Vinculá KPIs con inputs (en vivo)
+    bindKpisNuevoModif();
+
+    // Si el estado de Facturado pide NroFactura
+    $('#Facturado').on('change', function () {
+        $('#divNroFactura').toggleClass('d-none', !this.checked);
+    });
+}
+
+// Init Select2 oscuro con placeholder real y dropdownParent inteligente
+function initSelect2Dark(selector) {
+    const $ctl = $(selector);
+    if (!$ctl.length) return;
+
+    if ($ctl.data('select2')) $ctl.select2('destroy');
+    if (!$ctl.find('option[value=""]').length) $ctl.prepend('<option value=""></option>');
+
+    $ctl.select2({
+        placeholder: 'Seleccionar',
+        allowClear: true,
+        width: '100%',
+        dropdownParent: $('.container.page-99') // evita recortes
+    });
+}
+
+// KPIs espejo de los campos del resumen
+function bindKpisNuevoModif() {
+    const refl = () => {
+        const sub = $('#SubTotal').val() || '0';
+        const porc = $('#PorcDesc').val() || '0';
+        const tot = $('#ImporteTotal').val() || '0';
+        $('#kpiSubTotal').text(sub);
+        $('#kpiPorcDesc').text(porc);
+        $('#kpiTotal').text(tot);
+    };
+
+    ['#SubTotal', '#PorcDesc', '#ImporteTotal'].forEach(id => {
+        $(document).on('input change', id, refl);
+    });
+
+    // primer reflejo
+    refl();
+}
+
+// Llamalo en tu ready existente:
+$(document).ready(function () {
+    try { initNuevoModifUI(); } catch (e) { console.error(e); }
+});
+
+
+$('#btnRegistrarPedido').on('click', registrarComoPedido);
 
 async function registrarComoPedido() {
     try {
