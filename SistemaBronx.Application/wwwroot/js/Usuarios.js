@@ -359,6 +359,8 @@ async function configurarDataTable(data) {
                     gridUsuarios.columns.adjust();
                 }, 10);
 
+                actualizarKpisUsuarios(data);
+
                 $('body').on('mouseenter', '#grd_Usuarios .fa-map-marker', function () {
                     $(this).css('cursor', 'pointer');
                 });
@@ -537,6 +539,7 @@ async function configurarDataTable(data) {
         });
     } else {
         gridUsuarios.clear().rows.add(data).draw();
+        actualizarKpisUsuarios(data);
     }
 }
 
@@ -696,4 +699,11 @@ function configurarOpcionesColumnas() {
         localStorage.setItem(storageKey, JSON.stringify(savedConfig));
         grid.column(columnIdx).visible(isChecked);
     });
+}
+
+
+function actualizarKpisUsuarios(data) {
+    const cant = Array.isArray(data) ? data.length : 0;
+    const el = document.getElementById('kpiCantUsuarios');
+    if (el) el.textContent = cant;
 }
