@@ -13,8 +13,8 @@
     --dt-head: #1d2633;
     --dt-head-b: #2b3647;
     --dt-row: #0f1722;
-    --dt-row-zebra: #101824;
-    --dt-row-zebra2: #0e1620;
+    --dt-row-zebra: #363659;
+    --dt-row-zebra2: #525285;
     --dt-row-hover: #152037;
     --dt-text: #e5e7eb;
     --dt-input: #111827;
@@ -24,6 +24,7 @@
     --chip-in: #18c37e;
     --chip-out: #ff7a66;
     --chip-stock: #7cc2ff;
+    --color-general: #05225E;
 }
 
 /* ===== Layout y contenedores ===== */
@@ -41,12 +42,13 @@ html {
 
 body {
     padding: 10px 0;
-    background: linear-gradient(135deg,#0b1220 0%,#0f172a 100%);
+    background: #31314f;
     background-attachment: fixed;
     background-position: center;
     background-size: cover;
-    color: var(--text);
+    color: var(--TEXT);
 }
+
 
 .container {
     min-width: 99% !important;
@@ -64,20 +66,12 @@ body {
     color: var(--muted) !important;
 }
 
-/* ===== Card “glass” ===== */
-.card-glass {
-    background: #151c28;
-    border: 1px solid rgba(255,255,255,.06);
-    border-radius: 16px;
-    box-shadow: 0 6px 22px rgba(0,0,0,.35);
-    color: #e8eef7;
-}
 
 /* ===== Header de módulo (KPIs) ===== */
 .cc-header {
     width: 100%;
     margin: 0 auto 1.5rem;
-    background: linear-gradient(90deg, rgba(124,92,255,.25), rgba(79,180,255,.2));
+    background: linear-gradient(90deg, var(--dt-row-zebra), var(--dt-row-zebra2));
     border: 1px solid var(--border);
     border-radius: 20px;
     padding: .75rem;
@@ -159,13 +153,6 @@ body {
     padding-top: 10px;
 }
 
-/* ===== Barra de filtros (glass) ===== */
-.filter-bar {
-    background: rgba(255,255,255,.03);
-    border: 1px solid rgba(255,255,255,.08);
-    box-shadow: 0 3px 15px rgba(0,0,0,1) !important;
-}
-
     .filter-bar .form-label {
         margin-bottom: .25rem;
         font-weight: 600;
@@ -180,7 +167,7 @@ body {
 /* ===== DataTables – Skin oscuro ===== */
 .dt-dark-wrap .dataTables_scrollHead,
 .dt-dark-wrap .dataTables_scrollHeadInner {
-    background: var(--dt-head) !important;
+    background: red !important;
     border-bottom: 1px solid var(--dt-head-b) !important;
 }
 
@@ -189,7 +176,7 @@ body {
 }
 
 .dt-dark thead th, .dt-dark thead td {
-    background: var(--dt-head) !important;
+    background: #6868b1 !important;
     color: var(--dt-text) !important;
     border-color: var(--dt-head-b) !important;
 }
@@ -247,7 +234,7 @@ body {
 .dataTables_wrapper .dataTables_paginate {
     float: right;
     padding: .6rem .5rem;
-    background: var(--dt-pag-bg);
+    background: var(--dt-row-zebra2);
     border-radius: .75rem;
     border: 1px solid var(--dt-head-b);
     box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
@@ -258,6 +245,9 @@ body {
     margin-left: 12px;
 }
 
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled, .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover, .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:active {
+     color: white !important; 
+}
 .dataTables_wrapper .dataTables_paginate .paginate_button {
     color: #c9d2e4 !important;
     border: 1px solid transparent !important;
@@ -281,7 +271,7 @@ body {
 
 .dataTables_wrapper .dataTables_length select,
 .dataTables_wrapper .dataTables_filter input {
-    background: var(--dt-input) !important;
+    background: var(--dt-row-zebra) !important;
     color: var(--text) !important;
     border: 1px solid var(--dt-input-b) !important;
     border-radius: .5rem !important;
@@ -289,7 +279,7 @@ body {
 
 /* Botones (dt-buttons) */
 .dataTables_wrapper .dt-buttons .dt-button {
-    background: linear-gradient(180deg,#1f2a44,#18233a) !important;
+    background: #6868b1 !important;
     color: #e6ebff !important;
     border: 1px solid var(--dt-head-b) !important;
     border-radius: .6rem !important;
@@ -347,7 +337,7 @@ body {
 
 /* ===== Modales (coherentes con Ventas) ===== */
 .colorEncabezado {
-    background: linear-gradient(180deg,#22314a,#1a2436);
+    background: linear-gradient(180deg,var(--dt-row-zebra),var(--dt-row-zebra2));
     color: #eaf2ff;
     border-bottom: 1px solid rgba(255,255,255,.08);
 }
@@ -358,10 +348,10 @@ body {
     }
 
 .modal-content {
-    background-color: #1d2636 !important;
+    background-color: var(--dt-row-zebra) !important;
     border-radius: 14px;
     box-shadow: none;
-    color: #e8eef7;
+    color: var(--dt-row-zebra);
 }
 
 .modal-body {
@@ -379,7 +369,7 @@ body {
 }
 
 .modal .form-control, .modal .form-select {
-    background: #0f1625 !important;
+    background: var(--dt-row-zebra) !important;
     border: 1px solid rgba(255,255,255,.12) !important;
     color: #e8eef7 !important;
 }
@@ -397,18 +387,17 @@ body {
     }
 
 /* ===== Select2 (si lo usás en filtros/modales) ===== */
-.select2-container--default .select2-selection--single {
-    background: #0f1625 !important;
-    border: 1px solid rgba(255,255,255,.12) !important;
-    height: 38px !important;
-    border-radius: 8px !important;
-}
 
-    .select2-container--default .select2-selection--single .select2-selection__rendered {
-        line-height: 36px !important;
-        color: #e8eef7 !important;
-        padding-left: 10px !important;
-    }
+
+
+.select2-container .select2-selection--single {
+    height: 48px !important;
+    display: flex;
+    align-items: center;
+    background: var(--dt-row-zebra2);
+    border: 1px solid var(--b1) !important;
+    border-radius: 12px !important;
+}
 
     .select2-container--default .select2-selection--single .select2-selection__arrow {
         height: 38px !important;
@@ -420,11 +409,11 @@ body {
 }
 
 .select2-results__option {
-    color: #e8eef7;
+    color: var(--dt-row-zebra);
 }
 
 .select2-container--default .select2-results__option--highlighted[aria-selected] {
-    background: #23314f !important;
+    background: var(--dt-row-zebra) !important;
     color: beige !important;
 }
 /* Estado de validación (opcional) */
@@ -543,6 +532,10 @@ select.is-valid + .select2 .select2-selection {
 #grd_Pedidos tbody tr.seleccionada td {
     background: var(--dt-row-hover) !important;
 }
+#grd_Productos tbody tr.seleccionada,
+#grd_Productos tbody tr.seleccionada td {
+    background: var(--dt-row-hover) !important;
+}
 
 /* Botón “Nuevo Pedido” coherente */
 .acciones-externas .btn {
@@ -625,12 +618,7 @@ select.is-valid + .select2 .select2-selection {
 /* =========================================================
    Panel de filtros — detalles de layout y foco
    ========================================================= */
-.filter-bar {
-    background: rgba(17,24,39,.65);
-    border: 1px solid rgba(255,255,255,.08);
-    box-shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.03);
-    border-radius: 14px;
-}
+
 
     .filter-bar .form-label {
         color: #cfd7e6;
@@ -638,12 +626,7 @@ select.is-valid + .select2 .select2-selection {
         letter-spacing: .2px;
     }
 
-    .filter-bar .form-control, .filter-bar .form-select {
-        background: #0f1625 !important;
-        color: #e6eefb !important;
-        border: 1px solid rgba(255,255,255,.12) !important;
-        border-radius: 10px;
-    }
+
 
         .filter-bar .form-control:focus, .filter-bar .form-select:focus {
             border-color: #4ea0ff !important;
@@ -680,12 +663,12 @@ select.is-valid + .select2 .select2-selection {
 /* Igual que Ventas: contenedor + panel filtros */
 .container{ min-width:99%!important; }
 .page-99{ max-width:99%!important; }
-.card-glass{
-  background:#151c28;
-  border:1px solid rgba(255,255,255,.06);
-  border-radius:16px;
-  box-shadow:0 6px 22px rgba(0,0,0,.35);
-  color:#e8eef7;
+.card-glass {
+    background: linear-gradient(90deg, var(--dt-row-zebra), var(--dt-row-zebra2));
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 16px;
+    box-shadow: 0 6px 22px rgba(0,0,0,.35);
+    color: #e8eef7;
 }
 .tabla-wrap{ position:relative; padding-top:56px; }
 .tabla-controls-top{ position:absolute; top:8px; right:8px; z-index:2; }
@@ -697,28 +680,31 @@ select.is-valid + .select2 .select2-selection {
   border-radius: 14px;
 }
 .filter-bar .form-label{ margin-bottom:.25rem; font-weight:700; color:#cfd7e6; }
-.filter-bar .form-control, .filter-bar .form-select{
-  background:#0f1625!important; color:#e6eef7!important;
-  border:1px solid rgba(255,255,255,.12)!important; border-radius:10px!important;
-}
+
 .filter-bar .form-control:focus, .filter-bar .form-select:focus{
   border-color:#4ea0ff!important; box-shadow:0 0 0 .2rem rgba(78,160,255,.18)!important;
 }
 
+    .filter-bar .select2-container .select2-selection--single {
+        height: 38px !important;
+        display: flex;
+        align-items: center;
+        color: black !important;
+        border: 1px solid var(--b1) !important;
+        border-radius: 0px !important;
+    }
+
+    .filter-bar .select2-container .select2-selection__rendered {
+        color: black !important;
+    }
 /* Select2 dentro del panel: ancho completo */
 .select2-container{ width:100%!important; }
-.select2-selection--single{
-  background:#0f1625!important; border:1px solid rgba(255,255,255,.12)!important; height:38px!important; border-radius:10px!important;
-}
+
 .select2-selection__rendered{ line-height:36px!important; color:#e6eef7!important; padding-left:10px!important; }
 .select2-selection__arrow{ height:38px!important; }
 
 /* Inputs del thead clonado (igual Ventas) */
-.dt-input-dark{
-  background:#0f1625!important; color:#e6eefb!important;
-  border:1px solid rgba(255,255,255,.12)!important; border-radius:8px!important;
-  height:30px; padding:2px 6px;
-}
+
 .dt-input-dark::placeholder{ color:#9fb0cc!important; opacity:.9; }
 .dt-input-dark:focus{ border-color:#4ea0ff!important; box-shadow:0 0 0 .15rem rgba(78,160,255,.18)!important; }
 
@@ -735,11 +721,7 @@ select.is-valid + .select2 .select2-selection {
   border-radius: 14px;
 }
 .filter-bar .form-label{ margin-bottom:.25rem; font-weight:700; color:#cfd7e6; }
-.filter-bar .form-control, .filter-bar .form-select{
-  background:#0f1625!important; color:#e6eef7!important;
-  border:1px solid rgba(255,255,255,.12)!important; border-radius:10px!important;
-  height:38px;
-}
+
 .filter-bar .form-control:focus, .filter-bar .form-select:focus{
   border-color:#4ea0ff!important; box-shadow:0 0 0 .2rem rgba(78,160,255,.18)!important;
 }
@@ -751,11 +733,7 @@ select.is-valid + .select2 .select2-selection {
 
 /* Select2 igual al tema */
 .select2-container{ width:100% !important; }
-.select2-container .select2-selection--single{
-  background:#0f1625!important;
-  border:1px solid rgba(255,255,255,.12)!important;
-  height:38px!important; border-radius:10px!important;
-}
+
 .select2-container .select2-selection__rendered{ line-height:36px!important; color:#e6eef7!important; padding-left:10px!important; }
 .select2-container .select2-selection__arrow{ height:38px!important; }
 
@@ -783,7 +761,7 @@ select.is-valid + .select2 .select2-selection {
 }
 
 .filter-bar {
-    background: rgba(17,24,39,.65);
+    background: var(--dt-row-zebra);
     border: 1px solid rgba(255,255,255,.08);
     box-shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.03);
     border-radius: 14px;
@@ -795,14 +773,6 @@ select.is-valid + .select2 .select2-selection {
         color: #cfd7e6;
     }
 
-    .filter-bar .form-control,
-    .filter-bar .form-select {
-        background: #0f1625 !important;
-        color: #e6eef7 !important;
-        border: 1px solid rgba(255,255,255,.12) !important;
-        border-radius: 10px !important;
-        height: 38px;
-    }
 
         .filter-bar .form-control:focus,
         .filter-bar .form-select:focus {
@@ -827,12 +797,7 @@ select.is-valid + .select2 .select2-selection {
     width: 100% !important;
 }
 
-    .select2-container .select2-selection--single {
-        background: #0f1625 !important;
-        border: 1px solid rgba(255,255,255,.12) !important;
-        height: 38px !important;
-        border-radius: 10px !important;
-    }
+
 
     .select2-container .select2-selection__rendered {
         line-height: 36px !important;
@@ -882,17 +847,7 @@ select.is-valid + .select2 .select2-selection {
         z-index: 4000; /* > toolbars/DT headers */
     }
 
-    /* --- SINGLE --- */
-    .select2-container .select2-selection--single {
-        height: 44px; /* alinea con .form-control de tu UI */
-        background-color: #121a24; /* dark */
-        border: 1px solid #2a3442;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        transition: border-color .15s ease, box-shadow .15s ease;
-    }
-
+  
 .select2-container--open .select2-selection--single {
     border-color: #2962ff;
     box-shadow: 0 0 0 2px rgba(41,98,255,.25);
@@ -963,9 +918,9 @@ select.is-valid + .select2 .select2-selection {
 }
 
 .select2-search--dropdown .select2-search__field {
-    background: #0f1620;
+    background: var(--dt-row-zebra);
     color: #e9eef5;
-    border: 1px solid #2a3442;
+    border: 1px solid var(--dt-row-zebra2);
     border-radius: 8px;
     outline: none;
 }
@@ -1086,16 +1041,6 @@ th .select2-results__options {
     font: inherit;
 }
 
-/* Caja (single) con look de tus inputs */
-.select2-container--default .select2-selection--single {
-    height: 44px;
-    background: #0f1620;
-    border: 1px solid #2a3442;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    transition: border-color .15s, box-shadow .15s;
-}
 
 .select2-container--open .select2-selection--single {
     border-color: #2962ff;
@@ -1155,17 +1100,18 @@ th .select2-results__options {
    =========================== */
 .dt-dark thead tr.filters th {
     padding: 6px !important;
-    background: #1d2633 !important;
+    background: #6868b1 !important;
     position: sticky;
     top: 0;
     z-index: 1;
 }
 
+
     .dt-dark thead tr.filters th input,
     .dt-dark thead tr.filters th select {
         width: 100%;
         font-size: .82rem;
-        background: #0f1625 !important;
+        background: var(--dt-row-zebra) !important;
         color: #e5e7eb !important;
         border: 1px solid #2b3647 !important;
         border-radius: 8px;
@@ -1247,10 +1193,11 @@ th .select2-results__options {
 
 .select2-container--default .select2-results__option {
      color: white !important; 
+     background: var(--dt-row-zebra2)
 }
 
     .select2-container--default .select2-results__option[aria-selected=true] {
-        background-color: #0d6efd !important;
+        background-color: #292946 !important;
     }
 
 
@@ -1265,127 +1212,20 @@ th .select2-results__options {
   border: 1px solid var(--b1);
   border-radius: 18px;
 }
-#productos .cc-titlebar{
-  display:flex; align-items:center; justify-content:space-between;
-  background: linear-gradient(180deg, var(--head), rgba(27,39,64,.75));
-  border: 1px solid var(--b1);
-  border-radius: 12px;
-  padding: 10px 12px;
-  margin-bottom: 12px;
-}
-
-/* Botonera (Config/Añadir) con el mismo peso visual */
-#productos .cc-titlebar .btn{
-  min-height: 40px;
-  padding: .55rem .9rem;
-  font-weight: 800;
-}
-#productos .cc-titlebar .dropdown-menu{
-  background: var(--panel2);
-  border: 1px solid var(--b1);
-  border-radius: 12px;
-  overflow: hidden;
-}
-#productos .cc-titlebar .dropdown-item{ color: var(--txt); }
-#productos .cc-titlebar .dropdown-item:hover{
-  background: rgba(76,141,255,.18);
-  color:#fff;
-}
-
-/* Wrapper de tabla idéntico al modal */
-#productos .cc-table{
-  border: 1px solid var(--b1);
-  border-radius: 14px;
-  overflow: auto;
-  background: var(--panel2);
-  display: flex;
-  flex-direction: column;
-}
-#productos .cc-table .dataTables_wrapper,
-#productos .cc-table .table{ flex:1; min-height:0; }
-
-/* Encabezado y filas = mismos colores que el modal */
-#productos .table thead th{
-  position: sticky; top: 0; z-index: 2;
-  background: linear-gradient(180deg,#24304a,#1e2a43);
-  color: #dfe8ff;
-  border-bottom: 0 !important;
-  font-weight: 800;
-  padding-right: 12px !important; /* quita hueco de DT para ícono */
-}
-#productos .table tbody tr{ background: rgba(255,255,255,.03); }
-#productos .table tbody tr:hover{ background: rgba(76,141,255,.10); }
-#productos .table > :not(caption) > * > *{
-  border-bottom: 1px solid rgba(255,255,255,.08);
-}
-
-/* DataTables: limpiar “triangulitos” y cualquier ícono de orden */
-#productos table.dataTable thead th,
-#productos table.dataTable thead td{
-  background-image: none !important;
-  background-repeat: no-repeat !important;
-  background-position: initial !important;
-}
-#productos table.dataTable thead .sorting,
-#productos table.dataTable thead .sorting_asc,
-#productos table.dataTable thead .sorting_desc,
-#productos table.dataTable thead .sorting_asc_disabled,
-#productos table.dataTable thead .sorting_desc_disabled{
-  background-image: none !important;
-}
-#productos table.dataTable thead .sorting:before,
-#productos table.dataTable thead .sorting:after,
-#productos table.dataTable thead .sorting_asc:before,
-#productos table.dataTable thead .sorting_asc:after,
-#productos table.dataTable thead .sorting_desc:before,
-#productos table.dataTable thead .sorting_desc:after{
-  content: "" !important;
-}
-
-/* Paginación / info con el mismo tono del modal */
-#productos .dataTables_wrapper .dataTables_paginate{
-  padding:.4rem .6rem;
-  background: var(--soft);
-  border:1px solid var(--b1);
-  border-radius:10px;
-}
-#productos .dataTables_wrapper .dataTables_info{ color: var(--muted); }
-
-/* Scrollbar sutil (igual) */
-#productos .cc-table{
-  scrollbar-width: thin; scrollbar-color: #4c8dff22 transparent;
-}
-#productos .cc-table::-webkit-scrollbar{ height:10px; width:10px; }
-#productos .cc-table::-webkit-scrollbar-thumb{ background: rgba(76,141,255,.35); border-radius: 8px; }
-
-/* Responsive: controles de DT en pila y botones no full-width */
-@media (max-width: 992px){
-  #productos .dataTables_wrapper .dataTables_length,
-  #productos .dataTables_wrapper .dataTables_filter,
-  #productos .dataTables_wrapper .dataTables_info,
-  #productos .dataTables_wrapper .dataTables_paginate{
-    float: none !important;
-    text-align: left !important;
-    width: 100% !important;
-    margin: 6px 0 !important;
-  }
-  #productos .cc-titlebar .btn{ width: auto; }
-}
-
 
 
 
 
 table.dataTable.display tbody tr:nth-child(odd) td {
-    background-color: transparent !important;
+    background-color: var(--dt-row-zebra) !important;
 }
 
 table.dataTable.display tbody tr:nth-child(even) td {
-    background-color: transparent !important;
+    background-color: var(--dt-row-zebra2) !important;
 }
 
 table.dataTable tbody tr.selected {
-    background-color: #b0bed9;
+    background-color: #292946 !important;
 }
 
 /* ===========================
@@ -1481,7 +1321,7 @@ table.dataTable tbody tr.selected {
 
 /* Caja múltiple */
 .dt-dark-wrap thead .filters .select2-selection--multiple{
-  background:#0f1625 !important;
+  background:var(--dt-row-zebra) !important;
   border:1px solid rgba(255,255,255,.12) !important;
   border-radius:10px !important;
   padding:4px 6px;
@@ -1541,3 +1381,37 @@ table.dataTable tbody tr.selected {
 .dt-dark-wrap thead .filters .select2-results__options{ max-height:280px; }
 .dt-dark-wrap thead .filters .select2-results__option{ color:#eaf1ff; padding:.5rem .75rem; font-weight:700; }
 .dt-dark-wrap thead .filters .select2-results__option--highlighted[aria-selected]{ background:#294167 !important; color:#fff !important; }
+
+
+
+
+
+.table thead th {
+    position: relative;
+}
+
+
+
+.modal-content {
+    background: #1d2636 !important;
+    color: #e8eef7 !important;
+    border-radius: 14px;
+    border: none;
+}
+
+.modal-footer-cc {
+    background: var(--dt-row-zebra2);
+    border-top: 1px solid rgba(255,255,255,.08);
+}
+
+
+.modal-body{
+    background: var(--dt-row-zebra2)
+}
+
+
+
+table.dataTable.display tbody tr.selected td {
+    background-color: antiquewhite !important;
+    color: black !important;
+}

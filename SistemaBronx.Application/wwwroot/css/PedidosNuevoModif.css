@@ -14,6 +14,8 @@
     --txt: #eaf1ff;
     --muted: #9db1d2;
     --dt-row-hover: #152037;
+    --dt-row-zebra: #363659;
+    --dt-row-zebra2: #525285;
 }
 
 html, body {
@@ -242,14 +244,6 @@ label {
     width: 100% !important;
 }
 
-    .select2-container .select2-selection--single {
-        background: var(--panel2) !important;
-        border: 1px solid var(--b1) !important;
-        height: 48px !important;
-        border-radius: 12px !important;
-        display: flex;
-        align-items: center;
-    }
 
     .select2-container .select2-selection__rendered {
         color: var(--txt) !important;
@@ -565,14 +559,7 @@ label {
     min-width: 0; /* CLAVE: evita el “corte” y el corrimiento hacia la izquierda */
 }
 
-    .select2-container .select2-selection--single {
-        height: 48px !important; /* misma altura que tus inputs */
-        border-radius: 12px !important;
-        display: flex; /* centra verticalmente el texto */
-        align-items: center;
-        background: var(--panel2, #0f1625) !important;
-        border: 1px solid var(--b1, rgba(255,255,255,.12)) !important;
-    }
+  
 
     .select2-container .select2-selection__rendered {
         color: var(--txt, #eaf1ff) !important;
@@ -669,14 +656,6 @@ label {
   min-width: 0;                   /* CLAVE: evita el “corte” y el corrimiento hacia la izquierda */
 }
 
-.select2-container .select2-selection--single {
-  height: 48px !important;        /* misma altura que tus inputs */
-  border-radius: 12px !important;
-  display: flex;                  /* centra verticalmente el texto */
-  align-items: center;
-  background: var(--panel2, #0f1625) !important;
-  border: 1px solid var(--b1, rgba(255,255,255,.12)) !important;
-}
 
 .select2-container .select2-selection__rendered {
   color: var(--txt, #eaf1ff) !important;
@@ -734,7 +713,7 @@ label {
 
 .nav-tabs .nav-link {
   color: #cfe3ff;
-  background: #0f1625;
+  background: var(--dt-row-zebra2);
   border: 1px solid var(--cc-border, rgba(255,255,255,.12));
   border-radius: 12px;
   margin-bottom: -1px;
@@ -845,21 +824,6 @@ label {
 }
 
 /* ——— Inputs/Selects consistentes ——— */
-#productoModal .form-control,
-#productoModal .form-select {
-    background: var(--panel2, #101726) !important;
-    color: var(--txt, #eaf1ff) !important;
-    border: 1px solid var(--b1, rgba(255,255,255,.12)) !important;
-    border-radius: 12px !important;
-    min-height: 48px;
-    font-size: 15px;
-}
-
-    #productoModal .form-control:focus,
-    #productoModal .form-select:focus {
-        border-color: var(--primary, #4c8dff) !important;
-        box-shadow: 0 0 0 3px rgba(76,141,255,.25) !important;
-    }
 
 /* ——— Botones más “tochos” ——— */
 #productoModal .btn {
@@ -893,7 +857,7 @@ label {
         border-radius: 12px !important;
         display: flex;
         align-items: center;
-        background: var(--panel2,#101726) !important;
+        background: var(--dt-row-zebra,#101726) !important;
         border: 1px solid var(--b1, rgba(255,255,255,.12)) !important;
     }
 
@@ -920,7 +884,7 @@ label {
 /* === Modal skin (respeta tus variables si ya existen) === */
 .cc-modal { background: #161e2f; border: 1px solid rgba(255,255,255,.12); border-radius: 16px; }
 .cc-modal-header { 
-  background: linear-gradient(180deg,#2b3f6b,#21345a);
+  background: linear-gradient(180deg,var(--dt-row-zebra),var(--dt-row-zebra2));
   color: #eaf1ff;
   border-bottom: 1px solid rgba(255,255,255,.12);
 }
@@ -937,7 +901,7 @@ label {
 
 /* Campos */
 .form-control, .form-select{
-  background:#0f182c !important; color:#eaf1ff !important;
+  background:var(--dt-row-zebra2) !important; color:#eaf1ff !important;
   border:1px solid rgba(255,255,255,.12) !important;
   border-radius:12px !important; min-height:46px;
 }
@@ -980,10 +944,7 @@ label{ color:#dfeaff; font-weight:700; }
 
 /* Ajustes para que Select2 no se rompa en móvil (si lo usás en modal) */
 .select2-container{ width:100% !important; }
-.select2-container .select2-selection--single{
-  background:#0f182c !important; border:1px solid rgba(255,255,255,.12) !important;
-  height:46px !important; border-radius:12px !important; display:flex; align-items:center;
-}
+
 .select2-container .select2-selection__rendered{ color:#eaf1ff !important; padding:0 12px !important; }
 .select2-container .select2-selection__arrow{ height:46px !important; }
 .select2-dropdown{
@@ -1105,14 +1066,6 @@ label{ color:#dfeaff; font-weight:700; }
     display: block;
 }
 
-    .select2-container .select2-selection--single {
-        height: 48px !important;
-        display: flex;
-        align-items: center;
-        background: var(--panel2) !important;
-        border: 1px solid var(--b1) !important;
-        border-radius: 12px !important;
-    }
 
     .select2-container .select2-selection__arrow {
         height: 48px !important;
@@ -1224,7 +1177,7 @@ label{ color:#dfeaff; font-weight:700; }
 
 /* Título interno */
 .cc-titlebar {
-    background: linear-gradient(180deg, var(--head), rgba(27,39,64,.75));
+    background: linear-gradient(180deg, var(--dt-row-zebra), var(--dt-row-zebra2));
     border: 1px solid var(--b1);
     border-radius: 12px;
     padding: 10px 12px;
@@ -1251,20 +1204,158 @@ label{ color:#dfeaff; font-weight:700; }
     font-weight: 800;
 }
 
+#productos .cc-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(180deg, var(--head), rgba(27,39,64,.75));
+    border: 1px solid var(--b1);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+}
+
+    /* Botonera (Config/Añadir) con el mismo peso visual */
+    #productos .cc-titlebar .btn {
+        min-height: 40px;
+        padding: .55rem .9rem;
+        font-weight: 800;
+    }
+
+    #productos .cc-titlebar .dropdown-menu {
+        background: var(--panel2);
+        border: 1px solid var(--b1);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    #productos .cc-titlebar .dropdown-item {
+        color: var(--txt);
+    }
+
+        #productos .cc-titlebar .dropdown-item:hover {
+            background: rgba(76,141,255,.18);
+            color: #fff;
+        }
+
+/* Wrapper de tabla idéntico al modal */
+#productos .cc-table {
+    border: 1px solid var(--b1);
+    border-radius: 14px;
+    overflow: auto;
+    background: var(--panel2);
+    display: flex;
+    flex-direction: column;
+}
+
+    #productos .cc-table .dataTables_wrapper,
+    #productos .cc-table .table {
+        flex: 1;
+        min-height: 0;
+    }
+
+/* Encabezado y filas = mismos colores que el modal */
+#productos .table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: linear-gradient(180deg,#24304a,#1e2a43);
+    color: #dfe8ff;
+    border-bottom: 0 !important;
+    font-weight: 800;
+    padding-right: 12px !important; /* quita hueco de DT para ícono */
+}
+
+#productos .table tbody tr {
+    background: rgba(255,255,255,.03);
+}
+
+    #productos .table tbody tr:hover {
+        background: rgba(76,141,255,.10);
+    }
+
+#productos .table > :not(caption) > * > * {
+    border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+/* DataTables: limpiar “triangulitos” y cualquier ícono de orden */
+#productos table.dataTable thead th,
+#productos table.dataTable thead td {
+    background-image: none !important;
+    background-repeat: no-repeat !important;
+    background-position: initial !important;
+}
+
+#productos table.dataTable thead .sorting,
+#productos table.dataTable thead .sorting_asc,
+#productos table.dataTable thead .sorting_desc,
+#productos table.dataTable thead .sorting_asc_disabled,
+#productos table.dataTable thead .sorting_desc_disabled {
+    background-image: none !important;
+}
+
+    #productos table.dataTable thead .sorting:before,
+    #productos table.dataTable thead .sorting:after,
+    #productos table.dataTable thead .sorting_asc:before,
+    #productos table.dataTable thead .sorting_asc:after,
+    #productos table.dataTable thead .sorting_desc:before,
+    #productos table.dataTable thead .sorting_desc:after {
+        content: "" !important;
+    }
+
+/* Paginación / info con el mismo tono del modal */
+#productos .dataTables_wrapper .dataTables_paginate {
+    padding: .4rem .6rem;
+    background: var(--soft);
+    border: 1px solid var(--b1);
+    border-radius: 10px;
+}
+
+#productos .dataTables_wrapper .dataTables_info {
+    color: var(--muted);
+}
+
+/* Scrollbar sutil (igual) */
+#productos .cc-table {
+    scrollbar-width: thin;
+    scrollbar-color: #4c8dff22 transparent;
+}
+
+    #productos .cc-table::-webkit-scrollbar {
+        height: 10px;
+        width: 10px;
+    }
+
+    #productos .cc-table::-webkit-scrollbar-thumb {
+        background: rgba(76,141,255,.35);
+        border-radius: 8px;
+    }
+
+/* Responsive: controles de DT en pila y botones no full-width */
+@media (max-width: 992px) {
+    #productos .dataTables_wrapper .dataTables_length,
+    #productos .dataTables_wrapper .dataTables_filter,
+    #productos .dataTables_wrapper .dataTables_info,
+    #productos .dataTables_wrapper .dataTables_paginate {
+        float: none !important;
+        text-align: left !important;
+        width: 100% !important;
+        margin: 6px 0 !important;
+    }
+
+    #productos .cc-titlebar .btn {
+        width: auto;
+    }
+}
+
+
+
 .select2-container {
     width: 100% !important;
     min-width: 0;
     display: block;
 }
 
-    .select2-container .select2-selection--single {
-        height: 48px !important;
-        display: flex;
-        align-items: center;
-        background: var(--panel2) !important;
-        border: 1px solid var(--b1) !important;
-        border-radius: 12px !important;
-    }
 
     .select2-container .select2-selection__arrow {
         height: 48px !important;
@@ -1381,7 +1472,7 @@ table.dataTable tbody tr {
 }
 
 #productoModal .cc-modal-header {
-    background: linear-gradient(180deg, var(--head), rgba(27,39,64,.6));
+    background: linear-gradient(180deg, var(--dt-row-zebra), var(--dt-row-zebra2));
     color: #eaf1ff;
     border-bottom: 1px solid var(--b1);
 }
@@ -1415,33 +1506,17 @@ table.dataTable tbody tr {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: linear-gradient(180deg, var(--head), rgba(27,39,64,.75));
+    background: var(--dt-row-zebra);
     border: 1px solid var(--b1);
     border-radius: 12px;
     padding: 10px 12px;
 }
 
-/* Campos y selects coherentes */
-#productoModal .form-control,
-#productoModal .form-select {
-    background: var(--panel2) !important;
-    color: var(--txt) !important;
-    border: 1px solid var(--b1) !important;
-    border-radius: 12px !important;
-    min-height: 46px;
-}
-
-    #productoModal .form-control:focus,
-    #productoModal .form-select:focus {
-        border-color: var(--primary) !important;
-        box-shadow: 0 0 0 .2rem rgba(76,141,255,.25) !important;
-    }
-
 /* ===== Tablas: wrapper con scroll y cabezales sticky */
 #productoModal .cc-tablewrap {
     flex: 1;
     min-height: 0;
-    background: var(--panel2);
+    background: var(--dt-row-zebra2);
     border: 1px solid var(--b1);
     border-radius: 12px;
     overflow: auto;
@@ -1459,7 +1534,7 @@ table.dataTable tbody tr {
     position: sticky;
     top: 0;
     z-index: 2;
-    background: var(--head);
+    background: var(--dt-row-zebra);
     color: #eaf2ff;
     border-bottom: 0 !important;
     font-weight: 800;
@@ -1582,15 +1657,7 @@ table.dataTable tbody tr {
     display: block;
 }
 
-    #productoModal .select2-container .select2-selection--single {
-        height: 46px !important;
-        display: flex;
-        align-items: center;
-        background: var(--panel2) !important;
-        border: 1px solid var(--b1) !important;
-        border-radius: 12px !important;
-    }
-
+ 
     #productoModal .select2-container .select2-selection__arrow {
         height: 46px !important;
     }
@@ -1832,7 +1899,7 @@ table.dataTable thead th {
     position: sticky;
     top: 0;
     z-index: 2;
-    background: var(--head); /* o tu gradient preferido */
+    background: var(--dt-row-zebra); /* o tu gradient preferido */
     color: #eaf2ff;
     border-bottom: 0 !important;
     font-weight: 800;
@@ -1973,7 +2040,7 @@ table.dataTable thead th {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: linear-gradient(180deg, var(--head), rgba(27,39,64,.75));
+    background: linear-gradient(180deg, var(--dt-row-zebra), var(--dt-row-zebra2));
     border: 1px solid var(--b1);
     border-radius: 12px;
     padding: 10px 12px;
@@ -1982,7 +2049,7 @@ table.dataTable thead th {
 
 /* Wrapper de tabla como en el modal */
 #productos .cc-table {
-    background: var(--panel2);
+    background: var(--dt-row-zebra);
     border: 1px solid var(--b1);
     border-radius: 14px;
     overflow: auto;
@@ -2131,11 +2198,11 @@ table.dataTable thead th {
 
 
 table.dataTable.display tbody tr:nth-child(odd) td {
-     background-color: transparent !important; 
+     background-color: var(--dt-row-zebra) !important; 
 }
 
 table.dataTable.display tbody tr:nth-child(even) td {
-    background-color: transparent !important;
+    background-color: var(--dt-row-zebra2) !important;
 }
 
 table.dataTable tbody tr.selected {

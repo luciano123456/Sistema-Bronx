@@ -6,7 +6,7 @@
 <partial name="~/Views/Utils/Modals.cshtml" />
 
 @section Estilos {
-    <link href="~/css/RedisenoPantallas.css" rel="stylesheet" />
+    
     <link href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css" rel="stylesheet" />
     <link href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css" rel="stylesheet" />
     <link href="https://cdn.datatables.net/fixedheader/3.2.2/css/fixedHeader.dataTables.min.css" rel="stylesheet" />
@@ -14,6 +14,7 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
     <!-- SKIN NUEVO XL -->
     <link href="~/css/PedidosNuevoModif.css" rel="stylesheet" />
+    <link href="~/css/RedisenoPantallas.css" rel="stylesheet" />
 }
 
 <!-- KPI superior -->
@@ -120,14 +121,7 @@
                     </table>
                 </div>
 
-                <div class="d-flex justify-content-end gap-2 mt-3">
-                    <button type="button" id="btnGenerarPdf" class="btn btn-danger" onclick="generarDatosPedidoPDF()">
-                        <i class="fa fa-print me-1"></i> Imprimir PDF
-                    </button>
-                    <button type="button" id="btnGenerarPdf" class="btn btn-dark" onclick="generarDatosRemitoPDF()">
-                        <i class="fa fa-print me-1"></i> Imprimir Remito
-                    </button>
-                </div>
+                
             </div>
         </section>
 
@@ -488,7 +482,7 @@
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
     <script src="~/js/utils/moment.js"></script>
-    <script src="~/js/pedidosnuevomodif.js?v=3.6"></script>
+    <script src="~/js/pedidosnuevomodif.js?v=3.8"></script>
     <script src="~/js/site.js"></script>
 }
 

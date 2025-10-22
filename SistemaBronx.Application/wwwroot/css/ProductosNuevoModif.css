@@ -1,3 +1,26 @@
+:root {
+    --muted: #9aa8c5;
+    --text: #e7ecff;
+    --border: rgba(255,255,255,.08);
+    /* DataTables / superficies oscuras */
+    --dt-body: #0b1320;
+    --dt-head: #1d2633;
+    --dt-head-b: #2b3647;
+    --dt-row: #0f1722;
+    --dt-row-zebra: #363659;
+    --dt-row-zebra2: #525285;
+    --dt-row-hover: #152037;
+    --dt-text: #e5e7eb;
+    --dt-input: #111827;
+    --dt-input-b: #2b3647;
+    --dt-pag-bg: #0f192b;
+    --dt-pag-active: #3d6af2;
+    --chip-in: #18c37e;
+    --chip-out: #ff7a66;
+    --chip-stock: #7cc2ff;
+    --color-general: #05225E;
+}
+
 .input-nuevo {
     border: none;
     border-bottom: 2px solid blue;
@@ -8,6 +31,7 @@
     font-size: 0.7vw;
     background: transparent !important;
     color: white !important;
+
 }
 
 .input-nuevo-select {
@@ -39,7 +63,7 @@
 .input-nuevo-select,
 .form-control.input-nuevo,
 .form-select.input-nuevo-select {
-  background:#0f1625 !important;
+  background:var(--dt-row-zebra) !important;
   border:1px solid rgba(255,255,255,.12) !important;
   color:#e8eef7 !important;
   border-radius:10px !important;
@@ -63,18 +87,6 @@
 #grd_Insumos tbody tr{ background:var(--dt-row)!important; color:var(--dt-text)!important; }
 #grd_Insumos tbody tr:hover{ background:var(--dt-row-hover)!important; }
 
-/* Modal coherente con el resto */
-.colorEncabezado{
-  background:linear-gradient(180deg,#22314a,#1a2436);
-  color:#eaf2ff;
-  border-bottom:1px solid rgba(255,255,255,.08);
-}
-.modal-content{
-  background:#1d2636 !important; color:#e8eef7 !important; border-radius:14px; border:none;
-}
-.modal-footer-cc{
-  background:#1b2434; border-top:1px solid rgba(255,255,255,.08);
-}
 
 /* Select2 — single y dropdown integrados al tema */
 .select2-container{ width:100% !important; font:inherit; }
@@ -122,7 +134,7 @@
         height: 44px !important;
         display: flex;
         align-items: center;
-        background: var(--panel2) !important;
+        background: var(--dt-row-zebra) !important;
        
         border-radius: 12px !important;
     }
@@ -130,3 +142,5 @@
     .select2-container .select2-selection__arrow {
         height: 48px !important;
     }
+
+
