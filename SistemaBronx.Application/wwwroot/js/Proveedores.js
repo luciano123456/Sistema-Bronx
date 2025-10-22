@@ -307,6 +307,8 @@ async function configurarDataTable(data) {
                     gridProveedores.columns.adjust();
                 }, 10);
 
+                actualizarKpisProveedores(data);
+
                 $('body').on('mouseenter', '#grd_Proveedores .fa-map-marker', function () {
                     $(this).css('cursor', 'pointer');
                 });
@@ -422,6 +424,8 @@ async function configurarDataTable(data) {
                 // Actualizar la fila en la tabla con los nuevos datos
                 gridProveedores.row(trElement).data(rowData).draw();
 
+              
+
                 // Aplicar el parpadeo solo si el texto cambió
                 if (originalText !== newText) {
                     celda.addClass('blinking'); // Aplicar la clase 'blinking' a la celda que fue editada
@@ -447,12 +451,14 @@ async function configurarDataTable(data) {
             function cancelEdit() {
                 // Restaurar el valor original
                 gridProveedores.cell(cell.index()).data(originalData).draw();
+                
                 isEditing = false;
             }
         });
 
     } else {
         gridProveedores.clear().rows.add(data).draw();
+        actualizarKpisProveedores(data);
        
     }
 }
@@ -526,4 +532,13 @@ function configurarOpcionesColumnas() {
         localStorage.setItem(storageKey, JSON.stringify(savedConfig));
         grid.column(columnIdx).visible(isChecked);
     });
+}
+
+
+// === KPI Proveedores ===
+function actualizarKpisProveedores(data) {
+    // data es el array que usás para alimentar la DataTable
+    const cant = Array.isArray(data) ? data.length : 0;
+    const el = document.getElementById('kpiCantProv');
+    if (el) el.textContent = cant;
 }
