@@ -1,198 +1,213 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Nuevo Producto";
 }
-
 
 @section Estilos {
-    <link href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css" rel="stylesheet">
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.2.2/css/fixedHeader.dataTables.min.css" />
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
 
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- Base (mismo tema que Pedidos) -->
+    <link rel="stylesheet" href="~/css/usuarios.css" />
+    <link rel="stylesheet" href="~/css/redisenopantallas.css" />
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link href="~/css/ProductosNuevoModif.css?v=1.0" rel="stylesheet" />
-  
+
+    <!-- Select2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" />
+
+    <!-- Estilos específicos de esta pantalla -->
+    <link rel="stylesheet" href="~/css/ProductosNuevoModif.css?v=2.0" />
 }
 
-
-<div class="container-fluid mt-5" style="width: 80vw; margin: 0; padding: 0; position: relative; left: 50%; transform: translateX(-50%);">
-    <!-- Datos del Producto -->
-    <div class="card w-100" style="border: none;">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Datos del Producto</h5>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <input type="text" class="form-control" id="IdProducto" hidden>
-
-                <div class="col-12 col-md-3">
-                    <label for="Nombre" id="lblNombre" class="form-label">Nombre (*)</label>
-                    <input type="text" class="input-nuevo" id="Nombre" placeholder="Nombre">
+<div class="container page-99" style="margin-top:100px">
+    <!-- Header KPI -->
+    <div class="cc-header shadow-lg rounded-4 p-4 mb-4">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div class="d-flex align-items-center gap-3">
+                <span class="cc-badge"><i class="fa fa-cubes"></i></span>
+                <div>
+                    <h2 class="m-0 fw-800">Nuevo Producto</h2>
+                    <small class="text-muted-cc">Carga de datos y composición por insumos</small>
                 </div>
+            </div>
 
-
-                <div class="col-12 col-md-3">
-                    <label for="Categorias" class="form-label">Categoria</label>
-                    <select class="input-nuevo-select" id="Categorias">
-                    </select>
+            <div class="ms-auto d-flex gap-3 flex-wrap">
+                <div class="cc-stat">
+                    <div class="label">Total Insumos</div>
+                    <div class="value" id="kpiTotalInsumos">0,00</div>
                 </div>
-
-                <div class="col-12 col-md-3">
-                    <label for="TotalInsumos" class="form-label">Total Insumos</label>
-                    <input type="text" class="input-nuevo" id="TotalInsumos" placeholder="Total Insumos" disabled>
+                <div class="cc-stat d-none d-md-block">
+                    <div class="label">% IVA</div>
+                    <div class="value" id="kpiIva">0</div>
                 </div>
-
-                <div class="col-12 col-md-3">
-                    <label for="porcIVA" class="form-label">Porc. IVA</label>
-                    <input type="text" class="input-nuevo" id="porcIVA" placeholder="Porcentaje IVA">
-                </div>
-
-                <div class="col-12 col-md-3">
-                    <label for="totalIVA" class="form-label">Total IVA</label>
-                    <input type="text" class="input-nuevo" id="totalIVA" placeholder="Total IVA" disabled>
-                </div>
-
-
-                <div class="col-12 col-md-3">
-                    <label for="porcGanancia" class="form-label">Porc. Ganancia</label>
-                    <input type="text" class="input-nuevo" id="porcGanancia" placeholder="Porcentaje Ganancia">
-                </div>
-
-                <div class="col-12 col-md-3">
-                    <label for="totalGanancia" class="form-label">Total Ganancia</label>
-                    <input type="text" class="input-nuevo" id="totalGanancia" placeholder="Total Ganancia" disabled>
-                </div>
-               
-                <div class="col-12 col-md-3">
-                    <label for="costoTotal" class="form-label">Costo Total</label>
-                    <input type="text" class="input-nuevo" id="costoTotal" placeholder="Costo Total" disabled>
+                <div class="cc-stat d-none d-md-block">
+                    <div class="label">% Ganancia</div>
+                    <div class="value" id="kpiGanancia">0</div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
+    <!-- Datos del producto -->
+    <div class="card-glass p-3 mb-4">
+        <div class="row g-3">
+            <input type="text" id="IdProducto" hidden />
 
-<div class="container-fluid mt-5">
-    <div class="row">
-        <div class="col-lg-10">
-            <div class="card" style="width: 80%; position: absolute; left: 9.7vw; border: none;">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Insumos</span>
-
-                    <div class="dropdown">
-                    </div>
-                </div>
-                <div class="card-body">
-                    <table class="display nowrap" id="grd_Insumos" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Proveedor</th>
-                                <th>Costo Unitario</th>
-                                <th>Cantidad</th>
-                                <th>SubTotal</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Aquí va el contenido de tu datatable -->
-                        </tbody>
-                    </table>
-                    <div class="d-flex justify-content-end mt-3">
-                        <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-success" onclick="anadirInsumo()">
-                                <i class="fa fa-plus"></i> Añadir
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="d-flex justify-content-end mt-2 mb-4">
-                    <a class="btn btn-warning btnnuevo" id="btnNuevoModificar" onclick="guardarCambios()">Registrar</a>
-                </div>
-
+            <div class="col-12 col-md-3">
+                <label for="Nombre" id="lblNombre" class="form-label">Nombre (*)</label>
+                <input type="text" id="Nombre" class="form-control input-nuevo" placeholder="Nombre">
             </div>
+
+            <div class="col-12 col-md-3">
+                <label for="Categorias" class="form-label">Categoría</label>
+                <select id="Categorias" class="form-select input-nuevo-select"></select>
+            </div>
+
+            <div class="col-12 col-md-3">
+                <label for="TotalInsumos" class="form-label">Total Insumos</label>
+                <input type="text" id="TotalInsumos" class="form-control input-nuevo" placeholder="0,00" disabled>
+            </div>
+
+            <div class="col-12 col-md-3">
+                <label for="porcIVA" class="form-label">Porc. IVA</label>
+                <input type="text" id="porcIVA" class="form-control input-nuevo" placeholder="Ej: 21">
+            </div>
+
+            <div class="col-12 col-md-3">
+                <label for="totalIVA" class="form-label">Total IVA</label>
+                <input type="text" id="totalIVA" class="form-control input-nuevo" placeholder="0,00" disabled>
+            </div>
+
+            <div class="col-12 col-md-3">
+                <label for="porcGanancia" class="form-label">Porc. Ganancia</label>
+                <input type="text" id="porcGanancia" class="form-control input-nuevo" placeholder="Ej: 72">
+            </div>
+
+            <div class="col-12 col-md-3">
+                <label for="totalGanancia" class="form-label">Total Ganancia</label>
+                <input type="text" id="totalGanancia" class="form-control input-nuevo" placeholder="0,00" disabled>
+            </div>
+
+            <div class="col-12 col-md-3">
+                <label for="costoTotal" class="form-label">Costo Total</label>
+                <input type="text" id="costoTotal" class="form-control input-nuevo" placeholder="0,00" disabled>
+            </div>
+        </div>
+    </div>
+
+    <!-- Insumos -->
+    <div class="card-glass p-3 mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <h5 class="m-0 fw-800">Insumos</h5>
+            <button type="button" class="btn btn-success" onclick="anadirInsumo()">
+                <i class="fa fa-plus"></i> Añadir
+            </button>
+        </div>
+
+        <div class="dt-dark-wrap">
+            <table id="grd_Insumos" class="dt-dark display nowrap compact" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Proveedor</th>
+                        <th>Costo Unitario</th>
+                        <th>Cantidad</th>
+                        <th>SubTotal</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="cta-footer-sticky d-flex justify-content-end">
+            <button id="btnNuevoModificar" class="btn btn-warning fw-700" onclick="guardarCambios()">
+                <i class="fa fa-save me-1"></i> Registrar
+            </button>
         </div>
     </div>
 </div>
 
-
-<div class="modal fade" id="insumosModal" tabindex="-1" role="dialog" aria-labelledby="insumosModalLabel" aria-hidden="true" data-editing="false">
-    <div class="modal-dialog" role="document">
+<!-- Modal Insumos -->
+<div class="modal fade" id="insumosModal" tabindex="-1" aria-labelledby="insumosModalLabel" aria-hidden="true" data-editing="false">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header colorEncabezado">
                 <h5 class="modal-title" id="insumosModalLabel">Seleccionar Insumo</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label for="insumoSelect" class="">Insumo</label>
-                    <select id="insumoSelect" class="form-control"></select>
+                <div class="mb-3">
+                    <label for="insumoSelect" class="form-label">Insumo</label>
+                    <select id="insumoSelect" class="form-select"></select>
                 </div>
-                <div class="form-group">
-                    <label for="insumoProveedor" >Proveedor</label>
-                    <input type="text" id="insumoProveedor" class="form-control" placeholder="Proveedor" step="0.01" disabled>
+                <div class="mb-3">
+                    <label for="insumoProveedor" class="form-label">Proveedor</label>
+                    <input type="text" id="insumoProveedor" class="form-control" disabled>
                 </div>
-                <div class="form-group">
-                    <label for="precioInput" >Precio</label>
-                    <input type="text" id="precioInput" class="form-control" placeholder="Ingrese precio manual" step="0.01" disabled>
+                <div class="mb-3">
+                    <label for="precioInput" class="form-label">Precio</label>
+                    <input type="text" id="precioInput" class="form-control" disabled>
                 </div>
-                <div class="form-group">
-                    <label for="cantidadInput" >Cantidad</label>
+                <div class="mb-3">
+                    <label for="cantidadInput" class="form-label">Cantidad</label>
                     <input type="number" id="cantidadInput" class="form-control" placeholder="Ingrese cantidad">
                 </div>
-                <div class="form-group">
-                    <label for="totalInput" >Total</label>
+                <div class="mb-1">
+                    <label for="totalInput" class="form-label">Total</label>
                     <input type="text" id="totalInput" class="form-control" disabled>
                 </div>
-
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            <div class="modal-footer modal-footer-cc">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
                 <button type="button" id="btnGuardarInsumo" class="btn btn-primary" onclick="guardarInsumo()">Añadir</button>
             </div>
         </div>
     </div>
 </div>
 
-
 <partial name="~/Views/Utils/Modals.cshtml" />
 
 @section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-
-    @*SCRIPTS DE BOTONES*@
-    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js">
-
-    </script><script src="~/js/site.js"></script>
-
-    @*excel*@
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
-
-    @*pdf*@
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
-
-    @*imprimir*@
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
-
-    @*filter columns*@
     <script src="https://cdn.datatables.net/fixedheader/3.2.2/js/dataTables.fixedHeader.min.js"></script>
 
+    <!-- Export deps -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+
+    <!-- Select2 -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+
+    <!-- Utilidades -->
+    <script src="~/js/site.js"></script>
     <script src="~/js/utils/moment.js"></script>
 
-    <script src="~/js/ProductosNuevoModif.js?v=1.7"></script>
+    <!-- Tu lógica -->
+    <script src="~/js/ProductosNuevoModif.js?v=2.0"></script>
 
     <script>
         var ProductoData = @Html.Raw(Json.Serialize(ViewBag.Data ?? new { }));
+        // Inicializar Select2 donde corresponda (si ya lo hacés en tu JS, podés omitir):
+        $(function () {
+            $('#Categorias').select2({
+                placeholder: 'Seleccionar...',
+                allowClear: true,
+                dropdownParent: $('body')
+            });
+            $('#insumoSelect').select2({
+                placeholder: 'Seleccionar...',
+                dropdownParent: $('#insumosModal')
+            });
+        });
     </script>
-
 }
-

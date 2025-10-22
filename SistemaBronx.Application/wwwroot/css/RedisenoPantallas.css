@@ -1473,3 +1473,71 @@ table.dataTable tbody tr.selected {
 table.dataTable tbody tr.selected {
     background-color: var(--dt-row-hover) !important;
 }
+
+
+
+/* ---- Select2 multiple: scroll cuando crece (en thead de DataTables) ---- */
+.dt-dark-wrap thead .filters .select2-container { width:100% !important; }
+
+/* Caja múltiple */
+.dt-dark-wrap thead .filters .select2-selection--multiple{
+  background:#0f1625 !important;
+  border:1px solid rgba(255,255,255,.12) !important;
+  border-radius:10px !important;
+  padding:4px 6px;
+  min-height:36px;
+}
+
+/* El UL donde se pintan los chips */
+.dt-dark-wrap thead .filters .select2-selection--multiple .select2-selection__rendered{
+  display:flex;                 /* que envuelva chips en filas */
+  flex-wrap:wrap;
+  gap:6px;
+  padding:2px;                  /* evita que el scroll tape chips */
+  max-height:120px;             /* <-- altura a partir de la cual aparece scroll */
+  overflow-y:auto;              /* solo vertical */
+  overflow-x:hidden;
+  scrollbar-width: thin;        /* Firefox */
+  scrollbar-color: #2a3952 transparent;
+}
+
+/* Scrollbar WebKit */
+.dt-dark-wrap thead .filters .select2-selection__rendered::-webkit-scrollbar{
+  width:10px;
+}
+.dt-dark-wrap thead .filters .select2-selection__rendered::-webkit-scrollbar-thumb{
+  background:#2a3952; border-radius:10px; border:2px solid #0f1625;
+}
+
+/* Chips (coherentes con tu skin) */
+.dt-dark-wrap thead .filters .select2-selection__choice{
+  background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04)) !important;
+  border:1px solid rgba(255,255,255,.18) !important;
+  color:#eaf1ff !important;
+  border-radius:9px;
+  padding:1px 8px;
+  margin:2px 0;
+  font-weight:800;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
+}
+.dt-dark-wrap thead .filters .select2-selection__choice__remove{
+  color:#9db1d2 !important; margin-right:6px; font-weight:900;
+}
+
+/* Buscador inline: que no “salte” */
+.dt-dark-wrap thead .filters .select2-search--inline .select2-search__field{
+  color:#eaf1ff !important;
+  min-width:90px; height:26px; line-height:26px; margin:2px 2px;
+}
+
+/* Dropdown (lista) sin cambios de funcionalidad, solo look */
+.dt-dark-wrap thead .filters .select2-dropdown{
+  background:#101726 !important;
+  border:1px solid rgba(255,255,255,.12) !important;
+  border-radius:12px !important;
+  box-shadow:0 18px 40px rgba(0,0,0,.45);
+  overflow:hidden;
+}
+.dt-dark-wrap thead .filters .select2-results__options{ max-height:280px; }
+.dt-dark-wrap thead .filters .select2-results__option{ color:#eaf1ff; padding:.5rem .75rem; font-weight:700; }
+.dt-dark-wrap thead .filters .select2-results__option--highlighted[aria-selected]{ background:#294167 !important; color:#fff !important; }
