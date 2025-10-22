@@ -1,4 +1,12 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.Extensions.Configuration
+
+@inject IConfiguration Configuration
+
+@{
+    var ambienteTest = Configuration.GetValue<int>("AmbienteTest");
+}
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -13,7 +21,12 @@
 
     <partial name="~/Views/Shared/Partials/NavbarLogin.cshtml" />
 
-  
+
+    @if (ambienteTest == 1)
+    {
+        <div class="marca-agua-svg"></div>
+    }
+
 
     <div class="row">
         <!-- Columna del logo -->
