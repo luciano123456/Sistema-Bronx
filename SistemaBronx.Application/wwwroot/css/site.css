@@ -78,10 +78,6 @@ body {
 }
 
 
-.lblfiltro {
-    margin-left: 30px;
-    font-size: 0.7vw;
-}
 
 
 td {
@@ -398,12 +394,6 @@ div.dt-button-collection .dt-button:hover {
 
 @media (max-width: 1000px) {
 
-
-    .lblfiltro {
-        font-size: 4vw !important;
-        display: block;
-        margin-left: -16px !important;
-    }
 
     .input-nuevo {
         width: 100% !important;
