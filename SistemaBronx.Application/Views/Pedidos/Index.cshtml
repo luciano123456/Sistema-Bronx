@@ -1,154 +1,174 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Pedidos";
 }
 
-
-@*GOOGLEAR CARD BOOTSTRAP 5*@
 @section Estilos {
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.2.2/css/fixedHeader.dataTables.min.css" />
 
-    <link href="~/css/pedidos.css" rel="stylesheet" />
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
 
-    <link href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css" rel="stylesheet" />
-
-@*ESTILOS DE BOTONES*@
-    <link href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css" rel="stylesheet" />
-
-@*filter columns*@
-    <link href="https://cdn.datatables.net/fixedheader/3.2.2/css/fixedHeader.dataTables.min.css" rel="stylesheet" />
-
-
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
-
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-
-
+    <!-- Estilos base del proyecto -->
+    <link rel="stylesheet" href="~/css/usuarios.css" />
+    <link rel="stylesheet" href="~/css/redisenopantallas.css" />
+    <!-- Select2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" />
 }
 
+<div class="container page-99" style="margin-top: 100px">
+    <!-- Header tipo KPI -->
+    <div class="cc-header shadow-lg rounded-4 p-4 mb-4">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div class="d-flex align-items-center gap-3">
+                <span class="cc-badge"><i class="fa fa-file-text-o"></i></span>
+                <div>
+                    <h2 class="m-0 fw-800">Pedidos</h2>
+                    <small class="text-muted-cc">Listado y sumatorias del período</small>
+                </div>
+            </div>
 
-<div class="container-fluid mt-5">
-
-    <div id="Filtros" class="divFiltros">
-
-
-        <label for="txtFechaDesde" class="lblfiltro">Fecha Desde</label>
-        <input type="date" class="input-nuevo" id="FechaDesde">
-
-        <label for="txtFechaHasta" class="lblfiltro">Fecha Hasta</label>
-        <input type="date" class="input-nuevo" id="FechaHasta">
-
-        <br />
-
-        <label class="lblfiltro">Cliente</label>
-        <select id="ClientesFiltro" name="select" class="input-nuevo">
-            <option value="" selected>Cliente</option>
-        </select>
-
-        <label class="lblfiltro">Estado</label>
-        <select id="EstadosFiltro" name="select" class="input-nuevo">
-            <option value="TODOS" selected>Todos</option>
-            <option value="EN PROCESO">EN PROCESO</option>
-            <option value="ENTREGAR">ENTREGAR</option>
-        </select>
-
-        <label class="lblfiltro">Finalizado</label>
-        <select id="FinalizadosFiltro" name="select" class="input-nuevo">
-            <option value="-1">Todos</option>
-            <option value="1">SI</option>
-            <option value="0" selected>NO</option>
-        </select>
-
-
-
-        <div class="vw-75 d-flex float-lg-end mt-2">
-            <a class="btn btn-success" id="aplicarFiltros" onclick="aplicarFiltros()">Aplicar</a>
+            <div class="ms-auto d-flex gap-3 flex-wrap">
+                <div class="cc-stat"><div class="label">Cantidad</div><div class="value" id="kpiCantPedidos">0</div></div>
+                <div class="cc-stat" id="divImporteTotal" hidden><div class="label">Importe Total</div><div class="value" id="kpiImporteTotal">0,00</div></div>
+                <div class="cc-stat" id="divImporteAbonado" hidden><div class="label">Abonado</div><div class="value" id="kpiAbonado">0,00</div></div>
+                <div class="cc-stat" id="divSaldo" hidden><div class="label">Saldo</div><div class="value kpi-azul" id="kpiSaldo">0,00</div></div>
+            </div>
         </div>
-
     </div>
 
-    <div class="row mt-5">
-        <div class="col-lg-10">
-            <div class="card" style="width: 88%; position: absolute; left: 7vw; border: none;">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Pedidos</span>
-
-                    <div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle d-flex align-items-center" type="button" id="dropdownColumnas" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fa fa-cog me-2"></i> Config. Columnas
+    <!-- Tabla + Filtros -->
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="card-glass p-3">
+                <div class="tabla-wrap position-relative">
+                    <!-- Controles top -->
+                    <div class="tabla-controls-top d-flex gap-2 flex-wrap align-items-center">
+                        <!-- Nuevo Pedido a la izquierda -->
+                        <button class="btn btn-success d-flex align-items-center px-3 py-2" onclick="nuevoPedido()">
+                            <i class="fa fa-plus-square me-2"></i> Nuevo Pedido
                         </button>
-                        <ul class="dropdown-menu" aria-labelledby="dropdownColumnas" id="configColumnasMenu">
-                        </ul>
+
+                        <button class="btn btn-outline-primary d-flex align-items-center" type="button" id="btnToggleFiltros">
+                            <i class="fa fa-arrow-up me-2" id="iconFiltros"></i> Filtros
+                        </button>
+
+                        <div class="dropdown">
+                            <button class="btn btn-secondary dropdown-toggle d-flex align-items-center" type="button" id="btnConfigCols"
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fa fa-cog me-2"></i> Config. Columnas
+                            </button>
+                            <ul class="dropdown-menu" id="configColumnasMenu" aria-labelledby="btnConfigCols"></ul>
+                        </div>
                     </div>
-                </div>
-                <div class="card-body">
-                    <table class="display nowrap" id="grd_Pedidos" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th>Nro</th>
-                                <th>Fecha</th>
-                                <th>Cliente</th>
-                                <th>Importe Total</th>
-                                <th>Porc. Descuento</th>
-                                <th>SubTotal</th>
-                                <th>Importe Abonado</th>
-                                <th>Saldo</th>
-                                <th>Forma de pago</th>
-                                <th>Estado</th>
-                                <th>Comentarios</th>
-                                <th>Finalizado</th>
-                                <th>Facturado</th>
-                                
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Aquí va el contenido de tu datatable -->
-                        </tbody>
-                    </table>
-                </div>
 
-                <div class="d-flex justify-content-end mt-2 mb-4">
-                    <a class="btn btn-primary btnnuevo" onclick="nuevoPedido()">Nuevo</a>
-                </div>
+                    <!-- Panel de filtros (igual malla que Ventas) -->
+                    <form id="formFiltrosPedidos" class="filter-bar shadow-sm rounded-3 mb-3 p-3 d-none">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-6 col-md-3">
+                                <label class="form-label">Desde</label>
+                                <input type="date" id="FechaDesde" class="form-control">
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label">Hasta</label>
+                                <input type="date" id="FechaHasta" class="form-control">
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Cliente</label>
+                                <select id="ClientesFiltro" class="form-select">
+                                    <option value="-1">Todos</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Estado</label>
+                                <select id="EstadosFiltro" class="form-select">
+                                    <option value="TODOS">Todos</option>
+                                    <option value="PENDIENTE">Pendiente</option>
+                                    <option value="CANCELADO">Cancelado</option>
+                                    <option value="ENTREGADO">Entregado</option>
+                                </select>
+                            </div>
 
-            </div>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label">Finalizado</label>
+                                <select id="FinalizadosFiltro" class="form-select">
+                                    <option value="-1">Todos</option>
+                                    <option value="1">Sí</option>
+                                    <option value="0">No</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-md-4 d-flex gap-2 mt-2 mt-md-0">
+                                <button type="button" id="btnBuscar" class="btn btn-primary flex-fill" onclick="aplicarFiltros()">
+                                    <i class="fa fa-search me-1"></i> Buscar
+                                </button>
+                                <button type="button" id="btnLimpiar" class="btn btn-outline-secondary"
+                                        onclick="document.getElementById('ClientesFiltro').value=-1;
+                                                 document.getElementById('EstadosFiltro').value='TODOS';
+                                                 document.getElementById('FinalizadosFiltro').value=-1;
+                                                 aplicarFiltros();">
+                                    <i class="fa fa-eraser me-1"></i> Limpiar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Tabla -->
+                    <div class="dt-dark-wrap">
+                        <table class="dt-dark display nowrap compact" id="grd_Pedidos" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Nro</th>
+                                    <th>Fecha</th>
+                                    <th>Cliente</th>
+                                    <th>Importe Total</th>
+                                    <th>Porc. Descuento</th>
+                                    <th>SubTotal</th>
+                                    <th>Importe Abonado</th>
+                                    <th>Saldo</th>
+                                    <th>Forma de pago</th>
+                                    <th>Estado</th>
+                                    <th>Comentarios</th>
+                                    <th>Finalizado</th>
+                                    <th>Facturado</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                </div><!-- /tabla-wrap -->
+            </div><!-- /card-glass -->
         </div>
     </div>
 </div>
 
-
-
-
 <partial name="~/Views/Utils/Modals.cshtml" />
 
 @section Scripts {
+    <!-- jQuery (necesario para DataTables y Select2) -->
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-
-@*SCRIPTS DE BOTONES*@
-    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js">
-
-    </script><script src="~/js/site.js"></script>
-
-@*excel*@
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <!-- DataTables + extensiones -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
-
-@*pdf*@
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
-
-@*imprimir*@
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
-
-@*filter columns*@
     <script src="https://cdn.datatables.net/fixedheader/3.2.2/js/dataTables.fixedHeader.min.js"></script>
 
+    <!-- Export dependencias -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
 
+    <!-- Select2 -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
 
+    <!-- Utilidades -->
+    <script src="~/js/site.js"></script>
     <script src="~/js/utils/moment.js"></script>
 
-    <script src="~/js/Pedidos.js?v=2.0"></script>
-
+    <!-- Lógica de la vista -->
+    <script src="~/js/Pedidos.js?v=3.0"></script>
 }

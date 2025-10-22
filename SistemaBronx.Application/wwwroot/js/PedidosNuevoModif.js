@@ -1649,7 +1649,7 @@ async function editarProducto(producto) {
 
         $('#productoModal .modal-dialog').css({
             'max-width': '100%',
-            'width': '50%',
+            'width': '70%',
 
         });
 
@@ -2738,3 +2738,71 @@ $("#Facturado").prop("checked", false);
 toggleFacturaGroup();
 // Listener
 $("#Facturado").on("change", toggleFacturaGroup);
+
+
+// ====== NUEVO BLOQUE UI – pegalo en pedidosnuevomodif.js ======
+
+function initNuevoModifUI() {
+    // Select2 robusto para #Clientes y #Formasdepago (sin romper layout)
+    initSelect2Dark('#Clientes');
+    initSelect2Dark('#Formasdepago');
+
+    // Set defaults de fecha si vienen vacías
+    if (!$('#Fecha').val()) {
+        $('#Fecha').val(moment().format('YYYY-MM-DD'));
+    }
+
+    // Si vino pedidoData (desde la vista)
+    if (typeof pedidoData !== 'undefined' && pedidoData && pedidoData.Id) {
+        $('#kpiNroPedido').text(pedidoData.Id);
+        $('#tituloPedido').text('Pedido #' + pedidoData.Id);
+    }
+
+    // Vinculá KPIs con inputs (en vivo)
+    bindKpisNuevoModif();
+
+    // Si el estado de Facturado pide NroFactura
+    $('#Facturado').on('change', function () {
+        $('#divNroFactura').toggleClass('d-none', !this.checked);
+    });
+}
+
+// Init Select2 oscuro con placeholder real y dropdownParent inteligente
+function initSelect2Dark(selector) {
+    const $ctl = $(selector);
+    if (!$ctl.length) return;
+
+    if ($ctl.data('select2')) $ctl.select2('destroy');
+    if (!$ctl.find('option[value=""]').length) $ctl.prepend('<option value=""></option>');
+
+    $ctl.select2({
+        placeholder: 'Seleccionar',
+        allowClear: true,
+        width: '100%',
+        dropdownParent: $('.container.page-99') // evita recortes
+    });
+}
+
+// KPIs espejo de los campos del resumen
+function bindKpisNuevoModif() {
+    const refl = () => {
+        const sub = $('#SubTotal').val() || '0';
+        const porc = $('#PorcDesc').val() || '0';
+        const tot = $('#ImporteTotal').val() || '0';
+        $('#kpiSubTotal').text(sub);
+        $('#kpiPorcDesc').text(porc);
+        $('#kpiTotal').text(tot);
+    };
+
+    ['#SubTotal', '#PorcDesc', '#ImporteTotal'].forEach(id => {
+        $(document).on('input change', id, refl);
+    });
+
+    // primer reflejo
+    refl();
+}
+
+// Llamalo en tu ready existente:
+$(document).ready(function () {
+    try { initNuevoModifUI(); } catch (e) { console.error(e); }
+});
