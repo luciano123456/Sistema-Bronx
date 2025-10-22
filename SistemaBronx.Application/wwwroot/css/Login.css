@@ -1,4 +1,4 @@
-/* Fondo azul oscuro */
+﻿/* Fondo azul oscuro */
 body {
     background-color: #1B2631;
     font-family: Arial, sans-serif;
@@ -100,3 +100,29 @@ body {
     }
 
 
+
+
+
+.marca-agua-svg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    background-image: url("data:image/svg+xml;utf8, <svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'> <text x='150' y='150' font-size='20' fill='yellow' text-anchor='middle' transform='rotate(-45 150 150)'> ⚠ AMBIENTE TEST ⚠ </text> </svg>");
+    background-repeat: repeat;
+    opacity: 0.1;
+    animation: respirar 4s ease-in-out infinite;
+}
+
+@keyframes respirar {
+    0%, 100% {
+        opacity: 0.1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+}
