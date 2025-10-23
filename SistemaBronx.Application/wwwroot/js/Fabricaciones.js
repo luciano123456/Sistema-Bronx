@@ -213,6 +213,8 @@ async function configurarDataTable(data) {
                     gridFabricaciones.columns.adjust();
                 }, 10);
 
+                actualizarKpisFabricaciones(data)
+
                 $('body').on('mouseenter', '#grd_Fabricaciones .fa-map-marker', function () {
                     $(this).css('cursor', 'pointer');
                 });
@@ -512,6 +514,7 @@ async function configurarDataTable(data) {
 
     } else {
         gridFabricaciones.clear().rows.add(data).draw();
+        actualizarKpisFabricaciones(data)
     }
 }
 
@@ -869,3 +872,10 @@ $(document).on('keydown', function (e) {
         tabla.column(11).search(`^${proveedor}$`, true, false).draw();
     }
 });
+
+
+function actualizarKpisFabricaciones(data) {
+    const cant = Array.isArray(data) ? data.length : 0;
+    const el = document.getElementById('kpiCantFabricaciones');
+    if (el) el.textContent = cant;
+}
