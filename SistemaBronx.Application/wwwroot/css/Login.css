@@ -1,6 +1,47 @@
-﻿/* Fondo azul oscuro */
+﻿
+:root {
+    --muted: #9aa8c5;
+    --text: #e7ecff;
+    --border: rgba(255,255,255,.08);
+    /* DataTables / superficies oscuras */
+    --dt-body: #0b1320;
+    --dt-head: #1d2633;
+    --dt-head-b: #2b3647;
+    --dt-row: #0f1722;
+    --dt-row-zebra: #363659;
+    --dt-row-zebra2: #525285;
+    --dt-row-hover: #152037;
+    --dt-text: #e5e7eb;
+    --dt-input: #111827;
+    --dt-input-b: #2b3647;
+    --dt-pag-bg: #0f192b;
+    --dt-pag-active: #3d6af2;
+    --chip-in: #18c37e;
+    --chip-out: #ff7a66;
+    --chip-stock: #7cc2ff;
+    --color-general: #05225E;
+    --bg: #0a111f;
+    --panel: #141c2b;
+    --panel2: #101726;
+    --soft: rgba(255,255,255,.06);
+    --b1: rgba(255,255,255,.12);
+    --head: #1b2740;
+    --primary: #4c8dff;
+    --accent: #7b5cff;
+    --ok: #1ecf93;
+    --warn: #ffb200;
+    --danger: #ff5a6a;
+    --txt: #eaf1ff;
+    --muted: #9db1d2;
+    --dt-row-hover: #152037;
+    --dt-row-zebra: #363659;
+    --dt-row-zebra2: #525285;
+}
+
+
+
 body {
-    background-color: #1B2631;
+    background: linear-gradient(90deg, var(--dt-row-zebra), var(--dt-row-zebra2));
     font-family: Arial, sans-serif;
     margin: 0;
     height: 100vh;
@@ -20,7 +61,7 @@ body {
 
 /* Parte izquierda (azul oscuro) */
 .left-side {
-    background-color: #1B2631;
+    background: linear-gradient(90deg, var(--dt-row-zebra2), var(--dt-row-zebra));
     width: 75%;
     display: flex;
     justify-content: center;
