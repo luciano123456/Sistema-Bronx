@@ -1,3 +1,43 @@
+:root {
+    --muted: #9aa8c5;
+    --text: #e7ecff;
+    --border: rgba(255,255,255,.08);
+    /* DataTables / superficies oscuras */
+    --dt-body: #0b1320;
+    --dt-head: #1d2633;
+    --dt-head-b: #2b3647;
+    --dt-row: #0f1722;
+    --dt-row-zebra: #363659;
+    --dt-row-zebra2: #525285;
+    --dt-row-hover: #152037;
+    --dt-text: #e5e7eb;
+    --dt-input: #111827;
+    --dt-input-b: #2b3647;
+    --dt-pag-bg: #0f192b;
+    --dt-pag-active: #3d6af2;
+    --chip-in: #18c37e;
+    --chip-out: #ff7a66;
+    --chip-stock: #7cc2ff;
+    --color-general: #05225E;
+    --bg: #0a111f;
+    --panel: #141c2b;
+    --panel2: #101726;
+    --soft: rgba(255,255,255,.06);
+    --b1: rgba(255,255,255,.12);
+    --head: #1b2740;
+    --primary: #4c8dff;
+    --accent: #7b5cff;
+    --ok: #1ecf93;
+    --warn: #ffb200;
+    --danger: #ff5a6a;
+    --txt: #eaf1ff;
+    --muted: #9db1d2;
+    --dt-row-hover: #152037;
+    --dt-row-zebra: #363659;
+    --dt-row-zebra2: #525285;
+}
+
+
 table.dataTable.display tbody tr.selected td {
     background-color: antiquewhite !important;
     color: black !important;
@@ -45,14 +85,19 @@ html, body {
         padding: 10px 15px;
         text-decoration: none;
         color: #ffffff;
-        background-color: #2b2f3a;
+        background-color: var(--dt-row-zebra);
         border-bottom: 1px solid #444;
         transition: background-color 0.2s ease;
     }
 
         /* Estilo fila impar (1, 3, 5...) */
         #listadoProveedores a:nth-child(odd) {
-            background-color: #2a2e38; /* un poco más claro */
+            background-color: var(--dt-row-zebra2); /* un poco más claro */
+        }
+
+        /* Estilo fila impar (1, 3, 5...) */
+        #listadoProveedores a:nth-child(even) {
+            background-color: var(--dt-row-zebra); /* un poco más claro */
         }
 
 
@@ -69,19 +114,22 @@ html, body {
             font-weight: bold;
         }
 
-
+#buscarProveedor{
+    background: var(--dt-row-zebra);
+    color: white !important;
+}
 
 
 .estiloproveedores {
-    background: #323844 !important;
+    background: linear-gradient(90deg, var(--dt-row-zebra), var(--dt-row-zebra2));
     height: 100%; /* importante */
-  
+
     display: flex;
     flex-direction: column;
     margin-top: 7px;
-    border-radius: 3px 3px 3px 3px;
+    border-radius: 20px 20px 20px 20px;
     scrollbar-width: thin;
-    scrollbar-color: #495057 #1f222b;
+    scrollbar-color: var(--dt-row-zebra) var(--dt-row-zebra2);
 }
 
 .row.g-0 {
