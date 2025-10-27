@@ -117,23 +117,23 @@ function validarCampos() {
 
     // Validar descripción
     const descripcionValida = descripcion !== "";
-    $("#lblDescripcion").css("color", descripcionValida ? "" : "red");
-    $("#txtDescripcion").css("border-color", descripcionValida ? "" : "red");
+    //$("#lblDescripcion").css("color", descripcionValida ? "" : "red");
+    //$("#txtDescripcion").css("border-color", descripcionValida ? "" : "red");
 
     // Validar precio costo
     const precioCostoValido = precioCosto !== "";
-    $("#lblPrecioCosto").css("color", precioCostoValido ? "" : "red");
-    $("#txtPrecioCosto").css("border-color", precioCostoValido ? "" : "red");
+    //$("#lblPrecioCosto").css("color", precioCostoValido ? "" : "red");
+    //$("#txtPrecioCosto").css("border-color", precioCostoValido ? "" : "red");
 
     // Validar precio costo
     const precioVentaValido = precioVenta !== "";
-    $("#lblPrecioVenta").css("color", precioVentaValido ? "" : "red");
-    $("#txtPrecioVenta").css("border-color", precioVentaValido ? "" : "red");
+    //$("#lblPrecioVenta").css("color", precioVentaValido ? "" : "red");
+    //$("#txtPrecioVenta").css("border-color", precioVentaValido ? "" : "red");
 
     // Validar porcentaje ganancia
     const porcGananciaValida = porcGanancia !== "";
-    $("#lblPorcGanancia").css("color", porcGananciaValida ? "" : "red");
-    $("#txtPorcGanancia").css("border-color", porcGananciaValida ? "" : "red");
+    //$("#lblPorcGanancia").css("color", porcGananciaValida ? "" : "red");
+    //$("#txtPorcGanancia").css("border-color", porcGananciaValida ? "" : "red");
 
 
     // Retorna true solo si todos los campos son válidos
@@ -149,14 +149,14 @@ function nuevoInsumo() {
     $('#modalEdicion').modal('show');
     $("#btnGuardar").text("Registrar");
     $("#modalEdicionLabel").text("Nuevo Insumo");
-    $('#lblDescripcion').css('color', 'red');
-    $('#txtDescripcion').css('border-color', 'red');
-    $('#lblPrecioCosto').css('color', 'red');
-    $('#txtPrecioCosto').css('border-color', 'red');
-    $('#lblPrecioVenta').css('color', 'red');
-    $('#txtPrecioVenta').css('border-color', 'red');
-    $('#lblPorcGanancia').css('color', 'red');
-    $('#txtPorcGanancia').css('border-color', 'red');
+    //$('#lblDescripcion').css('color', 'red');
+    //$('#txtDescripcion').css('border-color', 'red');
+    //$('#lblPrecioCosto').css('color', 'red');
+    //$('#txtPrecioCosto').css('border-color', 'red');
+    //$('#lblPrecioVenta').css('color', 'red');
+    //$('#txtPrecioVenta').css('border-color', 'red');
+    //$('#lblPorcGanancia').css('color', 'red');
+    //$('#txtPorcGanancia').css('border-color', 'red');
 }
 
 async function mostrarModal(modelo) {

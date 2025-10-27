@@ -19,7 +19,7 @@
 }
 
 html, body {
-    background: var(--bg);
+    
     color: var(--txt);
 }
 
@@ -2057,6 +2057,7 @@ table.dataTable thead th {
     flex-direction: column;
 }
 
+
     #productos .cc-table .dataTables_wrapper,
     #productos .cc-table .table {
         flex: 1;
@@ -2197,6 +2198,176 @@ table.dataTable thead th {
 }
 
 
+/* Panel y titlebar */
+#insumos .cc-section.cc-card {
+    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
+    border: 1px solid var(--b1);
+    border-radius: 18px;
+}
+
+#insumos .cc-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(180deg, var(--dt-row-zebra), var(--dt-row-zebra2));
+    border: 1px solid var(--b1);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+}
+
+/* Wrapper de tabla como en el modal */
+#insumos .cc-table {
+    background: var(--dt-row-zebra);
+    border: 1px solid var(--b1);
+    border-radius: 14px;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+
+    #insumos .cc-table .dataTables_wrapper,
+    #insumos .cc-table .table {
+        flex: 1;
+        min-height: 0;
+    }
+
+/* Thead y filas (mismo gradient/hover) */
+#insumos .table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: linear-gradient(180deg,#24304a,#1e2a43);
+    color: #dfe8ff;
+    border-bottom: 0 !important;
+    font-weight: 800;
+    padding-right: 12px !important; /* quita hueco del ícono de orden DT */
+}
+
+#insumos .table tbody tr {
+    background: rgba(255,255,255,.03);
+}
+
+    #insumos .table tbody tr:hover {
+        background: rgba(76,141,255,.10);
+    }
+
+#insumos .table > :not(caption) > * > * {
+    border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+/* DataTables — limpiar triangulitos/íconos de orden */
+#insumos table.dataTable thead th,
+#insumos table.dataTable thead td {
+    background-image: none !important;
+    background-repeat: no-repeat !important;
+    background-position: initial !important;
+}
+
+#insumos table.dataTable thead .sorting,
+#insumos table.dataTable thead .sorting_asc,
+#insumos table.dataTable thead .sorting_desc,
+#insumos table.dataTable thead .sorting_asc_disabled,
+#insumos table.dataTable thead .sorting_desc_disabled {
+    background-image: none !important;
+}
+
+    #insumos table.dataTable thead .sorting:before,
+    #insumos table.dataTable thead .sorting:after,
+    #insumos table.dataTable thead .sorting_asc:before,
+    #insumos table.dataTable thead .sorting_asc:after,
+    #insumos table.dataTable thead .sorting_desc:before,
+    #insumos table.dataTable thead .sorting_desc:after {
+        content: "" !important;
+    }
+
+/* Controles de DT con el mismo look del modal */
+#insumos .dataTables_wrapper .dataTables_length select,
+#insumos .dataTables_wrapper .dataTables_filter input {
+    background: var(--panel2) !important;
+    color: var(--txt) !important;
+    border: 1px solid var(--b1) !important;
+    border-radius: 12px !important;
+    min-height: 40px;
+    padding: .35rem .6rem;
+}
+
+/* Paginación: pill como en el modal */
+#insumos .dataTables_wrapper .dataTables_paginate {
+    padding: .45rem .55rem;
+    background: var(--soft);
+    border: 1px solid var(--b1);
+    border-radius: 10px;
+    display: inline-flex;
+    gap: 6px;
+}
+
+#insumos .dataTables_wrapper .dataTables_info {
+    color: var(--muted);
+}
+
+#insumos .dataTables_wrapper .dataTables_paginate .paginate_button {
+    background: var(--panel2);
+    border: 1px solid var(--b1);
+    border-radius: 10px;
+    padding: .35rem .6rem;
+    color: var(--txt) !important;
+    margin: 0;
+}
+
+    #insumos .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: #142036;
+        border-color: #2c3d5a;
+    }
+
+    #insumos .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: var(--primary) !important;
+        border-color: var(--primary) !important;
+        color: #fff !important;
+        box-shadow: 0 0 0 .15rem rgba(76,141,255,.25);
+    }
+
+    #insumos .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+        opacity: .45;
+        pointer-events: none;
+    }
+
+/* Scrollbar sutil como en el modal */
+#insumos .cc-table {
+    scrollbar-width: thin;
+    scrollbar-color: #4c8dff22 transparent;
+}
+
+    #insumos .cc-table::-webkit-scrollbar {
+        height: 10px;
+        width: 10px;
+    }
+
+    #insumos .cc-table::-webkit-scrollbar-thumb {
+        background: rgba(76,141,255,.35);
+        border-radius: 8px;
+    }
+
+/* Botones de la titlebar (Config/Añadir) mantienen el ancho auto en móvil */
+@media (max-width: 992px) {
+    #insumos .cc-titlebar .btn {
+        width: auto;
+    }
+
+    #insumos .dataTables_wrapper .dataTables_length,
+    #insumos .dataTables_wrapper .dataTables_filter,
+    #insumos .dataTables_wrapper .dataTables_info,
+    #insumos .dataTables_wrapper .dataTables_paginate {
+        float: none !important;
+        text-align: left !important;
+        width: 100% !important;
+        margin: 6px 0 !important;
+    }
+}
+
+
+
 table.dataTable.display tbody tr:nth-child(odd) td {
      background-color: var(--dt-row-zebra) !important; 
 }
@@ -2207,4 +2378,9 @@ table.dataTable.display tbody tr:nth-child(even) td {
 
 table.dataTable tbody tr.selected {
     background-color: var(--dt-row-hover) !important;
+}
+
+
+table.dataTable tbody tr.selected {
+    background-color: antiquewhite !important;
 }
