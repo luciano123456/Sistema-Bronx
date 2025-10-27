@@ -99,19 +99,19 @@ function validarCampos() {
     const apellidoValido = apellido !== "";
     const contrasenaValido = contrasena !== "" || idUsuario !== "";
 
-    // Cambiar el color de texto y borde según la validez de los campos
-    $("#lblNombre").css("color", nombreValido ? "" : "red");
-    $("#txtNombre").css("border-color", nombreValido ? "" : "red");
+    //// Cambiar el color de texto y borde según la validez de los campos
+    //$("#lblNombre").css("color", nombreValido ? "" : "red");
+    //$("#txtNombre").css("border-color", nombreValido ? "" : "red");
 
-    $("#lblUsuario").css("color", usuarioValido ? "" : "red");
-    $("#txtUsuario").css("border-color", usuarioValido ? "" : "red");
+    //$("#lblUsuario").css("color", usuarioValido ? "" : "red");
+    //$("#txtUsuario").css("border-color", usuarioValido ? "" : "red");
 
-    $("#lblApellido").css("color", apellidoValido ? "" : "red");
-    $("#txtApellido").css("border-color", apellidoValido ? "" : "red");
+    //$("#lblApellido").css("color", apellidoValido ? "" : "red");
+    //$("#txtApellido").css("border-color", apellidoValido ? "" : "red");
 
 
-    $("#lblContrasena").css("color", contrasenaValido ? "" : "red");
-    $("#txtContrasena").css("border-color", contrasenaValido ? "" : "red");
+    //$("#lblContrasena").css("color", contrasenaValido ? "" : "red");
+    //$("#txtContrasena").css("border-color", contrasenaValido ? "" : "red");
 
 
 
@@ -128,17 +128,17 @@ function nuevoUsuario() {
     $("#btnGuardar").text("Registrar");
     $("#modalEdicionLabel").text("Nuevo Usuario");
 
-    $('#lblUsuario').css('color', 'red');
-    $('#txtUsuario').css('border-color', 'red');
+    //$('#lblUsuario').css('color', 'red');
+    //$('#txtUsuario').css('border-color', 'red');
 
-    $('#lblNombre').css('color', 'red');
-    $('#txtNombre').css('border-color', 'red');
+    //$('#lblNombre').css('color', 'red');
+    //$('#txtNombre').css('border-color', 'red');
 
-    $('#lblApellido').css('color', 'red');
-    $('#txtApellido').css('border-color', 'red');
+    //$('#lblApellido').css('color', 'red');
+    //$('#txtApellido').css('border-color', 'red');
 
-    $('#lblContrasena').css('color', 'red');
-    $('#txtContrasena').css('border-color', 'red');
+    //$('#lblContrasena').css('color', 'red');
+    //$('#txtContrasena').css('border-color', 'red');
 
     document.getElementById("divContrasena").hidden = false;
 

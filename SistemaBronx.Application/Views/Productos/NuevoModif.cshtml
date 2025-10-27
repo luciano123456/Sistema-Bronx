@@ -125,9 +125,10 @@
         </div>
 
         <div class="cta-footer-sticky d-flex justify-content-end">
-            <button id="btnNuevoModificar" class="btn btn-warning fw-700" onclick="guardarCambios()">
+            <button type="button" id="btnNuevoModificar" class="btn btn-primary" onclick="guardarCambios()">
                 <i class="fa fa-save me-1"></i> Registrar
             </button>
+
         </div>
     </div>
 </div>
@@ -193,7 +194,7 @@
     <script src="~/js/utils/moment.js"></script>
 
     <!-- Tu lógica -->
-    <script src="~/js/ProductosNuevoModif.js?v=2.3"></script>
+    <script src="~/js/ProductosNuevoModif.js?v=2.4"></script>
 
     <script>
         var ProductoData = @Html.Raw(Json.Serialize(ViewBag.Data ?? new { }));

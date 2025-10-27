@@ -123,3 +123,7 @@
   .cta-footer-sticky .btn{ width:100%; }
 }
 
+.btn {
+    border-radius: 12px;
+    font-weight: 800;
+}

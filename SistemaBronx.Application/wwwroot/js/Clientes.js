@@ -78,8 +78,8 @@ function validarCampos() {
     const nombre = $("#txtNombre").val();
     const camposValidos = nombre !== "";
 
-    $("#lblNombre").css("color", camposValidos ? "" : "red");
-    $("#txtNombre").css("border-color", camposValidos ? "" : "red");
+    //$("#lblNombre").css("color", camposValidos ? "" : "red");
+    //$("#txtNombre").css("border-color", camposValidos ? "" : "red");
 
     return camposValidos;
 }
@@ -89,8 +89,8 @@ function nuevoCliente() {
     $('#modalEdicion').modal('show');
     $("#btnGuardar").text("Registrar");
     $("#modalEdicionLabel").text("Nuevo Cliente");
-    $('#lblNombre').css('color', 'red');
-    $('#txtNombre').css('border-color', 'red');
+    //$('#lblNombre').css('color', 'red');
+    //$('#txtNombre').css('border-color', 'red');
 }
 
 async function mostrarModal(modelo) {

@@ -104,8 +104,8 @@ function validarCampos() {
     const nombre = $("#txtNombre").val();
     const camposValidos = nombre !== "";
 
-    $("#lblNombre").css("color", camposValidos ? "" : "red");
-    $("#txtNombre").css("border-color", camposValidos ? "" : "red");
+    //$("#lblNombre").css("color", camposValidos ? "" : "red");
+    //$("#txtNombre").css("border-color", camposValidos ? "" : "red");
 
     return camposValidos;
 }
@@ -121,8 +121,8 @@ async function nuevoGasto() {
     $('#modalEdicion').modal('show');
     $("#btnGuardar").text("Registrar");
     $("#modalEdicionLabel").text("Nuevo Gasto");
-    $('#lblNombre').css('color', 'red');
-    $('#txtNombre').css('border-color', 'red');
+    //$('#lblNombre').css('color', 'red');
+    //$('#txtNombre').css('border-color', 'red');
 }
 
 async function mostrarModal(modelo) {
@@ -385,6 +385,8 @@ async function configurarDataTable(data) {
                 setTimeout(function () {
                     gridGastos.columns.adjust();
                 }, 20);
+
+                actualizarKpisGastos(data);
 
                 // Calcular la suma de la columna "ImporteTotal"
                 let totalGastos = 0;
@@ -740,15 +742,8 @@ async function configurarDataTable(data) {
     } else {
         gridGastos.clear().rows.add(data).draw();
 
-        // Calcular la suma de la columna "ImporteTotal"
-        let totalGastos = 0;
-        gridGastos.rows().every(function () {
-            const data = this.data();
-            totalGastos += parseFloat(data.ImporteTotal) || 0;
-        });
+        actualizarKpisGastos(data);
 
-        // Mostrar la suma en el div #sumaTotalGastos
-        $('#sumaTotalGastos').val(formatNumber(totalGastos));
 
     }
 }
@@ -1095,3 +1090,34 @@ $(document).ready(() => {
         $('#iconFiltrosG').toggleClass('fa-arrow-up fa-arrow-down');
     });
 });
+
+function _num(n) { return parseFloat(n) || 0; }
+function _fmt(n) { return typeof formatNumber === "function" ? formatNumber(n) : (Math.round(n * 100) / 100).toLocaleString('es-AR', { minimumFractionDigits: 2 }); }
+
+
+
+function actualizarKpisGastos(data) {
+    const arr = Array.isArray(data) ? data : [];
+    const cant = arr.length;
+    let tot = 0, abon = 0, saldo = 0;
+
+    for (const r of arr) {
+        tot += _num(r.ImporteTotal);
+        abon += _num(r.ImporteAbonado);
+        // saldo: si el backend ya lo trae, usarlo; si no, calcular con SubtotalNeto
+        const saldoFila = (r.Saldo !== undefined && r.Saldo !== null)
+            ? _num(r.Saldo)
+            : (_num(r.SubtotalNeto) - _num(r.ImporteAbonado));
+        saldo += saldoFila;
+    }
+
+    const elCant = document.getElementById('kpiCantGastos');
+    const elTot = document.getElementById('kpiImporteTotalG');
+    const elAbon = document.getElementById('kpiAbonadoG');
+    const elSaldo = document.getElementById('kpiSaldoG');
+
+    if (elCant) elCant.textContent = cant;
+    if (elTot) elTot.textContent = _fmt(tot);
+    if (elAbon) elAbon.textContent = _fmt(abon);
+    if (elSaldo) elSaldo.textContent = _fmt(saldo);
+}
