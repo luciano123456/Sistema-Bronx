@@ -280,7 +280,7 @@
     align-items: center;
     gap: .45rem;
     padding: 1rem .9rem;
-    background: var(--card);
+    background: var(--dt-row-zebra);
     border: 1px solid var(--card-border);
     border-radius: 16px;
     box-shadow: 0 8px 24px var(--shadow);
@@ -487,7 +487,7 @@
 
     .modal-config .modal-body,
     #modalConfiguracion .modal-footer {
-        background: var(--surface);
+        background: linear-gradient(90deg, var(--dt-row-zebra), var(--dt-row-zebra2));
         border-top: 1px solid var(--border);
     }
 
@@ -514,7 +514,7 @@
 
 /* Contenedor lista */
 .list-container {
-    background: var(--card);
+   
     border: 1px solid var(--card-border) !important;
     box-shadow: 0 8px 24px var(--shadow);
     max-height: 320px;
@@ -536,7 +536,7 @@
     justify-content: space-between;
     gap: .75rem;
     padding: .70rem .9rem;
-    background: linear-gradient(180deg, color-mix(in oklab, var(--surface) 86%, transparent), color-mix(in oklab, var(--surface) 80%, transparent) );
+    background: var(--dt-row-zebra2);
     border: 1px solid var(--card-border);
     border-radius: .75rem;
     color: var(--text-strong);
@@ -689,7 +689,7 @@
     justify-content: space-between; /* texto a la izquierda, acciones a la derecha */
     gap: .75rem;
     padding: .70rem .9rem;
-    background: linear-gradient( 180deg, color-mix(in oklab, var(--surface) 86%, transparent), color-mix(in oklab, var(--surface) 80%, transparent) );
+    background: var(--dt-row-zebra);
     border: 1px solid var(--card-border);
     border-radius: .75rem;
     color: var(--text-strong);
@@ -701,7 +701,7 @@
 }
 
     .list-item:hover {
-        background: color-mix(in oklab, var(--accent) 10%, var(--surface));
+        background: color-mix(in oklab, var(--accent) 10%, var(--dt-row-zebra));
         border-color: color-mix(in oklab, var(--accent) 40%, var(--card-border));
         transform: translateY(-1px);
         box-shadow: 0 10px 26px rgba(0,0,0,.35);

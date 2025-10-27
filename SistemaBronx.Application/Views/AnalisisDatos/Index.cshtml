@@ -10,25 +10,97 @@
 
 <style>
     /* Paginador incrustado, sin pisar el gráfico */
-    .ad-card { position: relative; }
+    .ad-card {
+        position: relative;
+    }
+
     .ad-pager {
-      position: absolute; right: 14px; bottom: 12px;
-      display:flex; align-items:center; gap:8px;
-      padding:6px 10px; border-radius:14px;
-      background:rgba(14,18,36,.72); backdrop-filter: blur(4px);
-      border:1px solid rgba(255,255,255,.08); color:#cfd6ff; font-size:.86rem;
-      z-index:5;
+        position: absolute;
+        right: 14px;
+        bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 14px;
+        background: rgba(14,18,36,.72);
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255,255,255,.08);
+        color: #cfd6ff;
+        font-size: .86rem;
+        z-index: 5;
     }
-    .ad-pager .btn {
-      width:28px; height:28px; border-radius:10px; border:1px solid rgba(255,255,255,.08);
-      background:linear-gradient(180deg,rgba(32,41,84,.95),rgba(18,24,54,.92)); display:grid; place-items:center;
-      cursor:pointer; user-select:none;
+
+        .ad-pager .btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,.08);
+            background: linear-gradient(180deg,rgba(32,41,84,.95),rgba(18,24,54,.92));
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+            .ad-pager .btn:disabled {
+                opacity: .4;
+                cursor: not-allowed
+            }
+
+        .ad-pager .ico {
+            font-size: 13px;
+            line-height: 1;
+        }
+
+    .ad-chart {
+        position: relative;
+        min-height: 280px;
     }
-    .ad-pager .btn:disabled{ opacity:.4; cursor:not-allowed }
-    .ad-pager .ico { font-size:13px; line-height:1; }
-    /* Evita que el canvas tape tooltips flotantes dentro de la card */
-    .ad-chart { position: relative; min-height: 280px; }
-    .ad-chart canvas { display:block; }
+
+        .ad-chart canvas {
+            display: block;
+        }
+
+    /* Lista compacta para “Resumen por porcentaje” */
+    .ad-list-compact {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+        .ad-list-compact .item {
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 12px;
+            padding: 12px 14px;
+            background: linear-gradient(180deg,rgba(24,28,52,.55),rgba(17,22,44,.52));
+        }
+
+        .ad-list-compact .top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .ad-list-compact .rate {
+            font-weight: 700;
+            letter-spacing: .3px;
+        }
+
+        .ad-list-compact .pill {
+            font-size: .78rem;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,.12);
+            color: #cfd6ff;
+            background: rgba(14,18,36,.4);
+        }
+
+        .ad-list-compact .muted {
+            color: #9fb0ff;
+            font-size: .9rem;
+        }
 </style>
 
 <div id="ad-root" class="ad-wrap container-xxl py-4">
@@ -84,9 +156,9 @@
         </div>
     </div>
 
-    <!-- KPIs -->
+    <!-- KPIs fila 1: Ventas + Costo financiero + Neto (Ventas - CF) + Gastos -->
     <div class="row g-3 mb-3">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="ad-kpi">
                 <div class="ad-kpi__icon bg-grad-blue"><i class="ti ti-cash"></i></div>
                 <div class="flex-grow-1">
@@ -95,7 +167,39 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
+            <div class="ad-kpi">
+                <div class="ad-kpi__icon bg-grad-blue"><i class="ti ti-receipt"></i></div>
+                <div class="flex-grow-1">
+                    <span class="ad-kpi__label">Ventas netas (sin IVA)</span>
+                    <div id="kpi_ingresos_sin_iva" class="ad-kpi__value">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="ad-kpi">
+                <div class="ad-kpi__icon bg-grad-zebra"><i class="ti ti-receipt-2"></i></div>
+                <div class="flex-grow-1">
+                    <span class="ad-kpi__label">Costo financiero</span>
+                    <div id="kpi_cf_total" class="ad-kpi__value">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="ad-kpi">
+                <div class="ad-kpi__icon bg-grad-green"><i class="ti ti-hand-coin"></i></div>
+                <div class="flex-grow-1">
+                    <span class="ad-kpi__label">Importe neto (ventas – CF)</span>
+                    <div id="kpi_neto_ingresos" class="ad-kpi__value">—</div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- KPIs fila 2: Pedidos/Unidades + %CF sobre ventas + % más usado -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-3">
             <div class="ad-kpi">
                 <div class="ad-kpi__icon bg-grad-red"><i class="ti ti-credit-card-off"></i></div>
                 <div class="flex-grow-1">
@@ -104,12 +208,30 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="ad-kpi">
                 <div class="ad-kpi__icon bg-grad-purple"><i class="ti ti-shopping-cart"></i></div>
                 <div class="flex-grow-1">
                     <span class="ad-kpi__label">Pedidos / Unidades</span>
                     <div id="kpi_pedidos_unidades" class="ad-kpi__value">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="ad-kpi">
+                <div class="ad-kpi__icon bg-grad-zebra"><i class="ti ti-percentage"></i></div>
+                <div class="flex-grow-1">
+                    <span class="ad-kpi__label">% CF sobre ventas</span>
+                    <div id="kpi_cf_pct_ventas" class="ad-kpi__value">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="ad-kpi">
+                <div class="ad-kpi__icon bg-grad-zebra"><i class="ti ti-trending-up"></i></div>
+                <div class="flex-grow-1">
+                    <span class="ad-kpi__label">Porcentaje de CF mas utilizado</span>
+                    <div id="kpi_cf_mas_usado" class="ad-kpi__value">—</div>
                 </div>
             </div>
         </div>
@@ -238,6 +360,22 @@
             </div>
         </div>
     </div>
+
+    <!-- === NUEVO BLOQUE: Resumen por porcentaje + Ventas vs CF por medio === -->
+    <div class="row g-3 mt-1">
+        <div class="col-xxl-6">
+            <div class="ad-card p-3 h-100">
+                <div class="ad-card__header">Resumen por porcentaje (CF)</div>
+                <div id="cf_porcentaje_list" class="ad-list-compact"></div>
+            </div>
+        </div>
+        <div class="col-xxl-6">
+            <div class="ad-card p-3 h-100">
+                <div class="ad-card__header">Ventas vs costo financiero por medio</div>
+                <div class="ad-chart"><canvas id="ch_medios_costos_2"></canvas></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -253,5 +391,5 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
-    <script src="~/js/AnalisisDatos.js?v=5.0"></script>
+    <script src="~/js/AnalisisDatos.js?v=5.3"></script>
 }

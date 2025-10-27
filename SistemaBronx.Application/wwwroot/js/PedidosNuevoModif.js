@@ -120,6 +120,7 @@ async function cargarDatosPedido(id) {
     await configurarDataTableProductos(datosPedido.PedidoDetalle);
     await configurarDataTableInsumos(datosPedido.PedidoDetalleProceso);
     await insertarDatosPedido(datosPedido);
+   
 
 
 }
@@ -127,33 +128,57 @@ async function cargarDatosPedido(id) {
 
 async function insertarDatosPedido(datosPedido) {
 
-    document.getElementById("IdPedido").value = datosPedido.pedido.Id;
-    document.getElementById("Clientes").value = parseInt(datosPedido.pedido.IdCliente);
-    document.getElementById("Telefono").value = datosPedido.pedido.Telefono;
-    document.getElementById("Fecha").value = moment(datosPedido.pedido.Fecha, 'YYYY-MM-DD').format('YYYY-MM-DD');
-    document.getElementById("Formasdepago").value = parseInt(datosPedido.pedido.IdFormaPago);
-    document.getElementById("ImporteTotal").value = datosPedido.pedido.ImporteTotal;
-    document.getElementById("PorcDesc").value = datosPedido.pedido.PorcDescuento;
-    document.getElementById("SubTotal").value = datosPedido.pedido.SubTotal;
-    document.getElementById("ImporteAbonado").value = datosPedido.pedido.ImporteAbonado;
-    document.getElementById("Saldo").value = datosPedido.pedido.Saldo;
-    document.getElementById("Comentarios").value = datosPedido.pedido.Comentarios ?? "";
-    document.getElementById("Finalizado").checked = datosPedido.pedido.Finalizado === 1;
+    const pedido = datosPedido.pedido;
+    if (!pedido) return;
 
+    document.getElementById("IdPedido").value = pedido.Id;
+    document.getElementById("Clientes").value = parseInt(pedido.IdCliente);
+    document.getElementById("Telefono").value = pedido.Telefono;
+    document.getElementById("Fecha").value = moment(pedido.Fecha, 'YYYY-MM-DD').format('YYYY-MM-DD');
+    document.getElementById("Formasdepago").value = parseInt(pedido.IdFormaPago);
+    document.getElementById("ImporteTotal").value = pedido.ImporteTotal;
+    document.getElementById("PorcDesc").value = pedido.PorcDescuento;
+    document.getElementById("SubTotal").value = pedido.SubTotal;
+    document.getElementById("ImporteAbonado").value = pedido.ImporteAbonado;
+    document.getElementById("Saldo").value = pedido.Saldo;
+    document.getElementById("Comentarios").value = pedido.Comentarios ?? "";
+    document.getElementById("Finalizado").checked = pedido.Finalizado === 1;
 
     // === NUEVO: facturado + nro de factura ===
-    const fueFacturado = Number(datosPedido.pedido.Facturado) === 1;
+    const fueFacturado = Number(pedido.Facturado) === 1;
     document.getElementById("Facturado").checked = fueFacturado;
-    document.getElementById("NroFactura").value = datosPedido.pedido.NroFactura ?? "";
-    // Muestra/oculta y habilita/deshabilita el input según el switch
+    document.getElementById("NroFactura").value = pedido.NroFactura ?? "";
     if (typeof toggleFacturaGroup === "function") toggleFacturaGroup();
 
+    // === NUEVO: costo financiero ===
+    const cfPorc = parseFloat(pedido.CostoFinancieroPorc || 0);
+    const cfTotal = parseFloat(pedido.CostoFinanciero || 0);
+
+    const grpCFPorc = document.getElementById("grpCFPorc");
+    const grpCFTotal = document.getElementById("grpCFTotal");
+    const inputCFPorc = document.getElementById("CostoFinancieroPorc");
+    const inputCFTotal = document.getElementById("CostoFinancieroTotal");
+
+    // Limpio primero
+    inputCFPorc.value = "";
+    inputCFTotal.value = "";
+
+    if (cfPorc > 0 || cfTotal > 0) {
+        inputCFPorc.value = cfPorc.toString().replace('.', ',');
+        inputCFTotal.value = formatNumber(cfTotal);
+
+        grpCFPorc.classList.remove("d-none");
+        grpCFTotal.classList.remove("d-none");
+    } else {
+        grpCFPorc.classList.add("d-none");
+        grpCFTotal.classList.add("d-none");
+    }
+
+    // === Actualizo texto de botón ===
     document.getElementById("btnNuevoModificar").textContent = "Guardar";
 
-
+    // === Recalculo ===
     await calcularDatosPedido();
-
-
 }
 
 async function listaEstadosFilter() {
@@ -1700,21 +1725,32 @@ async function anadirProducto() {
 
 }
 
+let formasPagoCache = {}; // { [id]: { Id, Nombre, CostoFinanciero } }
+
 async function listaFormasdepago() {
     const url = `/Formasdepago/Lista`;
     const response = await fetch(url);
     const data = await response.json();
 
-    $('#Formasdepago option').remove();
+    const $sel = $('#Formasdepago');
+    $sel.empty();
 
-    select = document.getElementById("Formasdepago");
+    // placeholder
+    const opt0 = document.createElement("option");
+    opt0.value = "";
+    opt0.text = "Forma de pago";
+    $sel.append(opt0);
 
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
+    for (let i = 0; i < data.length; i++) {
+        const fp = data[i]; // { Id, Nombre, CostoFinanciero? }
+        formasPagoCache[fp.Id] = fp;
 
+        const opt = document.createElement("option");
+        opt.value = fp.Id;
+        opt.text = fp.Nombre;
+        // Guardamos el CF en dataset (por si se quiere leer directo del DOM)
+        if (fp.CostoFinanciero != null) opt.dataset.cf = fp.CostoFinanciero;
+        $sel.append(opt);
     }
 }
 
@@ -1909,9 +1945,8 @@ function calcularDatosPedido() {
     let subTotal = 0;
     let saldo = 0;
 
-    // Calcular Importe Total si hay productos en la tabla
     if (gridProductos && gridProductos.rows().count() > 0) {
-        gridProductos.rows().every(function (rowIdx, tableLoop, rowLoop) {
+        gridProductos.rows().every(function () {
             const data = this.data();
             if (data && data.PrecioVenta) {
                 importeTotal += parseFloat(data.PrecioVenta) || 0;
@@ -1919,21 +1954,16 @@ function calcularDatosPedido() {
         });
     }
 
-    // Calcular descuento
     descuento = (importeTotal * porcDesc) / 100;
-
-    // Calcular subtotal
     subTotal = importeTotal - descuento;
-
-    // Calcular saldo
     saldo = subTotal - importeAbonado;
 
-    // Actualizar los valores en los inputs
     document.getElementById("ImporteTotal").value = formatNumber(importeTotal);
     document.getElementById("ImporteAbonado").value = formatNumber(importeAbonado);
     document.getElementById("Descuento").value = formatNumber(descuento);
     document.getElementById("SubTotal").value = formatNumber(subTotal);
     document.getElementById("Saldo").value = formatNumber(saldo);
+
 }
 
 
@@ -2057,6 +2087,8 @@ async function guardarCambios(redirecciona = true) {
             "Finalizado": $("#Finalizado").prop('checked') ? 1 : 0,
             "Facturado": $("#Facturado").prop('checked') ? 1 : 0,
             "NroFactura": $("#NroFactura").val(),
+            "CostoFinancieroPorc": parseFloat($("#CostoFinancieroPorc").val()) || 0,
+            "CostoFinanciero": parseFloat(convertirMonedaAFloat($("#CostoFinancieroTotal").val()) || 0),
             "PedidosDetalles": productos,
             "PedidosDetalleProcesos": insumos,
         };
@@ -2806,3 +2838,73 @@ function bindKpisNuevoModif() {
 $(document).ready(function () {
     try { initNuevoModifUI(); } catch (e) { console.error(e); }
 });
+
+
+$('#Formasdepago').on('change', function () {
+    actualizarCostoFinanciero(); // toggle + cálculo
+    calcularDatosPedido();       // re-calcula totales/saldo (y vuelve a reflejar CF)
+});
+
+$('#PorcDesc, #ImporteAbonado').on('input change blur', function () {
+    calcularDatosPedido(); // para que CF se recalcule al cambiar descuentos/pagos
+});
+
+
+function getNumberFromInput(id) {
+    // Soporta campos con formato moneda (cc-money)
+    const el = document.getElementById(id);
+    if (!el) return 0;
+    return parseFloat(convertirMonedaAFloat(el.value)) || 0;
+}
+
+function setMoney(id, value) {
+    document.getElementById(id).value = formatNumber(value || 0);
+}
+
+function getSelectedFormaPagoCF() {
+    const id = $('#Formasdepago').val();
+    if (!id || !formasPagoCache[id]) return 0;
+    const cf = formasPagoCache[id]?.CostoFinanciero;
+    return (cf == null) ? 0 : parseFloat(cf);
+}
+
+
+function actualizarCostoFinanciero() {
+    const cfPorc = getSelectedFormaPagoCF(); // porcentaje
+    const $grpPorc = $('#grpCFPorc');
+    const $grpTotal = $('#grpCFTotal');
+
+    if (!cfPorc || cfPorc <= 0) {
+        // ocultar y limpiar
+        $grpPorc.addClass('d-none');
+        $grpTotal.addClass('d-none');
+        $('#CostoFinancieroPorc').val('');
+        $('#CostoFinancieroTotal').val('');
+        return;
+    }
+
+    // mostrar
+    $grpPorc.removeClass('d-none');
+    $grpTotal.removeClass('d-none');
+
+    // Mostrar el % elegido
+    $('#CostoFinancieroPorc').val(String(cfPorc).replace('.', ','));
+
+    // Base del costo financiero: usamos el SubTotal (importeTotal - descuento)
+    const subTotal = getNumberFromInput('SubTotal');
+
+    // Costo financiero ($)
+    const cfTotal = (subTotal * cfPorc) / 100.0;
+    setMoney('CostoFinancieroTotal', cfTotal);
+
+    // Ganancia total (sumamos la columna "Ganancia" de productos)
+    let gananciaTotal = 0;
+    if (gridProductos && gridProductos.rows().count() > 0) {
+        gridProductos.rows().every(function () {
+            const p = this.data();
+            gananciaTotal += parseFloat(p.Ganancia) || 0;
+        });
+    }
+
+}
+

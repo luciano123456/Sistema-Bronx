@@ -238,39 +238,102 @@ function render(vm) {
     const k = vm?.Kpis || {};
     const mensual = vm?.Mensual || [];
 
-    // KPIs
-    const ingresos = pick(k, 'IngresosImporteTotal', 'VentasImporteTotal') || pick(k, 'IngresosSubTotal', 'VentasSubTotal');
-    const egresos = pick(k, 'EgresosImporteTotal', 'GastosImporteTotal');
-    const cantPed = pick(k, 'CantidadPedidos', 'CantidadTickets');
-    const cantUnid = pick(k, 'CantidadUnidades', 'CantidadItems');
-    const margenN = pick(k, 'MargenNeto', 'MargenNetoValor');
-    // const margenNP = (k.MargenNetoPct ?? k.MargenNetoPorc ?? null);
+    // ===== KPIs base =====
+    const ingresos = (Number(k.IngresosImporteTotal) || Number(k.IngresosSubTotal) || 0);
+    const egresos = (Number(k.EgresosImporteTotal) || 0);
+    const cantPed = (Number(k.CantidadPedidos) || 0);
+    const cantUnid = (Number(k.CantidadUnidades) || 0);
+    const margenN = (Number(k.MargenNeto) || 0);
 
-    $id('kpi_ingresos').textContent = fmtMon(ingresos);
-    $id('kpi_egresos').textContent = fmtMon(egresos);
-    $id('kpi_pedidos_unidades').textContent = `${fmtInt(cantPed)} / ${fmtInt(cantUnid)}`;
-    $id('kpi_margen').textContent = `${fmtMon(margenN)}`;
-    // $id('kpi_margen').textContent = `${fmtMon(margenN)} (${fmtPct(margenNP)})`;
+    if ($id('kpi_ingresos')) $id('kpi_ingresos').textContent = fmtMon(ingresos);
+    if ($id('kpi_egresos')) $id('kpi_egresos').textContent = fmtMon(egresos);
+    if ($id('kpi_pedidos_unidades')) $id('kpi_pedidos_unidades').textContent = `${fmtInt(cantPed)} / ${fmtInt(cantUnid)}`;
+    if ($id('kpi_margen')) $id('kpi_margen').textContent = fmtMon(margenN);
 
-    // Charts
+    // ===== Costo financiero =====
+    const cfTotal = Number(k.CostoFinanciero_Total ?? k.CostoFinancieroTotal ?? 0) || 0;
+    const cfPctSobreVentas = ingresos > 0 ? (cfTotal * 100 / ingresos) : 0;
+
+    // ===== IVA y netos =====
+    // Si 'ingresos' es bruto con IVA incluido, neto sin IVA = ingresos / 1.21
+    const ingresosSinIVA = ingresos > 0 ? (ingresos / 1.21) : 0;
+    // Neto sin IVA menos CF
+    const netoSinIVAmenosCF = Math.max(0, ingresosSinIVA - cfTotal);
+    // Neto bruto menos CF (como ya existía)
+    const ingresoNeto = Math.max(0, ingresosSinIVA - cfTotal);
+
+    if ($id('kpi_ingresos_sin_iva')) $id('kpi_ingresos_sin_iva').textContent = fmtMon(ingresosSinIVA);
+    if ($id('kpi_cf_total')) $id('kpi_cf_total').textContent = fmtMon(cfTotal);
+    if ($id('kpi_cf_pct_ventas')) $id('kpi_cf_pct_ventas').textContent = `${cfPctSobreVentas.toFixed(2)}%`;
+    if ($id('kpi_neto_sin_iva')) $id('kpi_neto_sin_iva').textContent = fmtMon(netoSinIVAmenosCF);
+    if ($id('kpi_neto_ingresos')) $id('kpi_neto_ingresos').textContent = fmtMon(ingresoNeto);
+
+    // ===== Charts existentes =====
     renderEvolucion(mensual);
     renderMedios(vm?.MediosPago || []);
     renderCrecimiento(vm?.Crecimiento || []);
     renderInteranual(vm?.Interanual || []);
     renderMargenes(mensual);
-    renderCostosMedio(vm?.MediosPago || []);
 
+    // Ventas vs CF por medio (ambos canvas si existen)
+    renderCostosMedioTo('ch_medios_costos', vm?.MediosPago || []);
+    renderCostosMedioTo('ch_medios_costos_2', vm?.MediosPago || []);
+
+    // Tops
     renderTopBars('ch_topMas', 'Más vendidos', vm?.TopMasVendidos || [], r => r.CantidadVendida);
     renderTopBars('ch_topMenos', 'Menos vendidos', vm?.TopMenosVendidos || [], r => r.CantidadVendida);
     renderTopBars('ch_topRentables', 'Más rentables', vm?.TopMasRentables || [], r => (r.MargenBruto || 0));
     renderTopBars('ch_topMenosRentables', 'Menos rentables', vm?.TopMenosRentables || [], r => (r.MargenBruto || 0));
 
-    renderGroupBars('ch_categoria', vm?.PorCategoria || [], g => g.GrupoNombre, g => g.MargenBruto);
-    renderGroupBars('ch_proveedor', vm?.PorProveedor || [], g => g.GrupoNombre, g => g.MargenBruto);
+    // Agrupados (categoría / proveedor)
+    renderGroupBars('ch_categoria', vm?.PorCategoria || [], g => g.GrupoCatNombre ?? g.GrupoNombre, g => g.MargenBruto);
+    renderGroupBars('ch_proveedor', vm?.PorProveedor || [], g => g.GrupoProvNombre ?? g.GrupoNombre, g => g.MargenBruto);
     syncHeights('ch_categoria', 'ch_proveedor');
 
-}
+    // ===== Resumen por porcentaje (lista) =====
+    const cfPorcentaje = vm?.CostoFinancieroPorcentaje || vm?.CFPorcentaje || [];
+    const listEl = $id('cf_porcentaje_list');
+    if (listEl) {
+        listEl.innerHTML = '';
 
+        // Excluir 0% y null y también CF = 0
+        const items = [...safe(cfPorcentaje)]
+            .filter(r => Number(r.RatePct) > 0 && Number(r.CostoFinanciero) > 0)
+            .sort((a, b) => Number(a.RatePct || 0) - Number(b.RatePct || 0));
+
+        items.forEach(r => {
+            const rate = Number(r.RatePct || 0);
+            const cant = Number(r.CantidadPedidos || 0);
+            const vent = Number(r.MontoSubTotal || 0);
+            const cf = Number(r.CostoFinanciero || 0);
+            const cfPct = vent > 0 ? (cf * 100 / vent) : 0;
+
+            const row = document.createElement('div');
+            row.className = 'item';
+            row.innerHTML = `
+                <div class="top">
+                    <div class="rate">${rate.toFixed(2)}%</div>
+                    <div class="pill">Pedidos: ${fmtInt(cant)}</div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <div class="muted">Ventas: ${fmtMon(vent)}</div>
+                    <div class="muted">C.F.: ${fmtMon(cf)} (${cfPct.toFixed(2)}%)</div>
+                </div>
+            `;
+            listEl.appendChild(row);
+        });
+
+        // KPI “Porcentaje más usado” (solo > 0 y con CF > 0) por mayor monto de ventas
+        const topRate = [...items]
+            .sort((a, b) => Number(b.MontoSubTotal || 0) - Number(a.MontoSubTotal || 0))[0];
+
+        if ($id('kpi_cf_mas_usado')) {
+            $id('kpi_cf_mas_usado').textContent = topRate
+                ? `${Number(topRate.RatePct).toFixed(2)}%`
+                : '—';
+        }
+    }
+}
 /* ==================== Chart helpers ==================== */
 function oBase() {
     return {
@@ -646,3 +709,154 @@ function syncHeights(aId, bId) {
     wb.style.height = h + 'px';
 }
 // llamalo al final de render():
+
+
+function labelRate(x) {
+    const r = Number(x || 0);
+    return `${r.toFixed(2)}%`;
+}
+
+/* ===== Costo financiero por % (distribución) ===== */
+function renderCFDistribucion(rows, totalVentas) {
+    const id = 'ch_cf_pct'; kill(id);
+    const data = safe(rows).sort((a, b) => Number(a.RatePct) - Number(b.RatePct));
+    const labels = data.map(r => labelRate(r.RatePct));
+    const ventas = data.map(r => +r.MontoSubTotal || 0);
+    const cf = data.map(r => +r.CostoFinanciero || 0);
+
+    CH[id] = new Chart($id(id), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Ventas (brutas)', data: ventas },
+                { label: 'Costo financiero', data: cf }
+            ]
+        },
+        options: { ...oBase() }
+    });
+
+    // Badges con detalle
+    const wrap = $id('cf_badges');
+    if (wrap) {
+        wrap.innerHTML = '';
+        const totVentas = (totalVentas || ventas.reduce((a, b) => a + b, 0)) || 0;
+        data.forEach(r => {
+            const share = totVentas > 0 ? ((r.MontoSubTotal || 0) * 100 / totVentas) : 0;
+            const porcCF = (r.PorcCF != null) ? Number(r.PorcCF).toFixed(2) : ((r.MontoSubTotal > 0) ? ((r.CostoFinanciero * 100 / r.MontoSubTotal).toFixed(2)) : '0.00');
+            const el = document.createElement('div');
+            el.className = 'd-flex justify-content-between align-items-center p-2 rounded';
+            el.style.cssText = 'background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);';
+            el.innerHTML = `
+                <div>
+                  <div style="font-weight:600">${labelRate(r.RatePct)}</div>
+                  <div class="text-muted" style="font-size:.9rem">
+                    Pedidos: ${fmtInt(r.CantidadPedidos || 0)}
+                  </div>
+                </div>
+                <div class="text-end">
+                  <div>Ventas: ${fmtMon(r.MontoSubTotal || 0)}</div>
+                  <div>C.F.: ${fmtMon(r.CostoFinanciero || 0)} · <span class="text-muted">${porcCF}%</span></div>
+                  <div class="text-muted" style="font-size:.85rem">Participación: ${share.toFixed(1)}%</div>
+                </div>`;
+            wrap.appendChild(el);
+        });
+    }
+}
+
+/* ===== Evolución mensual por % (stacked) ===== */
+function renderCFMensual(rows) {
+    const id = 'ch_cf_pct_mensual';
+    const el = $id(id);
+    if (!el) return; // 🚫 Si no existe el canvas, salir sin romper
+
+    kill(id);
+    const data = safe(rows);
+    const labels = [...new Set(data.map(r => `${r.Anio}-${String(r.Mes).padStart(2, '0')}`))];
+    const rates = [...new Set(data.map(r => Number(r.RatePct || 0)))].sort((a, b) => a - b);
+    const datasets = rates.map(rate => ({
+        label: labelRate(rate),
+        data: labels.map(l => {
+            const [yy, mm] = l.split('-').map(Number);
+            const row = data.find(x =>
+                Number(x.Anio) === yy &&
+                Number(x.Mes) === mm &&
+                Number(x.RatePct || 0) === rate
+            );
+            return row ? Number(row.MontoSubTotal || 0) : 0;
+        }),
+        borderWidth: 1
+    }));
+
+    CH[id] = new Chart(el, {
+        type: 'bar',
+        data: { labels, datasets },
+        options: {
+            ...oBase(),
+            scales: {
+                x: { stacked: true, grid: { color: C.grid }, ticks: { color: C.tick } },
+                y: { stacked: true, grid: { color: C.grid }, ticks: { color: C.tick } }
+            },
+            plugins: { legend: { position: 'top' } }
+        }
+    });
+}
+
+
+function labelRate(x) {
+    const r = Number(x || 0);
+    return `${r.toFixed(2)}%`;
+}
+
+function fillCFList(rows) {
+    const el = $id('cf_porcentaje_list');
+    if (!el) return;
+
+    const data = safe(rows).sort((a, b) => Number(a.RatePct) - Number(b.RatePct));
+    el.innerHTML = '';
+
+    data.forEach(r => {
+        const rate = labelRate(r.RatePct);
+        const pedidos = fmtInt(r.CantidadPedidos || 0);
+        const ventas = fmtMon(r.MontoSubTotal || 0);
+        const cf = fmtMon(r.CostoFinanciero || 0);
+        const porcCF = (r.PorcCF != null)
+            ? `${Number(r.PorcCF).toFixed(2)}%`
+            : ((r.MontoSubTotal > 0) ? `${(Number(r.CostoFinanciero) * 100 / Number(r.MontoSubTotal)).toFixed(2)}%` : '0.00%');
+
+        const item = document.createElement('div');
+        item.className = 'item';
+        item.innerHTML = `
+            <div class="top">
+                <div class="rate">${rate}</div>
+                <div class="pill">Pedidos: ${pedidos}</div>
+            </div>
+            <div class="muted">Ventas: ${ventas}</div>
+            <div class="muted">Costo financiero: ${cf} · ${porcCF}</div>
+        `;
+        el.appendChild(item);
+    });
+}
+
+
+function renderCostosMedioTo(canvasId, rows) {
+    const el = $id(canvasId);
+    if (!el) return;          // si ese canvas no está, no hace nada
+    if (CH[canvasId]) { CH[canvasId].destroy(); CH[canvasId] = null; }
+
+    const labels = rows.map(r => r.FormaPago ?? 'N/D');
+    const ventas = rows.map(r => +r.MontoSubTotal || 0);
+    const costos = rows.map(r => +r.CostoFinancieroEstimado || 0);
+
+    CH[canvasId] = new Chart(el, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Ventas', data: ventas },
+                { label: 'Costo financiero', data: costos }
+            ]
+        },
+        options: oBase()
+    });
+}

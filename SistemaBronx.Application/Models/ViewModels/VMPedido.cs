@@ -39,6 +39,10 @@ namespace SistemaBronx.Application.Models.ViewModels
         public string Telefono { get; set; }
         public string Comentarios { get; set; }
 
+        public decimal? CostoFinancieroPorc { get; set; }
+
+        public decimal? CostoFinanciero { get; set; }
+
 
         public virtual Cliente? IdClienteNavigation { get; set; }
 

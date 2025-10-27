@@ -45,7 +45,9 @@ namespace SistemaBronx.Application.Controllers
                     Comentarios = model.Comentarios,
                     Finalizado = model.Finalizado,
                     Facturado = model.Facturado,
-                    NroFactura = model.NroFactura
+                    NroFactura = model.NroFactura,
+                    CostoFinanciero = model.CostoFinanciero,
+                    CostoFinancieroPorc = model.CostoFinancieroPorc
 
                 };
 
@@ -133,6 +135,8 @@ namespace SistemaBronx.Application.Controllers
                 pedido.Finalizado = (int)model.Finalizado;
                 pedido.Facturado = (int)model.Facturado;
                 pedido.NroFactura = model.NroFactura;
+                pedido.CostoFinanciero = model.CostoFinanciero;
+                pedido.CostoFinancieroPorc = model.CostoFinancieroPorc;
 
                 // Actualizar Detalles de Productos
                 List<PedidosDetalle> pedidoDetalle = new List<PedidosDetalle>();
@@ -256,20 +260,20 @@ namespace SistemaBronx.Application.Controllers
                     ImporteAbonado = c.ImporteAbonado,
                     ImporteTotal = c.ImporteTotal,
                     Comentarios = c.Comentarios,
+                    CostoFinanciero = c.CostoFinanciero,
+                    CostoFinancieroPorc = c.CostoFinancieroPorc,
                     Estado =
-    c.PedidosDetalleProcesos.Any() &&
-    c.PedidosDetalleProcesos.All(p => (p.IdEstadoNavigation?.Nombre?.Trim().ToUpper() ?? "") == "FINALIZADO") &&
-    (c.Saldo ?? 0) == 0
-        ? "FINALIZADO"
-    : c.PedidosDetalleProcesos.Any() &&
-      c.PedidosDetalleProcesos.All(p => (p.IdEstadoNavigation?.Nombre?.Trim().ToUpper() ?? "") == "ENTREGADO")
-        ? "ENTREGADO"
-    : c.PedidosDetalleProcesos.Any() &&
-      c.PedidosDetalleProcesos.All(p => (p.IdEstadoNavigation?.Nombre?.Trim().ToUpper() ?? "") == "ENTREGAR")
-        ? "ENTREGAR"
-    : "EN PROCESO"
-
-
+                            c.PedidosDetalleProcesos.Any() &&
+                            c.PedidosDetalleProcesos.All(p => (p.IdEstadoNavigation?.Nombre?.Trim().ToUpper() ?? "") == "FINALIZADO") &&
+                            (c.Saldo ?? 0) == 0
+                                ? "FINALIZADO"
+                            : c.PedidosDetalleProcesos.Any() &&
+                              c.PedidosDetalleProcesos.All(p => (p.IdEstadoNavigation?.Nombre?.Trim().ToUpper() ?? "") == "ENTREGADO")
+                                ? "ENTREGADO"
+                            : c.PedidosDetalleProcesos.Any() &&
+                              c.PedidosDetalleProcesos.All(p => (p.IdEstadoNavigation?.Nombre?.Trim().ToUpper() ?? "") == "ENTREGAR")
+                                ? "ENTREGAR"
+                            : "EN PROCESO"
 
                 }).ToList();
 
@@ -310,6 +314,8 @@ namespace SistemaBronx.Application.Controllers
                 ImporteAbonado = pedido.ImporteAbonado,
                 ImporteTotal = pedido.ImporteTotal,
                 Comentarios = pedido.Comentarios,
+                CostoFinanciero = pedido.CostoFinanciero,
+                CostoFinancieroPorc = pedido.CostoFinancieroPorc,
                 Estado = "Pendiente",
             };
 

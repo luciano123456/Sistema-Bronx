@@ -17,6 +17,7 @@ public partial class SistemaBronxContext : DbContext
     {
     }
 
+
     private readonly IConfiguration _configuration;
 
 
@@ -28,6 +29,7 @@ public partial class SistemaBronxContext : DbContext
             optionsBuilder.UseSqlServer(connectionString);
         }
     }
+
     public virtual DbSet<Cliente> Clientes { get; set; }
 
     public virtual DbSet<Color> Colores { get; set; }
@@ -86,6 +88,7 @@ public partial class SistemaBronxContext : DbContext
 
     public virtual DbSet<User> Usuarios { get; set; }
 
+ 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -250,6 +253,7 @@ public partial class SistemaBronxContext : DbContext
         {
             entity.ToTable("FormasdePago");
 
+            entity.Property(e => e.CostoFinanciero).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Nombre)
                 .HasMaxLength(255)
                 .IsUnicode(false);
@@ -346,6 +350,8 @@ public partial class SistemaBronxContext : DbContext
             entity.Property(e => e.Comentarios)
                 .HasMaxLength(500)
                 .IsUnicode(false);
+            entity.Property(e => e.CostoFinanciero).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.CostoFinancieroPorc).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Fecha).HasColumnType("datetime");
             entity.Property(e => e.ImporteAbonado).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.ImporteTotal).HasColumnType("decimal(20, 2)");

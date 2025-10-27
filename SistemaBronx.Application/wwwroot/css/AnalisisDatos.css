@@ -351,8 +351,16 @@ body {
     background: linear-gradient(135deg,#4aa3ff,#5b8cff)
 }
 
+.bg-grad-orange {
+    background: linear-gradient(135deg,#e44d14,#e44d14)
+}
+
 .bg-grad-red {
     background: linear-gradient(135deg,#ff6a88,#ff5252)
+}
+
+.bg-grad-zebra {
+    background: linear-gradient(135deg,#f59c30,#e8c439)
 }
 
 .bg-grad-purple {

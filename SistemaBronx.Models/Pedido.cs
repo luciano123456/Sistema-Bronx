@@ -31,6 +31,10 @@ public partial class Pedido
 
     public string? NroFactura { get; set; }
 
+    public decimal? CostoFinancieroPorc { get; set; }
+
+    public decimal? CostoFinanciero { get; set; }
+
     public virtual Cliente? IdClienteNavigation { get; set; }
 
     public virtual FormasdePago? IdFormaPagoNavigation { get; set; }
