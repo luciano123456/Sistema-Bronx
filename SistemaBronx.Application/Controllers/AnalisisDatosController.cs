@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
-using TuProyecto.Services.Interfaces;
+using TuProyecto.Services.Interfaces; // <-- mantené tu interfaz real
 
 namespace SistemaBronx.Application.Controllers
 {
@@ -128,18 +128,19 @@ namespace SistemaBronx.Application.Controllers
                             MargenBrutoPct = Get<decimal?>(r, "MargenBrutoPct"),
                         }),
 
+                    // 14) Real mensual (CF NETO)
                     RealMensual = MapBySchema(ds,
-                    defaultIndex: 14,
-                    requiredCols: new[] { "Anio", "Mes", "IngresoEnMano", "GastoFabricacion", "GastoOperativo", "ResultadoMes" },
-                    map: r => new RealMensualVM
-                    {
-                        Anio = Get<int>(r, "Anio"),
-                        Mes = Get<int>(r, "Mes"),
-                        IngresoEnMano = Get<decimal>(r, "IngresoEnMano"),
-                        GastoFabricacion = Get<decimal>(r, "GastoFabricacion"),
-                        GastoOperativo = Get<decimal>(r, "GastoOperativo"),
-                        ResultadoMes = Get<decimal>(r, "ResultadoMes")
-                    }),
+                        defaultIndex: 14,
+                        requiredCols: new[] { "Anio", "Mes", "IngresoEnMano", "GastoFabricacion", "GastoOperativo", "ResultadoMes" },
+                        map: r => new RealMensualVM
+                        {
+                            Anio = Get<int>(r, "Anio"),
+                            Mes = Get<int>(r, "Mes"),
+                            IngresoEnMano = Get<decimal>(r, "IngresoEnMano"),
+                            GastoFabricacion = Get<decimal>(r, "GastoFabricacion"),
+                            GastoOperativo = Get<decimal>(r, "GastoOperativo"),
+                            ResultadoMes = Get<decimal>(r, "ResultadoMes")
+                        }),
 
                     // 15) CF por porcentaje
                     CostoFinancieroPorcentaje = MapBySchema(ds,
@@ -154,7 +155,7 @@ namespace SistemaBronx.Application.Controllers
                             PorcCF = Get<decimal?>(r, "PorcCF")
                         }),
 
-                    // 16) CF por % mensual (si existe)
+                    // 16) CF por % mensual
                     CostoFinancieroPorcentajeMensual = MapBySchema(ds,
                         defaultIndex: 16,
                         requiredCols: new[] { "Anio", "Mes", "RatePct", "MontoSubTotal" },
@@ -220,7 +221,6 @@ namespace SistemaBronx.Application.Controllers
             return (T)Convert.ChangeType(v, targetType);
         }
 
-
         private static KpisVM MapKpis(DataRow r) => new()
         {
             IngresosSubTotal = Get<decimal>(r, "IngresosSubTotal"),
@@ -238,14 +238,19 @@ namespace SistemaBronx.Application.Controllers
             MargenOperativoPct = Get<decimal?>(r, "MargenOperativoPct"),
             MargenNetoPct = Get<decimal?>(r, "MargenNetoPct"),
 
-            // RS0 campos del SP
+            // Nuevos campos
             IVA_Total = Get<decimal>(r, "IVA_Total"),
             Neto_Total = Get<decimal>(r, "Neto_Total"),
             CostoFinanciero_Total = Get<decimal>(r, "CostoFinanciero_Total"),
-            IngresoEnMano_Total = Get<decimal>(r, "IngresoEnMano_Total")
+            CostoFinanciero_Neto_Total = Get<decimal>(r, "CostoFinanciero_Neto_Total"),
+            CostoFinanciero_IVA_Total = Get<decimal>(r, "CostoFinanciero_IVA_Total"),
+            GastosNeto_Total = Get<decimal>(r, "GastosNeto_Total"),
+            GastosIVA_Total = Get<decimal>(r, "GastosIVA_Total"),
+            IngresoEnMano_Total = Get<decimal>(r, "IngresoEnMano_Total"),
+            MasMenos_FactVsGastosNeto = Get<decimal>(r, "MasMenos_FactVsGastosNeto"),
+            MasMenos_IVA = Get<decimal>(r, "MasMenos_IVA"),
+            IncidenciaOperativaPct = Get<decimal?>(r, "IncidenciaOperativaPct")
         };
-
-
 
         private static ProdVM MapProd(DataRow r) => new()
         {

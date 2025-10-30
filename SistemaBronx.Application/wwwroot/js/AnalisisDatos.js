@@ -1,11 +1,13 @@
 ﻿/* =======================================================================
- * AnalisisDatos Dashboard v5.2  (full)
+ * AnalisisDatos Dashboard v5.4 (full & estable)
+ * - Respeta tu estructura original
+ * - Usa los nuevos campos del SP (Neto_Total, CF_Neto, CF_IVA, MasMenos_IVA, etc.)
+ * - Arregla overlay del panel de fechas (no bloquea el botón Consultar)
  * ======================================================================= */
 
 const $id = s => document.getElementById(s);
 const fmtMon = n => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 }).format(Number(n || 0));
 const fmtInt = n => new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(Number(n || 0));
-const fmtPct = n => (n === null || n === undefined) ? '—' : `${Number(n).toFixed(1)}%`;
 const safe = a => Array.isArray(a) ? a : [];
 const C = { grid: 'rgba(255,255,255,.07)', tick: 'rgba(255,255,255,.65)', text: '#e7e9fb' };
 
@@ -16,18 +18,15 @@ let DATE_PORTAL = null, PANEL_MOVED = false;
 
 document.addEventListener('DOMContentLoaded', init);
 
+/* ============================ INIT ============================ */
 async function init() {
-    /* ====== Defaults globales de Chart.js ======
-       -> hace visibles los “recuadros” de las barras en dark */
+    // Defaults Chart.js
     if (window.Chart) {
         Chart.defaults.color = C.text;
         Chart.defaults.font.family = 'system-ui,-apple-system,Segoe UI,Roboto';
         Chart.defaults.elements.bar.borderWidth = 1.2;
         Chart.defaults.elements.bar.borderColor = 'rgba(255,255,255,0.18)';
         Chart.defaults.elements.bar.borderSkipped = false;
-        Chart.defaults.elements.bar.hoverBorderWidth = 1.2;
-        Chart.defaults.elements.bar.hoverBorderColor = 'rgba(255,255,255,0.28)';
-        // grids más sutiles para que el borde destaque
         Chart.defaults.scale.grid.color = C.grid;
         Chart.defaults.scale.ticks.color = C.tick;
     }
@@ -39,15 +38,13 @@ async function init() {
         onClose: (sel) => { if (sel.length === 2) setCustom(sel[0], sel[1]); }
     });
 
-    // Chips rango
-    document.querySelectorAll('#ad-chips .chip').forEach(ch =>
-        ch.addEventListener('click', () => chipClick(ch))
-    );
+    // Chips
+    document.querySelectorAll('#ad-chips .chip').forEach(ch => ch.addEventListener('click', () => chipClick(ch)));
 
+    // Abrir/Cerrar panel
     $id('ad-date-pill').addEventListener('click', () => togglePanel(true));
     $id('ad-cancel').addEventListener('click', () => togglePanel(false));
     $id('ad-apply').addEventListener('click', () => { togglePanel(false); consultar(); });
-
     document.addEventListener('click', (e) => {
         const panel = $id('ad-date-panel'), pill = $id('ad-date-pill');
         if (!panel || panel.hidden) return;
@@ -59,15 +56,15 @@ async function init() {
     $id('btnConsultar').addEventListener('click', consultar);
     $id('btnExportar').addEventListener('click', exportarPDF);
 
-    setPreset(30);
-    consultar();
-
-    // Paginadores
+    // Paginadores de Tops
     document.querySelectorAll('.ad-pager').forEach(pg => {
         const key = pg.getAttribute('data-for');
         pg.querySelector('.prev').addEventListener('click', () => turnPage(key, -1));
         pg.querySelector('.next').addEventListener('click', () => turnPage(key, +1));
     });
+
+    setPreset(30);
+    consultar();
 }
 
 /* ===================== Clientes (Select2) ===================== */
@@ -79,13 +76,9 @@ async function cargarClientes() {
 
         const sl = $('#filtroCliente');
         sl.empty();
+        sl.append(new Option('Todos', '', true, true));   // por defecto
 
-        // Siempre “Todos” por defecto
-        sl.append(new Option('Todos', '', true, true));
-
-        safe(data).forEach(c => {
-            sl.append(new Option(c.Nombre || '(Sin nombre)', c.Id));
-        });
+        safe(data).forEach(c => sl.append(new Option(c.Nombre || '(Sin nombre)', c.Id)));
 
         sl.select2({
             width: '260px',
@@ -95,18 +88,17 @@ async function cargarClientes() {
             dropdownCssClass: 'select2-dark'
         });
 
-        // Reafirmar estilos blancos (por si algún tema pisa)
-        $('.select2-dark .select2-results__option').css({ 'color': '#fff', 'background': 'transparent' });
-        $('.select2-dark .select2-results__option--highlighted').css({ 'background': '#26346e', 'color': '#fff' });
+        // Refuerzo de estilos en dropdown oscuro
+        $('.select2-dark .select2-results__option').css({ color: '#fff', background: 'transparent' });
+        $('.select2-dark .select2-results__option--highlighted').css({ background: '#26346e', color: '#fff' });
 
-        // Valor inicial: Todos
         sl.val('').trigger('change');
     } catch (err) {
         console.error('Error al cargar clientes:', err);
     }
 }
 
-/* ====================== Filtros ====================== */
+/* ====================== Filtros/Fechas ====================== */
 function getFiltros() {
     const toIsoNoZ = (d, end = false) => {
         if (!d) return null;
@@ -123,48 +115,21 @@ function getFiltros() {
     };
 }
 
-/* ==================== Fechas / Presets ==================== */
 function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
 function setPreset(key) {
-    const now = new Date();
-    let start = now;
-    let end = now;
-    let label = '';
+    const now = new Date(); let start = now, end = now, label = '';
+    if (String(key) === '1') { start = now; label = 'Hoy'; }
+    else if (String(key) === '7') { start = addDays(now, -6); label = 'Últimos 7 días'; }
+    else if (String(key) === '90') { start = addDays(now, -89); label = 'Últimos 90 días'; }
+    else if (key === 'ytd') { start = new Date(now.getFullYear(), 0, 1); label = 'Year to date'; }
+    else if (key === 'year') { start = new Date(now.getFullYear(), 0, 1); end = new Date(now.getFullYear(), 11, 31); label = 'Este año'; }
+    else { start = addDays(now, -29); label = 'Últimos 30 días'; } // default
 
-    // Usar una sola cadena de if / else if
-    if (String(key) === '1') {
-        // Hoy: desde hoy
-        start = now;
-        label = 'Hoy';
-    } else if (String(key) === '7') {
-        // Últimos 7 días (incluye hoy)
-        start = addDays(now, -6);
-        label = 'Últimos 7 días';
-    } else if (String(key) === '90') {
-        start = addDays(now, -89);
-        label = 'Últimos 90 días';
-    } else if (key === 'ytd') {
-        start = new Date(now.getFullYear(), 0, 1);
-        label = 'Year to date';
-    } else if (key === 'year') {
-        start = new Date(now.getFullYear(), 0, 1);
-        end = new Date(now.getFullYear(), 11, 31);
-        label = 'Este año';
-    } else {
-        // Últimos 30 días (por defecto)
-        start = addDays(now, -29);
-        label = 'Últimos 30 días';
-    }
-
-    // Guardamos rango (getFiltros ya normaliza a 00:00 y 23:59)
     rango = { desde: start, hasta: end, label };
     $id('ad-date-text').textContent = label;
 
-    // Estado visual de chips
-    document.querySelectorAll('#ad-chips .chip')
-        .forEach(c => c.classList.toggle('active', c.dataset.range === String(key)));
+    document.querySelectorAll('#ad-chips .chip').forEach(c => c.classList.toggle('active', c.dataset.range === String(key)));
 }
-
 function setCustom(a, b) {
     rango = { desde: a, hasta: b, label: `${moment(a).format('DD/MM/YYYY')} a ${moment(b).format('DD/MM/YYYY')}` };
     $id('ad-date-text').textContent = rango.label;
@@ -173,15 +138,11 @@ function setCustom(a, b) {
 }
 function chipClick(chip) {
     const k = chip.dataset.range;
-    if (k === 'custom') {
-        const end = new Date(); const start = addDays(end, -29);
-        flat.setDate([start, end], true);
-    } else {
-        setPreset(k); togglePanel(false); consultar();
-    }
+    if (k === 'custom') { const end = new Date(); const start = addDays(end, -29); flat.setDate([start, end], true); }
+    else { setPreset(k); togglePanel(false); consultar(); }
 }
 
-/* ============ Portal/Overlay del panel de fechas ============ */
+/* ======= Portal/Overlay del panel de fechas (no bloquea nada) ======= */
 function ensurePortal() {
     if (!DATE_PORTAL) {
         DATE_PORTAL = document.createElement('div');
@@ -191,7 +152,7 @@ function ensurePortal() {
 }
 function togglePanel(show) {
     const panel = $id('ad-date-panel'), pill = $id('ad-date-pill');
-    if (!show) { if (panel) panel.hidden = true; return; }
+    if (!show) { if (panel) { panel.hidden = true; panel.style.left = '-9999px'; panel.style.top = '-9999px'; } return; }
     ensurePortal();
     if (!PANEL_MOVED) { DATE_PORTAL.appendChild(panel); PANEL_MOVED = true; }
     panel.hidden = false; panel.style.opacity = '0'; panel.style.left = '0px'; panel.style.top = '0px';
@@ -226,56 +187,47 @@ async function consultar() {
 function toggleBtn(b) {
     const btn = $id('btnConsultar');
     btn.disabled = b;
-    btn.innerHTML = b
-        ? `<span class="spinner-border spinner-border-sm me-2"></span>Consultando...`
+    btn.innerHTML = b ? `<span class="spinner-border spinner-border-sm me-2"></span>Consultando...`
         : `<i class="ti ti-search me-1"></i> Consultar`;
 }
 
 /* ========================= Render ========================= */
-function pick(obj, a, b) { return obj?.[a] ?? obj?.[b] ?? 0; }
-
 function render(vm) {
     const k = vm?.Kpis || {};
     const mensual = vm?.Mensual || [];
 
-    // ===== KPIs base =====
-    const ingresos = (Number(k.IngresosImporteTotal) || Number(k.IngresosSubTotal) || 0);
-    const egresos = (Number(k.EgresosImporteTotal) || 0);
-    const cantPed = (Number(k.CantidadPedidos) || 0);
-    const cantUnid = (Number(k.CantidadUnidades) || 0);
-    const margenN = (Number(k.MargenNeto) || 0);
+    // ===== KPIs según SP nuevo =====
+    const ingresosBrutos = Number(k.IngresosImporteTotal ?? k.IngresosSubTotal ?? 0) || 0; // BRUTA con IVA
+    const ventasNetas = Number(k.Neto_Total ?? 0) || 0;                                   // sin IVA
+    const cfTotal = Number(k.CostoFinanciero_Total ?? 0) || 0;                        // con IVA
+    const cfNeto = Number(k.CostoFinanciero_Neto_Total ?? 0) || 0;                   // neto
+    const egresosBrutos = Number(k.EgresosImporteTotal ?? 0) || 0;
+    const cantPed = Number(k.CantidadPedidos ?? 0) || 0;
+    const cantUnid = Number(k.CantidadUnidades ?? 0) || 0;
 
-    if ($id('kpi_ingresos')) $id('kpi_ingresos').textContent = fmtMon(ingresos);
-    if ($id('kpi_egresos')) $id('kpi_egresos').textContent = fmtMon(egresos);
-    if ($id('kpi_pedidos_unidades')) $id('kpi_pedidos_unidades').textContent = `${fmtInt(cantPed)} / ${fmtInt(cantUnid)}`;
-    if ($id('kpi_margen')) $id('kpi_margen').textContent = fmtMon(margenN);
+    // KPI textos
+    $id('kpi_ingresos').textContent = fmtMon(ingresosBrutos);
+    $id('kpi_ingresos_sin_iva').textContent = fmtMon(ventasNetas);
+    $id('kpi_cf_total').textContent = fmtMon(cfTotal);
+    $id('kpi_egresos').textContent = fmtMon(egresosBrutos);
+    $id('kpi_pedidos_unidades').textContent = `${fmtInt(cantPed)} / ${fmtInt(cantUnid)}`;
 
-    // ===== Costo financiero =====
-    const cfTotal = Number(k.CostoFinanciero_Total ?? k.CostoFinancieroTotal ?? 0) || 0;
-    const cfPctSobreVentas = ingresos > 0 ? (cfTotal * 100 / ingresos) : 0;
+    // Ingreso neto “en mano” = Neto_Total - CF_Neto (según SP)
+    const ingresoEnMano = Number(k.IngresoEnMano_Total ?? (ventasNetas - cfNeto)) || 0;
+    $id('kpi_neto_ingresos').textContent = fmtMon(ingresoEnMano);
 
-    // ===== IVA y netos =====
-    // Si 'ingresos' es bruto con IVA incluido, neto sin IVA = ingresos / 1.21
-    const ingresosSinIVA = ingresos > 0 ? (ingresos / 1.21) : 0;
-    // Neto sin IVA menos CF
-    const netoSinIVAmenosCF = Math.max(0, ingresosSinIVA - cfTotal);
-    // Neto bruto menos CF (como ya existía)
-    const ingresoNeto = Math.max(0, ingresosSinIVA - cfTotal);
+    // % CF sobre ventas (usamos CF TOTAL / BRUTA para coherencia visual)
+    const cfPctSobreVentas = ingresosBrutos > 0 ? (cfTotal * 100 / ingresosBrutos) : 0;
+    $id('kpi_cf_pct_ventas').textContent = `${cfPctSobreVentas.toFixed(2)}%`;
 
-    if ($id('kpi_ingresos_sin_iva')) $id('kpi_ingresos_sin_iva').textContent = fmtMon(ingresosSinIVA);
-    if ($id('kpi_cf_total')) $id('kpi_cf_total').textContent = fmtMon(cfTotal);
-    if ($id('kpi_cf_pct_ventas')) $id('kpi_cf_pct_ventas').textContent = `${cfPctSobreVentas.toFixed(2)}%`;
-    if ($id('kpi_neto_sin_iva')) $id('kpi_neto_sin_iva').textContent = fmtMon(netoSinIVAmenosCF);
-    if ($id('kpi_neto_ingresos')) $id('kpi_neto_ingresos').textContent = fmtMon(ingresoNeto);
-
-    // ===== Charts existentes =====
+    // ===== Charts =====
     renderEvolucion(mensual);
     renderMedios(vm?.MediosPago || []);
     renderCrecimiento(vm?.Crecimiento || []);
     renderInteranual(vm?.Interanual || []);
     renderMargenes(mensual);
 
-    // Ventas vs CF por medio (ambos canvas si existen)
+    // Ventas vs CF por medio (dos canvas)
     renderCostosMedioTo('ch_medios_costos', vm?.MediosPago || []);
     renderCostosMedioTo('ch_medios_costos_2', vm?.MediosPago || []);
 
@@ -285,55 +237,20 @@ function render(vm) {
     renderTopBars('ch_topRentables', 'Más rentables', vm?.TopMasRentables || [], r => (r.MargenBruto || 0));
     renderTopBars('ch_topMenosRentables', 'Menos rentables', vm?.TopMenosRentables || [], r => (r.MargenBruto || 0));
 
-    // Agrupados (categoría / proveedor)
+    // Agrupados
     renderGroupBars('ch_categoria', vm?.PorCategoria || [], g => g.GrupoCatNombre ?? g.GrupoNombre, g => g.MargenBruto);
     renderGroupBars('ch_proveedor', vm?.PorProveedor || [], g => g.GrupoProvNombre ?? g.GrupoNombre, g => g.MargenBruto);
     syncHeights('ch_categoria', 'ch_proveedor');
 
-    // ===== Resumen por porcentaje (lista) =====
-    const cfPorcentaje = vm?.CostoFinancieroPorcentaje || vm?.CFPorcentaje || [];
-    const listEl = $id('cf_porcentaje_list');
-    if (listEl) {
-        listEl.innerHTML = '';
+    // Resumen por porcentaje (lista) → excluir 0 y nulos
+    fillCFList((vm?.CostoFinancieroPorcentaje || []).filter(r => Number(r.RatePct) > 0 && Number(r.CostoFinanciero) > 0));
 
-        // Excluir 0% y null y también CF = 0
-        const items = [...safe(cfPorcentaje)]
-            .filter(r => Number(r.RatePct) > 0 && Number(r.CostoFinanciero) > 0)
-            .sort((a, b) => Number(a.RatePct || 0) - Number(b.RatePct || 0));
-
-        items.forEach(r => {
-            const rate = Number(r.RatePct || 0);
-            const cant = Number(r.CantidadPedidos || 0);
-            const vent = Number(r.MontoSubTotal || 0);
-            const cf = Number(r.CostoFinanciero || 0);
-            const cfPct = vent > 0 ? (cf * 100 / vent) : 0;
-
-            const row = document.createElement('div');
-            row.className = 'item';
-            row.innerHTML = `
-                <div class="top">
-                    <div class="rate">${rate.toFixed(2)}%</div>
-                    <div class="pill">Pedidos: ${fmtInt(cant)}</div>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <div class="muted">Ventas: ${fmtMon(vent)}</div>
-                    <div class="muted">C.F.: ${fmtMon(cf)} (${cfPct.toFixed(2)}%)</div>
-                </div>
-            `;
-            listEl.appendChild(row);
-        });
-
-        // KPI “Porcentaje más usado” (solo > 0 y con CF > 0) por mayor monto de ventas
-        const topRate = [...items]
-            .sort((a, b) => Number(b.MontoSubTotal || 0) - Number(a.MontoSubTotal || 0))[0];
-
-        if ($id('kpi_cf_mas_usado')) {
-            $id('kpi_cf_mas_usado').textContent = topRate
-                ? `${Number(topRate.RatePct).toFixed(2)}%`
-                : '—';
-        }
-    }
+    // KPI “% CF más usado” (el de mayor monto de ventas, >0)
+    const cfRates = (vm?.CostoFinancieroPorcentaje || []).filter(r => Number(r.RatePct) > 0 && Number(r.MontoSubTotal) > 0);
+    const topRate = cfRates.sort((a, b) => Number(b.MontoSubTotal) - Number(a.MontoSubTotal))[0];
+    $id('kpi_cf_mas_usado').textContent = topRate ? `${Number(topRate.RatePct).toFixed(2)}%` : '—';
 }
+
 /* ==================== Chart helpers ==================== */
 function oBase() {
     return {
@@ -342,36 +259,21 @@ function oBase() {
         plugins: {
             legend: {
                 position: 'top',
-                labels: {
-                    color: C.text,
-                    boxWidth: 10,     // más chico
-                    boxHeight: 10,
-                    padding: 10,
-                    usePointStyle: false
-                }
+                labels: { color: C.text, boxWidth: 10, boxHeight: 10, padding: 10, usePointStyle: false }
             },
             tooltip: {
-                backgroundColor: 'rgba(15,20,38,.95)',
-                titleColor: '#fff',
-                bodyColor: '#cdd4ff',
-                padding: 8,        // antes 12
-                borderColor: 'rgba(255,255,255,.10)',
-                borderWidth: 1,
-                cornerRadius: 8,
-                caretSize: 5,
-                titleFont: { size: 11 },
-                bodyFont: { size: 11 }
+                backgroundColor: 'rgba(15,20,38,.95)', titleColor: '#fff', bodyColor: '#cdd4ff',
+                padding: 8, borderColor: 'rgba(255,255,255,.10)', borderWidth: 1, cornerRadius: 8, caretSize: 5,
+                titleFont: { size: 11 }, bodyFont: { size: 11 }
             }
         },
-        scales: {
-            x: { grid: { color: C.grid }, ticks: { color: C.tick } },
-            y: { grid: { color: C.grid }, ticks: { color: C.tick } }
-        }
+        scales: { x: { grid: { color: C.grid }, ticks: { color: C.tick } }, y: { grid: { color: C.grid }, ticks: { color: C.tick } } }
     };
 }
-
-function kill(key) { if (CH[key]) { CH[key].destroy(); CH[key] = null; } }
-
+function kill(key) {
+    try { if (CH[key]) { CH[key].destroy(); } } catch { }
+    CH[key] = null;
+}
 /* ======================= Charts ======================= */
 function renderEvolucion(rows) {
     const id = 'ch_linea'; kill(id);
@@ -380,90 +282,58 @@ function renderEvolucion(rows) {
     const ventas = data.map(r => +r.Ingresos || 0);
     const costos = data.map(r => +r.CostoMercaderia || 0);
     const mBruto = data.map(r => +r.MargenBruto || 0);
-
     CH[id] = new Chart($id(id), {
-        type: 'line',
-        data: {
+        type: 'line', data: {
             labels, datasets: [
                 { label: 'Ventas', data: ventas, tension: .35, borderWidth: 2, fill: false },
                 { label: 'Costos', data: costos, tension: .35, borderWidth: 2, fill: false },
                 { label: 'Margen bruto', data: mBruto, tension: .35, borderWidth: 2, fill: false }
             ]
-        },
-        options: oBase()
+        }, options: oBase()
     });
 }
 function renderMedios(rows) {
     const id = 'ch_medios'; kill(id);
     const labels = rows.map(r => r.FormaPago ?? 'N/D');
     const data = rows.map(r => +r.MontoSubTotal || 0);
-    CH[id] = new Chart($id(id), {
-        type: 'doughnut',
-        data: { labels, datasets: [{ data }] },
-        options: { ...oBase(), cutout: '60%' }
-    });
+    CH[id] = new Chart($id(id), { type: 'doughnut', data: { labels, datasets: [{ data }] }, options: { ...oBase(), cutout: '60%' } });
 }
 function renderCrecimiento(rows) {
     const id = 'ch_crecimiento'; kill(id);
-    const data = safe(rows);
-    const labels = data.map(r => `${r.Anio}-${String(r.Mes).padStart(2, '0')}`);
+    const data = safe(rows); const labels = data.map(r => `${r.Anio}-${String(r.Mes).padStart(2, '0')}`);
     CH[id] = new Chart($id(id), {
-        type: 'bar',
-        data: {
+        type: 'bar', data: {
             labels, datasets: [
                 { label: 'Pedidos', data: data.map(r => +r.CantidadPedidos || 0) },
                 { label: 'Unidades', data: data.map(r => +r.CantidadUnidades || 0) }
             ]
-        },
-        options: oBase()
+        }, options: oBase()
     });
 }
 function renderInteranual(rows) {
     const id = 'ch_interanual'; kill(id);
-    const data = safe(rows);
-    const labels = data.map(r => moment(r.Periodo).format('YYYY-MM'));
+    const data = safe(rows); const labels = data.map(r => moment(r.Periodo).format('YYYY-MM'));
     const actual = data.map(r => +r.VentaActualMes || 0);
     const prev = data.map(r => +r.VentaMismoMesAnioAnterior || +r.VentaMismoMesAñoAnterior || 0);
     CH[id] = new Chart($id(id), {
-        type: 'line',
-        data: {
+        type: 'line', data: {
             labels, datasets: [
                 { label: 'Año actual', data: actual, tension: .35, borderWidth: 2, fill: false },
                 { label: 'Año anterior', data: prev, tension: .35, borderDash: [6, 6], borderWidth: 2, fill: false }
             ]
-        },
-        options: oBase()
+        }, options: oBase()
     });
 }
 function renderMargenes(rows) {
     const id = 'ch_margenes'; kill(id);
-    const data = safe(rows);
-    const labels = data.map(r => `${r.Anio}-${String(r.Mes).padStart(2, '0')}`);
+    const data = safe(rows); const labels = data.map(r => `${r.Anio}-${String(r.Mes).padStart(2, '0')}`);
     CH[id] = new Chart($id(id), {
-        type: 'line',
-        data: {
+        type: 'line', data: {
             labels, datasets: [
                 { label: 'Margen bruto', data: data.map(r => +r.MargenBruto || 0), tension: .35, borderWidth: 2, fill: false },
                 { label: 'Margen operativo', data: data.map(r => +r.MargenOperativo || 0), tension: .35, borderWidth: 2, fill: false }
             ]
-        },
-        options: oBase()
-    });
-}
-function renderCostosMedio(rows) {
-    const id = 'ch_medios_costos'; kill(id);
-    const labels = rows.map(r => r.FormaPago ?? 'N/D');
-    const ventas = rows.map(r => +r.MontoSubTotal || 0);
-    const costos = rows.map(r => +r.CostoFinancieroEstimado || 0);
-    CH[id] = new Chart($id(id), {
-        type: 'bar',
-        data: {
-            labels, datasets: [
-                { label: 'Ventas', data: ventas },
-                { label: 'Costo financiero', data: costos }
-            ]
-        },
-        options: oBase()
+        }, options: oBase()
     });
 }
 
@@ -491,44 +361,31 @@ function turnPage(key, delta) {
     if (key === 'ch_topRentables') renderTopBars('ch_topRentables', 'Más rentables', p.data, r => r.MargenBruto, true);
     if (key === 'ch_topMenosRentables') renderTopBars('ch_topMenosRentables', 'Menos rentables', p.data, r => r.MargenBruto, true);
 }
-
 function renderTopBars(canvasId, title, rows, valSel, fromPager = false) {
     kill(canvasId);
     if (!fromPager) setupPager(canvasId, rows);
     const p = PAGER[canvasId];
     const start = (p.page - 1) * p.pageSize, end = start + p.pageSize;
     const data = safe(p.data).slice(start, end);
-
     const labels = data.map(r => r.Producto ?? `#${r.IdProducto}`);
-
     CH[canvasId] = new Chart($id(canvasId), {
         type: 'bar',
         data: {
-            labels,
-            datasets: [{
-                label: title,
-                data: data.map(valSel),
-                // borde visible (por si cambian los defaults)
+            labels, datasets: [{
+                label: title, data: data.map(valSel),
                 borderWidth: 1.2, borderColor: 'rgba(255,255,255,0.18)', borderSkipped: false,
-                backgroundColor: 'rgba(91,140,255,0.60)',
-                hoverBackgroundColor: 'rgba(91,140,255,0.85)'
+                backgroundColor: 'rgba(91,140,255,0.60)', hoverBackgroundColor: 'rgba(91,140,255,0.85)'
             }]
         },
         options: {
-            ...oBase(),
-            indexAxis: 'y',
-            layout: { padding: { left: 6, right: 10, bottom: 4, top: 0 } },
+            ...oBase(), indexAxis: 'y', layout: { padding: { left: 6, right: 10, bottom: 4, top: 0 } },
             scales: {
-                // x mantiene tus defaults
                 x: { grid: { color: C.grid }, ticks: { color: C.tick } },
-                // y con autoskip OFF + truncado
                 y: { grid: { color: C.grid }, ticks: yTicksFor(labels, 30) }
             },
             plugins: {
-                ...oBase().plugins,
-                tooltip: {
-                    ...oBase().plugins.tooltip,
-                    callbacks: {
+                ...oBase().plugins, tooltip: {
+                    ...oBase().plugins.tooltip, callbacks: {
                         label: (ctx) => {
                             const i = ctx.dataIndex, r = data[i] || {};
                             const unidades = Number(r.CantidadVendida || 0);
@@ -551,26 +408,33 @@ function renderTopBars(canvasId, title, rows, valSel, fromPager = false) {
     });
     updatePagerUI(canvasId);
 }
-
+function yTicksFor(labels, maxLen = 30) {
+    return {
+        autoSkip: false, color: C.tick, font: { size: 11 },
+        callback: (val, idx) => {
+            const s = labels?.[idx] ?? val; if (!s) return '';
+            return s.length > maxLen ? (s.slice(0, maxLen) + '…') : s;
+        }
+    };
+}
 function renderGroupBars(canvasId, rows, labelSel, valSel) {
+    const canvas = getCanvas(canvasId);
+    if (!canvas) return;                 // ⬅️ evita el crash si el canvas no existe
+
     kill(canvasId);
+
     const data = safe(rows);
     const labels = data.map(labelSel);
 
-    // 📏 Ajuste de alto: si hay pocas filas, no inflar tanto el contenedor
+    // alto dinámico (solo si el wrapper existe)
     const n = labels.length;
-    let pxPerRow = 18;
-    if (n < 10) pxPerRow = 24;       // más aire cuando son poquitas
-    else if (n < 16) pxPerRow = 20;  // balance ideal
-    else if (n > 25) pxPerRow = 16;  // más compacto si son muchas
-
+    let pxPerRow = n > 25 ? 16 : n < 10 ? 24 : 20;
     const min = 400, max = 800;
     const need = Math.min(max, Math.max(min, Math.round(n * pxPerRow)));
-    const wrap = document.getElementById(canvasId)?.closest('.ad-chart');
+    const wrap = canvas.closest('.ad-chart');
     if (wrap) wrap.style.height = need + 'px';
 
-    // ⚙️ Configuración Chart.js
-    CH[canvasId] = new Chart($id(canvasId), {
+    CH[canvasId] = new Chart(canvas, {
         type: 'bar',
         data: {
             labels,
@@ -611,20 +475,81 @@ function renderGroupBars(canvasId, rows, labelSel, valSel) {
     });
 }
 
+function renderCostosMedioTo(canvasId, rows) {
+    const canvas = getCanvas(canvasId);
+    if (!canvas) return;                 // ⬅️ igual guarda
+
+    kill(canvasId);
+
+    const labels = rows.map(r => r.FormaPago ?? 'N/D');
+    const ventas = rows.map(r => +r.MontoSubTotal || 0);
+    const costos = rows.map(r => +r.CostoFinancieroEstimado || 0);
+
+    CH[canvasId] = new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels, datasets: [
+                { label: 'Ventas', data: ventas },
+                { label: 'Costo financiero', data: costos }
+            ]
+        },
+        options: oBase()
+    });
+}
+function getCanvas(id) {
+    const el = document.getElementById(id);
+    if (!el) {
+        console.warn('[Dashboard] Canvas no encontrado:', id);
+    }
+    return el;
+}
+
+function syncHeights(aId, bId) {
+    const wa = document.getElementById(aId)?.closest('.ad-chart');
+    const wb = document.getElementById(bId)?.closest('.ad-chart');
+    if (!wa || !wb) return; const h = Math.min(wa.clientHeight, wb.clientHeight);
+    wa.style.height = h + 'px'; wb.style.height = h + 'px';
+}
+
+/* ============ Resumen por porcentaje (lista compacta) ============ */
+function fillCFList(rows) {
+    const el = $id('cf_porcentaje_list'); if (!el) return;
+    const data = safe(rows).sort((a, b) => Number(a.RatePct) - Number(b.RatePct));
+    el.innerHTML = '';
+    data.forEach(r => {
+        const rate = `${Number(r.RatePct || 0).toFixed(2)}%`;
+        const pedidos = fmtInt(r.CantidadPedidos || 0);
+        const ventas = fmtMon(r.MontoSubTotal || 0);
+        const cf = fmtMon(r.CostoFinanciero || 0);
+        const porcCF = (r.PorcCF != null) ? `${Number(r.PorcCF).toFixed(2)}%`
+            : ((r.MontoSubTotal > 0) ? `${(Number(r.CostoFinanciero) * 100 / Number(r.MontoSubTotal)).toFixed(2)}%` : '0.00%');
+        const item = document.createElement('div'); item.className = 'item';
+        item.innerHTML = `
+            <div class="top">
+                <div class="rate">${rate}</div>
+                <div class="pill">Pedidos: ${pedidos}</div>
+            </div>
+            <div class="d-flex justify-content-between">
+                <div class="muted">Ventas: ${ventas}</div>
+                <div class="muted">C.F.: ${cf} · ${porcCF}</div>
+            </div>`;
+        el.appendChild(item);
+    });
+}
+
 /* ====================== Export PDF ====================== */
 function showOverlay(msg = 'Procesando…') {
     let ov = $id('ad-busy');
     if (!ov) {
-        ov = document.createElement('div');
-        ov.id = 'ad-busy';
-        ov.style.cssText = `position:fixed; inset:0; z-index:2147483647; background:rgba(8,12,28,.58);
-      display:flex; align-items:center; justify-content:center; backdrop-filter:blur(2px);
-      color:#e7e9fb; font-family:system-ui,-apple-system,Segoe UI,Roboto; `;
-        ov.innerHTML = `<div style="min-width:260px; padding:18px 22px; border-radius:14px; border:1px solid rgba(255,255,255,.08);
-      background:linear-gradient(180deg,rgba(24,28,52,.95),rgba(17,22,44,.92)); box-shadow:0 18px 50px rgba(0,0,0,.45);
-      display:flex; gap:12px; align-items:center;">
-      <div class="spinner-border" role="status" style="width:22px; height:22px"></div>
-      <div id="ad-busy-text" style="font-weight:600; letter-spacing:.2px"></div></div>`;
+        ov = document.createElement('div'); ov.id = 'ad-busy';
+        ov.style.cssText = `position:fixed;inset:0;z-index:2147483647;background:rgba(8,12,28,.58);
+            display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);
+            color:#e7e9fb;font-family:system-ui,-apple-system,Segoe UI,Roboto;`;
+        ov.innerHTML = `<div style="min-width:260px;padding:18px 22px;border-radius:14px;border:1px solid rgba(255,255,255,.08);
+            background:linear-gradient(180deg,rgba(24,28,52,.95),rgba(17,22,44,.92));box-shadow:0 18px 50px rgba(0,0,0,.45);
+            display:flex;gap:12px;align-items:center;">
+            <div class="spinner-border" role="status" style="width:22px;height:22px"></div>
+            <div id="ad-busy-text" style="font-weight:600;letter-spacing:.2px"></div></div>`;
         document.body.appendChild(ov);
     }
     $id('ad-busy-text').textContent = msg; ov.style.display = 'flex';
@@ -652,211 +577,4 @@ async function exportarPDF() {
         pdf.save(`Analisis_${moment().format('YYYYMMDD_HHmm')}.pdf`);
     } catch (e) { console.error(e); alert('No se pudo exportar el PDF.'); }
     finally { hideOverlay(); }
-}
-
-
-function yTicksFor(labels, maxLen = 30) {
-    return {
-        autoSkip: false,                 // ← no omitir etiquetas
-        color: C.tick,
-        font: { size: 11 },              // ← más chico para que entren
-        callback: (val, idx) => {
-            const s = labels?.[idx] ?? val;
-            if (!s) return '';
-            return s.length > maxLen ? (s.slice(0, maxLen) + '…') : s;
-        }
-    };
-}
-
-
-
-// Alto compacto por fila (valores más chicos que antes)
-function ensureBarHeight(canvasId, count, pxPerRow = 18, min = 220, max = 560) {
-    // Para "Proveedor" forzamos aún más compacto
-    if (canvasId === 'ch_proveedor') {
-        pxPerRow = 16; min = 220; max = 520;
-    }
-    const need = Math.min(max, Math.max(min, Math.round(count * pxPerRow)));
-    const wrap = document.getElementById(canvasId)?.closest('.ad-chart');
-    if (wrap) wrap.style.height = need + 'px';
-}
-
-// Ticks inteligentes (menos fuente + menos etiquetas si hay muchas)
-function yTicksSmart(labels, maxLen = 22) {
-    const total = labels?.length ?? 0;
-    const step = total <= 24 ? 1 : (total <= 36 ? 2 : 3);
-    const fontSize = total > 32 ? 9 : 10;
-    return {
-        autoSkip: false,
-        padding: 1,
-        color: C.tick,
-        font: { size: fontSize },
-        callback: (val, idx) => {
-            if (idx % step !== 0) return '';
-            const s = labels?.[idx] ?? '';
-            return s.length > maxLen ? (s.slice(0, maxLen) + '…') : s;
-        }
-    };
-}
-
-
-function syncHeights(aId, bId) {
-    const wa = document.getElementById(aId)?.closest('.ad-chart');
-    const wb = document.getElementById(bId)?.closest('.ad-chart');
-    if (!wa || !wb) return;
-    const h = Math.min(wa.clientHeight, wb.clientHeight);
-    wa.style.height = h + 'px';
-    wb.style.height = h + 'px';
-}
-// llamalo al final de render():
-
-
-function labelRate(x) {
-    const r = Number(x || 0);
-    return `${r.toFixed(2)}%`;
-}
-
-/* ===== Costo financiero por % (distribución) ===== */
-function renderCFDistribucion(rows, totalVentas) {
-    const id = 'ch_cf_pct'; kill(id);
-    const data = safe(rows).sort((a, b) => Number(a.RatePct) - Number(b.RatePct));
-    const labels = data.map(r => labelRate(r.RatePct));
-    const ventas = data.map(r => +r.MontoSubTotal || 0);
-    const cf = data.map(r => +r.CostoFinanciero || 0);
-
-    CH[id] = new Chart($id(id), {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [
-                { label: 'Ventas (brutas)', data: ventas },
-                { label: 'Costo financiero', data: cf }
-            ]
-        },
-        options: { ...oBase() }
-    });
-
-    // Badges con detalle
-    const wrap = $id('cf_badges');
-    if (wrap) {
-        wrap.innerHTML = '';
-        const totVentas = (totalVentas || ventas.reduce((a, b) => a + b, 0)) || 0;
-        data.forEach(r => {
-            const share = totVentas > 0 ? ((r.MontoSubTotal || 0) * 100 / totVentas) : 0;
-            const porcCF = (r.PorcCF != null) ? Number(r.PorcCF).toFixed(2) : ((r.MontoSubTotal > 0) ? ((r.CostoFinanciero * 100 / r.MontoSubTotal).toFixed(2)) : '0.00');
-            const el = document.createElement('div');
-            el.className = 'd-flex justify-content-between align-items-center p-2 rounded';
-            el.style.cssText = 'background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);';
-            el.innerHTML = `
-                <div>
-                  <div style="font-weight:600">${labelRate(r.RatePct)}</div>
-                  <div class="text-muted" style="font-size:.9rem">
-                    Pedidos: ${fmtInt(r.CantidadPedidos || 0)}
-                  </div>
-                </div>
-                <div class="text-end">
-                  <div>Ventas: ${fmtMon(r.MontoSubTotal || 0)}</div>
-                  <div>C.F.: ${fmtMon(r.CostoFinanciero || 0)} · <span class="text-muted">${porcCF}%</span></div>
-                  <div class="text-muted" style="font-size:.85rem">Participación: ${share.toFixed(1)}%</div>
-                </div>`;
-            wrap.appendChild(el);
-        });
-    }
-}
-
-/* ===== Evolución mensual por % (stacked) ===== */
-function renderCFMensual(rows) {
-    const id = 'ch_cf_pct_mensual';
-    const el = $id(id);
-    if (!el) return; // 🚫 Si no existe el canvas, salir sin romper
-
-    kill(id);
-    const data = safe(rows);
-    const labels = [...new Set(data.map(r => `${r.Anio}-${String(r.Mes).padStart(2, '0')}`))];
-    const rates = [...new Set(data.map(r => Number(r.RatePct || 0)))].sort((a, b) => a - b);
-    const datasets = rates.map(rate => ({
-        label: labelRate(rate),
-        data: labels.map(l => {
-            const [yy, mm] = l.split('-').map(Number);
-            const row = data.find(x =>
-                Number(x.Anio) === yy &&
-                Number(x.Mes) === mm &&
-                Number(x.RatePct || 0) === rate
-            );
-            return row ? Number(row.MontoSubTotal || 0) : 0;
-        }),
-        borderWidth: 1
-    }));
-
-    CH[id] = new Chart(el, {
-        type: 'bar',
-        data: { labels, datasets },
-        options: {
-            ...oBase(),
-            scales: {
-                x: { stacked: true, grid: { color: C.grid }, ticks: { color: C.tick } },
-                y: { stacked: true, grid: { color: C.grid }, ticks: { color: C.tick } }
-            },
-            plugins: { legend: { position: 'top' } }
-        }
-    });
-}
-
-
-function labelRate(x) {
-    const r = Number(x || 0);
-    return `${r.toFixed(2)}%`;
-}
-
-function fillCFList(rows) {
-    const el = $id('cf_porcentaje_list');
-    if (!el) return;
-
-    const data = safe(rows).sort((a, b) => Number(a.RatePct) - Number(b.RatePct));
-    el.innerHTML = '';
-
-    data.forEach(r => {
-        const rate = labelRate(r.RatePct);
-        const pedidos = fmtInt(r.CantidadPedidos || 0);
-        const ventas = fmtMon(r.MontoSubTotal || 0);
-        const cf = fmtMon(r.CostoFinanciero || 0);
-        const porcCF = (r.PorcCF != null)
-            ? `${Number(r.PorcCF).toFixed(2)}%`
-            : ((r.MontoSubTotal > 0) ? `${(Number(r.CostoFinanciero) * 100 / Number(r.MontoSubTotal)).toFixed(2)}%` : '0.00%');
-
-        const item = document.createElement('div');
-        item.className = 'item';
-        item.innerHTML = `
-            <div class="top">
-                <div class="rate">${rate}</div>
-                <div class="pill">Pedidos: ${pedidos}</div>
-            </div>
-            <div class="muted">Ventas: ${ventas}</div>
-            <div class="muted">Costo financiero: ${cf} · ${porcCF}</div>
-        `;
-        el.appendChild(item);
-    });
-}
-
-
-function renderCostosMedioTo(canvasId, rows) {
-    const el = $id(canvasId);
-    if (!el) return;          // si ese canvas no está, no hace nada
-    if (CH[canvasId]) { CH[canvasId].destroy(); CH[canvasId] = null; }
-
-    const labels = rows.map(r => r.FormaPago ?? 'N/D');
-    const ventas = rows.map(r => +r.MontoSubTotal || 0);
-    const costos = rows.map(r => +r.CostoFinancieroEstimado || 0);
-
-    CH[canvasId] = new Chart(el, {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [
-                { label: 'Ventas', data: ventas },
-                { label: 'Costo financiero', data: costos }
-            ]
-        },
-        options: oBase()
-    });
 }
