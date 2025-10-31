@@ -446,10 +446,11 @@ const NAV_DEST_KEY = '__NAV_DEST_POST_SAVE__';
 function esVistaPedidoNuevoModif() {
     const segs = (location.pathname || '').toLowerCase().split('/').filter(Boolean);
     for (let i = 0; i < segs.length - 1; i++) {
-        if (segs[i] === 'Cotizaciones' && segs[i + 1] === 'nuevomodif') return true;
+        if (segs[i] === 'pedidos' && segs[i + 1] === 'nuevomodif') return true;
     }
     return false;
 }
+
 
 
 function resolverDestinoSeguro(href) {

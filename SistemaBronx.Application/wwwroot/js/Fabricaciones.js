@@ -208,10 +208,11 @@ async function configurarDataTable(data) {
 
                 await aplicarFiltrosRestaurados(api, '#grd_Fabricaciones', 'estadoFabricaciones', false);
                 localStorage.removeItem('estadoFabricaciones');
+
                
                 setTimeout(function () {
                     gridFabricaciones.columns.adjust();
-                }, 10);
+                }, 1);
 
                 actualizarKpisFabricaciones(data)
 
@@ -432,81 +433,148 @@ async function configurarDataTable(data) {
                 input.focus();
             }
 
-            // Función para guardar los cambios con el parpadeo en las filas seleccionadas
-            async function saveEdit(colIndex, newText, newValue) {
-                // Asegurarnos de que las filas seleccionadas se guardan una por una
-                for (let i = 0; i < filasSeleccionadas.length; i++) {
-                    const rowElement = filasSeleccionadas[i];
+            // === Helpers opcionales ===
+            function getFilasObjetivo(dt, filasSeleccionadas, trActual) {
+                // Si hay selección múltiple, editamos esas; si no, solo la fila actual.
+                if (Array.isArray(filasSeleccionadas) && filasSeleccionadas.length > 0) {
+                    return [...filasSeleccionadas];
+                }
+                return [trActual];
+            }
 
-                    // Obtener los datos de la fila usando gridFabricaciones.row()
-                    let rowData = gridFabricaciones.row($(rowElement)).data(); // Aquí obtenemos los datos de la fila seleccionada
-
-                    // Obtener la celda editada de la fila seleccionada
-                    const celda = $(rowElement).find('td').eq(colIndex);
-
-                    // Actualizar los datos en la fila según la columna editada
-                    if (colIndex === 6) {
-                        rowData.IdColor = newValue;
-                        rowData.Color = newText;
-                    } else if (colIndex === 7) {
-                        rowData.IdEstado = parseInt(newValue);
-                        rowData.Estado = newText;
-                    } else {
-                        let header = gridFabricaciones.column(colIndex).header().textContent;
-                        rowData[header] = newText;
+            // === Reemplazo de saveEdit/cancelEdit ===
+            // Ejecuta promesas con límite de concurrencia (evita cuelgues y saturación)
+            async function runLimited(items, limit, taskFn) {
+                const executing = new Set();
+                const results = [];
+                for (const item of items) {
+                    const p = Promise.resolve().then(() => taskFn(item));
+                    results.push(p);
+                    executing.add(p);
+                    p.finally(() => executing.delete(p));
+                    if (executing.size >= limit) {
+                        await Promise.race(executing);
                     }
+                }
+                return Promise.allSettled(results);
+            }
 
-                    guardarFiltrosPantalla('#grd_Fabricaciones', 'estadoFabricaciones', false);
-                    
+            async function saveEdit(colIndex, newText, newValue) {
+                const dt = gridFabricaciones;
 
-                    // Actualizar la celda específica en la tabla
-                    gridFabricaciones.cell(rowElement, colIndex).data(newText).draw();
+                // 1) Guardar estado de filtros ANTES de mutar (barato)
+                guardarFiltrosPantalla("#grd_Fabricaciones", "filtrosFabricaciones", true);
 
-                    // Añadir la clase de parpadeo a la celda
-                    celda.addClass('blinking');
+                // 2) Índice visible una vez
+                const visibleIndex = dt.column(colIndex).index('visible');
 
-                    await aplicarFiltrosRestaurados(gridFabricaciones, '#grd_Fabricaciones', 'estadoFabricaciones', false);
+                // 3) Resolver filas objetivo (multi o actual)
+                const trActual = $(cell.node()).closest('tr')[0];
+                const filas = (typeof filasSeleccionadas !== 'undefined' && Array.isArray(filasSeleccionadas) && filasSeleccionadas.length > 0)
+                    ? [...filasSeleccionadas]
+                    : [trActual];
 
-                    try {
-                        // Enviar los datos al servidor y esperar que se complete el guardado antes de continuar
-                        await guardarCambiosFila(rowData); // Usamos los datos de la fila seleccionada
-                        console.log(`Fila ${i + 1} guardada exitosamente`);
-
-                        // Remover el parpadeo después de 3 segundos solo en la celda editada
-                        setTimeout(function () {
-                            $(rowElement).find('td').eq(colIndex).removeClass('blinking');
-                        }, 3000);
-
-                    } catch (error) {
-                        console.error(`Error guardando la fila ${i + 1}:`, error);
+                // 4) Cachear nodos de celdas para parpadeo (evita .find() en loop)
+                const celdaNodes = [];
+                if (visibleIndex != null && visibleIndex >= 0) {
+                    for (const rowNode of filas) {
+                        const tds = rowNode.cells; // HTMLCollection más rápido que jQuery
+                        if (visibleIndex < tds.length) celdaNodes.push(tds[visibleIndex]);
+                        else celdaNodes.push(null);
                     }
                 }
 
-                // **Eliminar la clase 'selected' de las filas seleccionadas después de guardar**
-                $(filasSeleccionadas).each(function (index, rowElement) {
-                    $(rowElement).removeClass('selected');
-                    $(rowElement).find('td').removeClass('selected');
-                });
+                // 5) Actualizar modelo en memoria (sin draw)
+                const filasParaPersistir = [];
+                for (let i = 0; i < filas.length; i++) {
+                    const rowNode = filas[i];
+                    const row = dt.row(rowNode);
+                    const rowData = row.data();
 
-                // Desactivar el modo de edición
+                    // Texto original plano (sin HTML)
+                    let originalText = dt.cell(rowNode, colIndex).data();
+                    if (typeof originalText === 'string') {
+                        const tmp = document.createElement('div');
+                        tmp.innerHTML = originalText;
+                        originalText = tmp.textContent.trim();
+                    }
+
+                    // Si no cambió, salteo persistencia/parpadeo
+                    if (String(originalText) === String(newText)) continue;
+
+                    // Sincronizaciones específicas
+                    if (colIndex === 6) {
+                        rowData.IdColor = (newValue === '' || newValue == null) ? null : parseInt(newValue, 10);
+                        rowData.Color = newText;
+                    } else if (colIndex === 7) {
+                        rowData.IdEstado = (newValue === '' || newValue == null) ? null : parseInt(newValue, 10);
+                        rowData.Estado = newText;
+                    } else {
+                        // Fallback por cabecera visible (mismo criterio que usás en Insumos)
+                        const headerText = dt.column(colIndex).header().textContent.trim();
+                        if (headerText && Object.prototype.hasOwnProperty.call(rowData, headerText)) {
+                            rowData[headerText] = newText;
+                        }
+                    }
+
+                    // Seteo data en memoria (no dibuja)
+                    row.data(rowData);
+
+                    // Marcar para persistir
+                    filasParaPersistir.push(rowData);
+                }
+
+                // 6) Un solo draw al final (sin invalidaciones extras)
+                dt.draw(false);
+
+                // 7) Parpadeo visual liviano (post-draw)
+                for (const td of celdaNodes) {
+                    if (!td) continue;
+                    td.classList.add('blinking');
+                    // requestAnimationFrame evita jank del main thread
+                    requestAnimationFrame(() => {
+                        setTimeout(() => td.classList.remove('blinking'), 3000);
+                    });
+                }
+
+                // 8) Persistir en backend en paralelo con límite (mejor latencia total)
+                //    Ajustá el 4 si tu API lo tolera (2-6 suele ir bien).
+                try {
+                    await runLimited(filasParaPersistir, 4, (rd) => guardarCambiosFila(rd));
+                } catch (err) {
+                    console.error('Error en persistencia en paralelo:', err);
+                }
+
+                // 9) Reaplicar filtros UNA sola vez y fuera del flujo crítico
+                //    (cede el hilo para que el UI actualice primero)
+                setTimeout(async () => {
+                    try {
+                        await aplicarFiltrosRestaurados(dt, "#grd_Fabricaciones", "filtrosFabricaciones", true);
+                    } catch (e) {
+                        console.warn('aplicarFiltrosRestaurados falló:', e);
+                    }
+                }, 0);
+
+                // 10) Limpiar selección y estado
+                if (typeof filasSeleccionadas !== 'undefined' && Array.isArray(filasSeleccionadas)) {
+                    for (const n of filasSeleccionadas) {
+                        n.classList.remove('selected');
+                        // quitar 'selected' de todas las celdas (si lo usás)
+                        for (const td of n.cells) td.classList.remove('selected');
+                    }
+                    filasSeleccionadas = [];
+                }
                 isEditing = false;
-
-                // Limpiar las filas seleccionadas después de guardar
-                filasSeleccionadas = [];
             }
 
 
+            async function cancelEdit() {
+                // Restaurar el valor original SOLO de la celda actual y redibujar
+                gridFabricaciones.cell(cell.index()).data(originalData).draw(false);
 
+                // Reaplicar filtros como en Insumos (por si la restauración cambió algo visual)
+                await aplicarFiltrosRestaurados(gridFabricaciones, "#grd_Fabricaciones", "filtrosFabricaciones", true);
 
-
-
-
-
-
-            // Función para cancelar la edición
-            function cancelEdit() {
-                // Restaurar el valor original
-                gridFabricaciones.cell(cell.index()).data(originalData).draw();
                 isEditing = false;
             }
         });
@@ -878,4 +946,14 @@ function actualizarKpisFabricaciones(data) {
     const cant = Array.isArray(data) ? data.length : 0;
     const el = document.getElementById('kpiCantFabricaciones');
     if (el) el.textContent = cant;
+}
+
+        function getDataSrc(dt, colIdx){
+  // Esta es la forma más segura con DataTables 1.13+:
+  return dt.column(colIdx).dataSrc(); // p.ej. "Estado", "IdEstado", etc.
+}
+
+// Actualiza una fila sin redibujar toda la tabla
+function updateRowFast(dt, rowNode, newRowData){
+  dt.row($(rowNode)).data(newRowData).invalidate(); // NO draw acá
 }

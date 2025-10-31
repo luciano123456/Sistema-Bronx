@@ -342,40 +342,32 @@ namespace SistemaBronx.DAL.Repository
         }
 
 
-        public async Task<Cotizacion> ObtenerCotizacion(int CotizacionId)
+        public async Task<Cotizacion> ObtenerCotizacion(int cotizacionId)
         {
             var resultado = new Dictionary<string, object>();
 
             try
             {
-                var Cotizacion = await _dbcontext.Cotizaciones
-                    .Include(p => p.IdClienteNavigation)
-                    .Include(p => p.IdFormaPagoNavigation) // Formas de Pago
-                    .Include(p => p.CotizacionesDetalles)
-                        .ThenInclude(pd => pd.IdProductoNavigation)
-                    .Include(p => p.CotizacionesDetalles)
-                        .ThenInclude(pd => pd.IdColorNavigation)
-                    .Include(p => p.CotizacionesDetalles)
-                        .ThenInclude(pd => pd.IdCategoriaNavigation)
-                    .Include(p => p.CotizacionesDetalleProcesos)
-                        .ThenInclude(pdp => pdp.IdProductoNavigation)
-                    .Include(p => p.CotizacionesDetalleProcesos)
-                        .ThenInclude(pdp => pdp.IdColorNavigation)
-                    .Include(p => p.CotizacionesDetalleProcesos)
-                        .ThenInclude(pdp => pdp.IdCategoriaNavigation)
-                    .Include(p => p.CotizacionesDetalleProcesos)
-                        .ThenInclude(pdp => pdp.IdInsumoNavigation)
-                        .Include(p => p.CotizacionesDetalleProcesos)
-                        .ThenInclude(pdp => pdp.IdTipoNavigation)
-                    .Include(p => p.CotizacionesDetalleProcesos)
-                        .ThenInclude(pdp => pdp.IdProveedorNavigation)
-                        .Include(p => p.CotizacionesDetalleProcesos)
-                        .ThenInclude(pdp => pdp.IdEstadoNavigation)
-                    .Include(p => p.CotizacionesDetalleProcesos)
-                        .ThenInclude(pdp => pdp.IdUnidadMedidaNavigation)
-                    .FirstOrDefaultAsync(p => p.Id == CotizacionId);
+                var cot = await _dbcontext.Cotizaciones
+                          .AsNoTracking()
+                          .Where(c => c.Id == cotizacionId)
+                          .AsSplitQuery()           // 👈 clave para evitar cartesian explosion
+                          .Include(c => c.IdClienteNavigation)
+                          .Include(c => c.IdFormaPagoNavigation)
+                          .Include(c => c.CotizacionesDetalles).ThenInclude(d => d.IdProductoNavigation)
+                          .Include(c => c.CotizacionesDetalles).ThenInclude(d => d.IdColorNavigation)
+                          .Include(c => c.CotizacionesDetalles).ThenInclude(d => d.IdCategoriaNavigation)
+                          .Include(c => c.CotizacionesDetalleProcesos).ThenInclude(dp => dp.IdProductoNavigation)
+                          .Include(c => c.CotizacionesDetalleProcesos).ThenInclude(dp => dp.IdColorNavigation)
+                          .Include(c => c.CotizacionesDetalleProcesos).ThenInclude(dp => dp.IdCategoriaNavigation)
+                          .Include(c => c.CotizacionesDetalleProcesos).ThenInclude(dp => dp.IdInsumoNavigation)
+                          .Include(c => c.CotizacionesDetalleProcesos).ThenInclude(dp => dp.IdTipoNavigation)
+                          .Include(c => c.CotizacionesDetalleProcesos).ThenInclude(dp => dp.IdProveedorNavigation)
+                          .Include(c => c.CotizacionesDetalleProcesos).ThenInclude(dp => dp.IdEstadoNavigation)
+                          .Include(c => c.CotizacionesDetalleProcesos).ThenInclude(dp => dp.IdUnidadMedidaNavigation)
+                          .FirstOrDefaultAsync();
 
-                return Cotizacion;
+                return cot;
             }
             catch (Exception ex)
             {
@@ -383,6 +375,7 @@ namespace SistemaBronx.DAL.Repository
             }
 
         }
+
 
 
         public async Task<bool> EliminarInsumo(int IdCotizacion, int IdInsumo)
