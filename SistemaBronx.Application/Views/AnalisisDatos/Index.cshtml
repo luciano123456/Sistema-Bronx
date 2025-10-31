@@ -9,23 +9,7 @@
 <link rel="stylesheet" href="~/css/AnalisisDatos.css?v=5.0" />
 
 <style>
-    /* ====== Overlay para el panel de fechas (no tapa los botones) ====== */
-    .ad-overlay-root {
-        position: fixed;
-        inset: 0;
-        z-index: 2147483600;
-        pointer-events: none;
-    }
-
-        .ad-overlay-root > * {
-            pointer-events: auto;
-        }
-
-    .ad-date__panel {
-        z-index: 2147483601;
-    }
-
-    /* ====== Paginador incrustado ====== */
+    /* Paginador incrustado, sin pisar el gráfico */
     .ad-card {
         position: relative;
     }
@@ -68,7 +52,7 @@
             font-size: 13px;
             line-height: 1;
         }
-
+    /* Evita que el canvas tape tooltips flotantes dentro de la card */
     .ad-chart {
         position: relative;
         min-height: 280px;
@@ -77,92 +61,6 @@
         .ad-chart canvas {
             display: block;
         }
-
-    /* ====== Lista compacta para “Resumen por porcentaje” ====== */
-    .ad-list-compact {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-        .ad-list-compact .item {
-            border: 1px solid rgba(255,255,255,.08);
-            border-radius: 12px;
-            padding: 12px 14px;
-            background: linear-gradient(180deg,rgba(24,28,52,.55),rgba(17,22,44,.52));
-        }
-
-        .ad-list-compact .top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 6px;
-        }
-
-        .ad-list-compact .rate {
-            font-weight: 700;
-            letter-spacing: .3px;
-        }
-
-        .ad-list-compact .pill {
-            font-size: .78rem;
-            padding: 2px 8px;
-            border-radius: 999px;
-            border: 1px solid rgba(255,255,255,.12);
-            color: #cfd6ff;
-            background: rgba(14,18,36,.4);
-        }
-
-        .ad-list-compact .muted {
-            color: #9fb0ff;
-            font-size: .9rem;
-        }
-
-    /* ====== Tablero contable (según imagen) ====== */
-    .board {
-        display: grid;
-        gap: 12px;
-    }
-    @@media (min-width:1200px) {
-        .board
-
-    {
-        grid-template-columns: repeat(4,1fr);
-    }
-
-    }
-
-    .tile {
-        border: 1px solid rgba(255,255,255,.08);
-        border-radius: 16px;
-        padding: 12px 14px;
-        background: linear-gradient(180deg,rgba(17,22,44,.65),rgba(12,16,34,.6));
-    }
-
-        .tile .tt {
-            font-size: .82rem;
-            color: #9fb0ff;
-            margin-bottom: 4px;
-        }
-
-        .tile .vv {
-            font-size: 1.25rem;
-            font-weight: 800;
-            letter-spacing: .2px;
-        }
-
-        .tile.group {
-            grid-column: 1/-1;
-            border-style: dashed;
-            padding: 10px 12px;
-            background: linear-gradient(180deg,rgba(24,28,52,.45),rgba(17,22,44,.42))
-        }
-
-    .group .hd {
-        font-weight: 700;
-        color: #cfe0ff;
-        margin-bottom: 8px;
-    }
 </style>
 
 <div id="ad-root" class="ad-wrap container-xxl py-4">
@@ -218,36 +116,9 @@
         </div>
     </div>
 
-    <!-- ===== Tablero contable ===== -->
-    <div class="ad-card p-3 mb-3">
-        <div class="board">
-            <div class="tile group"><div class="hd">GENERAL</div></div>
-            <div class="tile"><div class="tt">Facturación BRUTA (con IVA)</div><div id="k_bruta" class="vv">—</div></div>
-            <div class="tile"><div class="tt">Ingreso NETO (sin IVA, sin CF)</div><div id="k_neto_sin_cf_iva" class="vv">—</div></div>
-            <div class="tile"><div class="tt">Gasto NETO (sin IVA)</div><div id="k_gasto_neto" class="vv">—</div></div>
-            <div class="tile"><div class="tt">Ganancia NETA</div><div id="k_ganancia_neta" class="vv">—</div></div>
-
-            <div class="tile group"><div class="hd">CASH</div></div>
-            <div class="tile"><div class="tt">Ingreso NETO CASH</div><div id="k_ing_cash" class="vv">—</div></div>
-            <div class="tile"><div class="tt">Egreso NETO CASH</div><div id="k_egr_cash" class="vv">—</div></div>
-            <div class="tile"><div class="tt">Ganancia NETA CASH</div><div id="k_gan_cash" class="vv">—</div></div>
-
-            <div class="tile group"><div class="hd">CUENTAS</div></div>
-            <div class="tile"><div class="tt">Ingreso NETO a CUENTAS</div><div id="k_ing_cta" class="vv">—</div></div>
-            <div class="tile"><div class="tt">Egresos por TRANSFERENCIA</div><div id="k_egr_transf" class="vv">—</div></div>
-            <div class="tile"><div class="tt">Ganancia CUENTAS</div><div id="k_gan_cta" class="vv">—</div></div>
-
-            <div class="tile group"><div class="hd">IVA</div></div>
-            <div class="tile"><div class="tt">IVA INGRESADO</div><div id="k_iva_ing" class="vv">—</div></div>
-            <div class="tile"><div class="tt">IVA EGRESADO</div><div id="k_iva_egr" class="vv">—</div></div>
-            <div class="tile"><div class="tt">IVA de COSTO FINANCIERO</div><div id="k_iva_cf" class="vv">—</div></div>
-            <div class="tile"><div class="tt">IVA a PAGAR (ingreso + CF – egreso)</div><div id="k_iva_pagar" class="vv">—</div></div>
-        </div>
-    </div>
-
-    <!-- ===== KPIs rápidos que ya tenías ===== -->
+    <!-- KPIs -->
     <div class="row g-3 mb-3">
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="ad-kpi">
                 <div class="ad-kpi__icon bg-grad-blue"><i class="ti ti-cash"></i></div>
                 <div class="flex-grow-1">
@@ -256,30 +127,30 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="ad-kpi">
-                <div class="ad-kpi__icon bg-grad-blue"><i class="ti ti-receipt"></i></div>
+                <div class="ad-kpi__icon bg-grad-red"><i class="ti ti-credit-card-off"></i></div>
                 <div class="flex-grow-1">
-                    <span class="ad-kpi__label">Ventas netas (sin IVA)</span>
-                    <div id="kpi_ingresos_sin_iva" class="ad-kpi__value">—</div>
+                    <span class="ad-kpi__label">Gastos (egresos)</span>
+                    <div id="kpi_egresos" class="ad-kpi__value">—</div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="ad-kpi">
-                <div class="ad-kpi__icon bg-grad-zebra"><i class="ti ti-receipt-2"></i></div>
+                <div class="ad-kpi__icon bg-grad-purple"><i class="ti ti-shopping-cart"></i></div>
                 <div class="flex-grow-1">
-                    <span class="ad-kpi__label">Costo financiero TOTAL</span>
-                    <div id="kpi_cf_total" class="ad-kpi__value">—</div>
+                    <span class="ad-kpi__label">Pedidos / Unidades</span>
+                    <div id="kpi_pedidos_unidades" class="ad-kpi__value">—</div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-3" hidden>
             <div class="ad-kpi">
-                <div class="ad-kpi__icon bg-grad-green"><i class="ti ti-hand-coin"></i></div>
+                <div class="ad-kpi__icon bg-grad-green"><i class="ti ti-chart-infographic"></i></div>
                 <div class="flex-grow-1">
-                    <span class="ad-kpi__label">Importe neto (ventas – CF NETO)</span>
-                    <div id="kpi_neto_ingresos" class="ad-kpi__value">—</div>
+                    <span class="ad-kpi__label">Margen neto</span>
+                    <div id="kpi_margen" class="ad-kpi__value">—</div>
                 </div>
             </div>
         </div>
@@ -384,7 +255,7 @@
         </div>
     </div>
 
-    <!-- Rentabilidad por categoría / proveedor (incluye el canvas que faltaba) -->
+    <!-- Rentabilidad por categoría / proveedor -->
     <div class="row g-3 mt-1">
         <div class="col-xxl-6">
             <div class="ad-card p-3">
@@ -396,37 +267,6 @@
             <div class="ad-card p-3">
                 <div class="ad-card__header">Rentabilidad por proveedor</div>
                 <div class="ad-chart"><canvas id="ch_proveedor"></canvas></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- NUEVO: Incidencia + Resumen por % + Ventas vs CF por medio -->
-    <div class="row g-3 mt-1">
-        <div class="col-xl-6">
-            <div class="ad-card p-3 h-100">
-                <div class="ad-card__header">% Incidencia Gastos OPERATIVOS sobre Ganancia Neta</div>
-                <div class="ad-chart"><canvas id="ch_inc_operativos"></canvas></div>
-            </div>
-        </div>
-        <div class="col-xl-6">
-            <div class="ad-card p-3 h-100">
-                <div class="ad-card__header">% Incidencia Gastos INSUMOS sobre Ganancia Neta</div>
-                <div class="ad-chart"><canvas id="ch_inc_insumos"></canvas></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-3 mt-1">
-        <div class="col-xxl-6">
-            <div class="ad-card p-3 h-100">
-                <div class="ad-card__header">Resumen por porcentaje (CF)</div>
-                <div id="cf_porcentaje_list" class="ad-list-compact"></div>
-            </div>
-        </div>
-        <div class="col-xxl-6">
-            <div class="ad-card p-3 h-100">
-                <div class="ad-card__header">Ventas vs costo financiero por medio</div>
-                <div class="ad-chart"><canvas id="ch_medios_costos_2"></canvas></div>
             </div>
         </div>
     </div>
@@ -445,5 +285,5 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
-    <script src="~/js/AnalisisDatos.js?v=5.6"></script>
+    <script src="~/js/AnalisisDatos.js?v=5.0"></script>
 }
