@@ -2827,6 +2827,8 @@ async function registrarComoPedido() {
             return;
         }
 
+       
+
         // Requisito: la cotización debe estar guardada (tenés que tener Id)
         if (!idCot) {
             errorModal("Primero guardá la cotización (botón Registrar) para generar el Pedido.");
@@ -2836,6 +2838,8 @@ async function registrarComoPedido() {
         if (!confirm("¿Registrar esta Cotización como Pedido? Se eliminará de Cotizaciones.")) {
             return;
         }
+
+        await guardarCambios();
 
         // Deshabilito el botón mientras procesa
         $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> Procesando...');

@@ -287,6 +287,8 @@ async function configurarDataTableProductosModal(data) {
                 $('#grd_Productos_Modal tbody').on('click', 'tr', async function () {
                     // Remover la clase de la fila anteriormente seleccionada
                     if (filaSeleccionadaProductos) {
+                        isEditing = false;
+                        filasSeleccionadas = [];
                         $(filaSeleccionadaProductos).removeClass('selected');
                         $('td', filaSeleccionadaProductos).removeClass('selected');
 
@@ -295,6 +297,7 @@ async function configurarDataTableProductosModal(data) {
                     var data = gridProductosModal.row(this).data();
 
                     if (data != null) {
+                        
                         cargarInformacionProducto(data.Id);
                     }
 
