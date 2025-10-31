@@ -25,7 +25,7 @@
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         letter-spacing: 1px;
         text-shadow: 1px 1px 2px #000;
-            ">
+                ">
                 ⚠ AMBIENTE TEST
             </div>
         }
@@ -36,13 +36,13 @@
         </button>
         <div class="collapse navbar-collapse " id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <!-- Items del menú aquí -->
-                <li class="nav-item dropdown" id="configDropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="configDropdownLink"
+                <!-- Pedidos (incluye Cotizaciones adentro) -->
+                <li class="nav-item dropdown" id="menuPedidos">
+                    <a class="nav-link dropdown-toggle" href="#" id="menuPedidosLink"
                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Pedidos
                     </a>
-                    <ul class="dropdown-menu" aria-labelledby="configDropdownLink">
+                    <ul class="dropdown-menu" aria-labelledby="menuPedidosLink">
                         <li>
                             <a class="dropdown-item"
                                href="@Url.Action("NuevoModif","Pedidos",new { Id = 0 })"
@@ -53,15 +53,9 @@
                                href="@Url.Action("Index","Pedidos")"
                                onclick="return navTo(this)">Historial</a>
                         </li>
-                    </ul>
-                </li>
 
-                <li class="nav-item dropdown" id="configDropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="configDropdownLink"
-                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Cotizaciones
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="configDropdownLink">
+                        <li><hr class="dropdown-divider" /></li>
+                        <li class="dropdown-header">Cotizaciones</li>
                         <li>
                             <a class="dropdown-item"
                                href="@Url.Action("NuevoModif","Cotizaciones",new { Id = 0 })"
@@ -75,9 +69,11 @@
                     </ul>
                 </li>
 
+                <!-- Fabricaciones (top-level) -->
                 <li class="nav-item">
                     <a class="nav-link" href="@Url.Action("Index","Fabricaciones")" onclick="return navTo(this)">Fabricaciones</a>
                 </li>
+
                 <li class="nav-item">
                     <a class="nav-link" href="@Url.Action("Index","Gastos")" onclick="return navTo(this)">Gastos</a>
                 </li>
@@ -87,25 +83,29 @@
                 <li class="nav-item">
                     <a class="nav-link" href="@Url.Action("Index","Insumos")" onclick="return navTo(this)">Insumos</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="@Url.Action("Index","Clientes")" onclick="return navTo(this)">Clientes</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="@Url.Action("Index","Proveedores")" onclick="return navTo(this)">Proveedores</a>
-                </li>
 
                 <li class="nav-item" id="divAnalisis" hidden>
                     <a class="nav-link" href="@Url.Action("Index","AnalisisDatos")" onclick="return navTo(this)">Analisis de Datos</a>
                 </li>
 
+                <!-- Configuraciones (ahora incluye Clientes y Proveedores) -->
                 <li class="nav-item dropdown" id="configDropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="configDropdownLink2"
                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Configuraciones
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="configDropdownLink2">
+
+                        <li><a class="dropdown-item" href="@Url.Action("Index","Clientes")" onclick="return navTo(this)">Clientes</a></li>
+                        <li><a class="dropdown-item" href="@Url.Action("Index","Proveedores")" onclick="return navTo(this)">Proveedores</a></li>
+
+                        <li><hr class="dropdown-divider" /></li>
+
                         <li><a class="dropdown-item" href="@Url.Action("Index","Usuarios")" onclick="return navTo(this)">Usuarios</a></li>
                         <li><a class="dropdown-item" onclick="abrirConfiguraciones()">Otras</a></li>
+
+                       
+                        
                     </ul>
                 </li>
 
@@ -169,6 +169,11 @@
                         <select class="form-select" id="cmbConfiguracion" required>
                             <option value="">Seleccione...</option>
                         </select>
+                    </div>
+
+                    <div id="divExtraField" class="mt-3" hidden>
+                        <label id="lblExtraField" for="txtExtraField" class="form-label fw-bold"></label>
+                        <input type="text" class="form-control" id="txtExtraField" placeholder="">
                     </div>
 
                     <div class="d-flex gap-2 mt-3">
@@ -315,12 +320,13 @@
 
                     <div class="col">
                         <button type="button" class="config-card w-100"
-                                onclick="abrirConfiguracion('Forma de Pago', 'FormasdePago')">
+                                onclick="abrirConfiguracion('Forma de Pago','FormasdePago', null, null, null, { key: 'CostoFinanciero', label: 'Costo Financiero (%)', type: 'number', required: true, step: '0.01', min: '0' });">
                             <img src="/Imagenes/configuraciones.png" alt="" class="config-card__img" loading="lazy">
                             <span class="config-card__title">Formas de Pago</span>
                             <span class="config-card__subtitle">Tarjeta, efectivo…</span>
                         </button>
                     </div>
+
 
                 </div>
             </div>
@@ -331,4 +337,6 @@
         </div>
     </div>
 </div>
-<script src="~/js/NavBarLogin.js?v=1.5" asp-append-version="true"></script>
+
+
+<script src="~/js/NavBarLogin.js?v=1.6" asp-append-version="true"></script>

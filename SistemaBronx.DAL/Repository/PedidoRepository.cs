@@ -296,6 +296,36 @@ namespace SistemaBronx.DAL.Repository
             }
         }
 
+        public async Task<List<PedidosDetalleProceso>> ObtenerDetalleProcesosFiltrado(bool incluirFinalizados)
+        {
+            try
+            {
+                var q = _dbcontext.PedidosDetalleProcesos
+                    .AsNoTracking()
+                    .Include(x => x.IdCategoriaNavigation)
+                    .Include(x => x.IdProductoNavigation)
+                    .Include(x => x.IdEstadoNavigation)
+                    .Include(x => x.IdProveedorNavigation)
+                    .Include(x => x.IdInsumoNavigation).ThenInclude(p => p.IdCategoriaNavigation)
+                    .Include(x => x.IdColorNavigation)
+                    .AsQueryable();
+
+                if (!incluirFinalizados)
+                {
+                    // Filtra por nombre de estado (cubre "Finalizado", "Finalizada", etc.)
+                    q = q.Where(p =>
+                        p.IdEstadoNavigation == null ||
+                        !EF.Functions.Like(p.IdEstadoNavigation.Nombre, "%Finaliz%"));
+                }
+
+                return await q.ToListAsync();
+            }
+            catch
+            {
+                return new List<PedidosDetalleProceso>();
+            }
+        }
+
 
         public async Task<List<PedidosDetalleProceso>> ObtenerDetalleProcesos()
         {

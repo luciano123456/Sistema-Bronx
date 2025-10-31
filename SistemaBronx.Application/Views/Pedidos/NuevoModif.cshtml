@@ -178,9 +178,10 @@
                 <h3><i class="fa fa-gauge me-2"></i> Datos Generales</h3>
             </div>
 
+            <!-- ===== Totales ===== -->
             <div class="cc-grid cc-grid-3wide">
                 <div class="form-group">
-                    <label for="ImporteTotal">Importe Total</label>
+                    <label for="ImporteTotal">Importe Bruto</label>
                     <input type="text" class="form-control cc-money" id="ImporteTotal" name="ImporteTotal" disabled>
                 </div>
 
@@ -196,7 +197,7 @@
 
                 <div class="form-group">
                     <label for="SubTotal">Sub Total</label>
-                    <input type="text" class="form-control cc-money" id="SubTotal" name="Subtotal" disabled>
+                    <input type="text" class="form-control cc-money" id="SubTotal" name="SubTotal" disabled>
                 </div>
 
                 <div class="form-group">
@@ -208,7 +209,10 @@
                     <label for="Saldo">Saldo</label>
                     <input type="text" class="form-control cc-money" id="Saldo" name="Saldo" disabled>
                 </div>
+            </div>
 
+            <!-- ===== Pago y Costo Financiero ===== -->
+            <div class="cc-grid cc-grid-3wide mt-3">
                 <div class="form-group">
                     <label class="lblfiltro">Forma de pago</label>
                     <select id="Formasdepago" name="select" class="form-control">
@@ -216,24 +220,35 @@
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label for="Comentarios">Comentarios</label>
-                    <input type="text" class="form-control" id="Comentarios" name="Comentarios">
+                <div class="form-group d-none" id="grpCFPorc">
+                    <label for="CostoFinancieroPorc">Costo Financiero (%)</label>
+                    <input type="text" class="form-control" id="CostoFinancieroPorc" disabled>
                 </div>
 
+                <div class="form-group d-none" id="grpCFTotal">
+                    <label for="CostoFinancieroTotal">Costo Financiero</label>
+                    <input type="text" class="form-control cc-money" id="CostoFinancieroTotal" disabled>
+                </div>
+
+             
                 <div class="form-group d-none" id="divNroFactura">
                     <label for="NroFactura">Nro. de Factura</label>
                     <input type="text" class="form-control" id="NroFactura" name="NroFactura">
                 </div>
+
+                <div class="form-group">
+                    <label for="Comentarios">Comentarios</label>
+                    <input type="text" class="form-control" id="Comentarios" name="Comentarios">
+                </div>
             </div>
 
+            <!-- ===== Estado + Acciones ===== -->
             <div class="d-flex flex-wrap justify-content-between align-items-center mt-3">
                 <div class="d-flex gap-4">
                     <label class="form-check form-switch d-flex align-items-center gap-2 m-0">
                         <input class="form-check-input" type="checkbox" id="Facturado" />
                         <span>Facturado</span>
                     </label>
-
                     <label class="form-check form-switch d-flex align-items-center gap-2 m-0">
                         <input class="form-check-input" type="checkbox" id="Finalizado" />
                         <span>Finalizado</span>
@@ -241,10 +256,10 @@
                 </div>
 
                 <div class="d-flex gap-2">
-                    <button type="button" id="btnGenerarPdf" class="btn btn-danger" onclick="generarDatosPedidoPDF()">
+                    <button type="button" class="btn btn-danger" onclick="generarDatosPedidoPDF()">
                         <i class="fa fa-print me-1"></i> Imprimir PDF
                     </button>
-                    <button type="button" id="btnGenerarPdf" class="btn btn-dark" onclick="generarDatosRemitoPDF()">
+                    <button type="button" class="btn btn-dark" onclick="generarDatosRemitoPDF()">
                         <i class="fa fa-print me-1"></i> Imprimir Remito
                     </button>
                     <button type="button" id="btnNuevoModificar" class="btn btn-primary" onclick="guardarCambios()">

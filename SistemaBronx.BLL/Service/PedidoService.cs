@@ -55,6 +55,11 @@ namespace SistemaBronx.BLL.Service
             return await _contactRepo.ObtenerDetalleProcesos();
         }
 
+        public async Task<List<PedidosDetalleProceso>> ObtenerDetalleProcesosFiltrado(bool incluirFinalizados)
+        {
+            return await _contactRepo.ObtenerDetalleProcesosFiltrado(incluirFinalizados);
+        }
+
         public async Task<Pedido> ObtenerPedido(int pedidoId)
         {
             return await _contactRepo.ObtenerPedido(pedidoId);

@@ -1,19 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SistemaBronx.Application.Models;
 using SistemaBronx.Application.Models.ViewModels;
 using SistemaBronx.BLL.Service;
-using SistemaBronx.Models;
 using Microsoft.AspNetCore.Authorization;
-using System.Diagnostics;
-using System.Linq.Expressions;
-using System.Text.Json.Serialization;
-using System.Text.Json;
 
 namespace SistemaBronx.Application.Controllers
 {
-
     [Authorize]
-
     public class FabricacionesController : Controller
     {
         private readonly IPedidoService _PedidosService;
@@ -28,16 +20,18 @@ namespace SistemaBronx.Application.Controllers
             return View();
         }
 
+        // ⚠️ Nuevo: mismo endpoint "Lista" pero con parámetro (default = false)
+        // Por defecto NO incluye finalizados.
         [HttpGet]
-        public async Task<IActionResult> Lista()
+        public async Task<IActionResult> Lista(bool incluirFinalizados = false)
         {
             try
             {
-                var detallesProcesos = await _PedidosService.ObtenerDetalleProcesos();
+                var detallesProcesos = await _PedidosService.ObtenerDetalleProcesosFiltrado(incluirFinalizados);
 
                 var lista = detallesProcesos.Select(detalleProceso => new VMPedidoDetalleProceso
                 {
-                    Id = detalleProceso.Id, // Si el ID existe, actualizarlo; si no, insertarlo
+                    Id = detalleProceso.Id,
                     Cantidad = detalleProceso.Cantidad,
                     Producto = detalleProceso.IdProductoNavigation.Nombre,
                     Insumo = detalleProceso.IdInsumoNavigation != null ? detalleProceso.IdInsumoNavigation.Descripcion : "",
@@ -51,16 +45,16 @@ namespace SistemaBronx.Application.Controllers
                     IdProveedor = detalleProceso.IdProveedor,
                     Proveedor = detalleProceso.IdProveedorNavigation != null ? detalleProceso.IdProveedorNavigation.Nombre : "",
                     Categoria = detalleProceso.IdInsumoNavigation.IdCategoriaNavigation != null ? detalleProceso.IdInsumoNavigation.IdCategoriaNavigation.Nombre : "",
-                    IdDetalle = detalleProceso.IdDetalle
+                    IdDetalle = detalleProceso.IdDetalle,
+                    FechaActualizacion = detalleProceso.FechaActualizacion,
                 }).ToList();
 
                 return Ok(lista);
             }
-            catch (Exception ex)
+            catch
             {
                 return BadRequest("Ha ocurrido un error al mostrar la lista de pedidos");
             }
         }
-
     }
 }

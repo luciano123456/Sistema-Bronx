@@ -9,6 +9,8 @@ public partial class FormasdePago
 
     public string Nombre { get; set; } = null!;
 
+    public decimal? CostoFinanciero { get; set; }
+
     public virtual ICollection<Cotizacion> Cotizaciones { get; set; } = new List<Cotizacion>();
 
     public virtual ICollection<Gasto> Gastos { get; set; } = new List<Gasto>();

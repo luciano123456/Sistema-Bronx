@@ -10,25 +10,57 @@
 
 <style>
     /* Paginador incrustado, sin pisar el gráfico */
-    .ad-card { position: relative; }
+    .ad-card {
+        position: relative;
+    }
+
     .ad-pager {
-      position: absolute; right: 14px; bottom: 12px;
-      display:flex; align-items:center; gap:8px;
-      padding:6px 10px; border-radius:14px;
-      background:rgba(14,18,36,.72); backdrop-filter: blur(4px);
-      border:1px solid rgba(255,255,255,.08); color:#cfd6ff; font-size:.86rem;
-      z-index:5;
+        position: absolute;
+        right: 14px;
+        bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 14px;
+        background: rgba(14,18,36,.72);
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255,255,255,.08);
+        color: #cfd6ff;
+        font-size: .86rem;
+        z-index: 5;
     }
-    .ad-pager .btn {
-      width:28px; height:28px; border-radius:10px; border:1px solid rgba(255,255,255,.08);
-      background:linear-gradient(180deg,rgba(32,41,84,.95),rgba(18,24,54,.92)); display:grid; place-items:center;
-      cursor:pointer; user-select:none;
-    }
-    .ad-pager .btn:disabled{ opacity:.4; cursor:not-allowed }
-    .ad-pager .ico { font-size:13px; line-height:1; }
+
+        .ad-pager .btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,.08);
+            background: linear-gradient(180deg,rgba(32,41,84,.95),rgba(18,24,54,.92));
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+            .ad-pager .btn:disabled {
+                opacity: .4;
+                cursor: not-allowed
+            }
+
+        .ad-pager .ico {
+            font-size: 13px;
+            line-height: 1;
+        }
     /* Evita que el canvas tape tooltips flotantes dentro de la card */
-    .ad-chart { position: relative; min-height: 280px; }
-    .ad-chart canvas { display:block; }
+    .ad-chart {
+        position: relative;
+        min-height: 280px;
+    }
+
+        .ad-chart canvas {
+            display: block;
+        }
 </style>
 
 <div id="ad-root" class="ad-wrap container-xxl py-4">

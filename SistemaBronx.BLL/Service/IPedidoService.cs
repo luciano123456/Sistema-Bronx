@@ -12,6 +12,7 @@ namespace SistemaBronx.BLL.Service
         Task<List<Pedido>> ObtenerPedidos(DateTime FechaDesde, DateTime FechaHasta, int IdCliente, string Estado, int Finalizado);
         Task<PedidosDetalleProceso> ObtenerInsumo(int IdPedido, int IdInsumo);
         Task<List<PedidosDetalleProceso>> ObtenerDetalleProcesos();
+        Task<List<PedidosDetalleProceso>> ObtenerDetalleProcesosFiltrado(bool incluirFinalizados);
         Task<Pedido> ObtenerPedido(int pedidoId);
         Task<bool> EliminarInsumo(int IdPedido, int IdInsumo);
         Task<bool> EliminarProducto(int IdPedido, int IdProducto);

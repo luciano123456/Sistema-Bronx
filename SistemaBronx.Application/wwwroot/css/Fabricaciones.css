@@ -240,3 +240,114 @@ tbody, td, tfoot, th, thead, tr {
     flex: 1; /* que tome todo el alto posible */
     overflow-y: auto; /* para que tenga scroll si hay muchos proveedores */
 }
+
+
+/* ===== Toolbar / Ubicación de los botones ===== */
+.dt-toolbar-out {
+    position: relative;
+    z-index: 2;
+}
+
+.dt-toolbar-inner {
+    /* deja que el contenedor acomode switch + botones */
+}
+/* ===== Toolbar ===== */
+.dt-toolbar-out {
+    position: relative;
+    z-index: 2;
+}
+
+/* ===== Switch Finalizados (pill bonito) ===== */
+.finalizados-switch {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .35rem .8rem;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    border: 1px solid rgba(255,255,255,.14);
+    box-shadow: inset 0 1px 2px rgba(255,255,255,.08), inset 0 -6px 12px rgba(0,0,0,.18), 0 4px 12px rgba(0,0,0,.18);
+}
+
+    .finalizados-switch .form-check-input {
+        cursor: pointer;
+        width: 2.75rem;
+        height: 1.35rem;
+    }
+
+        .finalizados-switch .form-check-input:focus {
+            box-shadow: 0 0 0 .2rem rgba(13,110,253,.15);
+        }
+
+        .finalizados-switch .form-check-input:checked {
+            filter: drop-shadow(0 0 6px rgba(13,110,253,.35));
+        }
+
+    .finalizados-switch .form-check-label {
+        margin-left: .1rem;
+        font-weight: 600;
+        color: #cfd6ff;
+        user-select: none;
+        letter-spacing: .2px;
+    }
+
+/* Coloca los botones alineados al switch sin saltos */
+#toolbarFabricaciones .dt-buttons {
+    margin-top: 0 !important;
+}
+
+/* ===== Overlay de carga ===== */
+.overlay-carga {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 12, 22, .55);
+    backdrop-filter: blur(2px);
+}
+
+    .overlay-carga .overlay-box {
+        background: rgba(34, 38, 69, .9);
+        color: #e9edff;
+        padding: 18px 22px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,.12);
+        box-shadow: 0 10px 30px rgba(0,0,0,.35);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 180px;
+    }
+
+
+/* === FIX al switch dentro del pill === */
+
+/* nuestro pill no debe recortar el toggle */
+.finalizados-switch {
+    overflow: visible; /* antes estaba hidden: lo sacamos */
+    padding: .32rem .75rem; /* mantengo el pill fino */
+}
+
+    /* Bootstrap pone padding-left: 2.5em en form-switch; lo anulamos */
+    .finalizados-switch.form-switch {
+        padding-left: .75rem !important; /* que no empuje el contenido a la derecha */
+        min-height: auto; /* quita altura mínima innecesaria */
+    }
+
+        /* El toggle por defecto tiene margin-left:-2.5em; lo rompía. */
+        .finalizados-switch.form-switch .form-check-input {
+            margin-left: 0 !important; /* centra el toggle dentro del pill */
+            margin-right: .55rem; /* espacio entre toggle y texto */
+            width: 2.4rem; /* tamaño cómodo */
+            height: 1.25rem;
+            transform: none; /* evita desalineado vertical */
+        }
+
+    /* Texto alineado y sin saltos raros */
+    .finalizados-switch .form-check-label {
+        line-height: 1; /* alinea verticalmente con el toggle */
+        margin: 0; /* sin márgenes extras */
+        font-weight: 600;
+        color: #cfd6ff;
+    }
