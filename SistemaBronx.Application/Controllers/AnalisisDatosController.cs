@@ -23,14 +23,13 @@ namespace SistemaBronx.Application.Controllers
         public IActionResult Index() => View();
 
         /// <summary>
-        /// Endpoint UNICO que trae todo el dashboard (un SP).
+        /// Endpoint único que pega al SP del dashboard.
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> Datos(DateTime? desde, DateTime? hasta, int? idCliente, int topN = 10)
         {
             try
             {
-                // Normalizo
                 DateTime? d = desde?.Date;
                 DateTime? h = hasta?.Date;
 
@@ -70,7 +69,7 @@ namespace SistemaBronx.Application.Controllers
                             CrecUnidades = Get<decimal?>(r, "CrecUnidades"),
                         }),
 
-                    // 3) Interanual (sin "ñ")
+                    // 3) Interanual
                     Interanual = MapBySchema(ds,
                         defaultIndex: 3,
                         requiredCols: new[] { "Periodo", "VentaActualMes" },
@@ -95,13 +94,13 @@ namespace SistemaBronx.Application.Controllers
                             CostoFinancieroEstimado = Get<decimal>(r, "CostoFinancieroEstimado"),
                         }),
 
-                    // 5..8) Tops de productos
+                    // 5..8) Tops por producto
                     TopMasVendidos = MapBySchema(ds, 5, new[] { "IdProducto", "Producto" }, MapProd),
                     TopMenosVendidos = MapBySchema(ds, 6, new[] { "IdProducto", "Producto" }, MapProd),
                     TopMasRentables = MapBySchema(ds, 7, new[] { "IdProducto", "Producto" }, MapProd),
                     TopMenosRentables = MapBySchema(ds, 8, new[] { "IdProducto", "Producto" }, MapProd),
 
-                    // 9) Por categoria (GrupoCat*)
+                    // 9) Por categoría
                     PorCategoria = MapBySchema(ds,
                         defaultIndex: 9,
                         requiredCols: new[] { "GrupoCatId", "GrupoCatNombre", "Ingreso", "Costo" },
@@ -115,7 +114,7 @@ namespace SistemaBronx.Application.Controllers
                             MargenBrutoPct = Get<decimal?>(r, "MargenBrutoPct"),
                         }),
 
-                    // 10) Por proveedor (GrupoProv*)
+                    // 10) Por proveedor
                     PorProveedor = MapBySchema(ds,
                         defaultIndex: 10,
                         requiredCols: new[] { "GrupoProvId", "GrupoProvNombre", "Ingreso", "Costo" },
@@ -127,7 +126,54 @@ namespace SistemaBronx.Application.Controllers
                             Costo = Get<decimal>(r, "Costo"),
                             MargenBruto = Get<decimal>(r, "MargenBruto"),
                             MargenBrutoPct = Get<decimal?>(r, "MargenBrutoPct"),
-                        })
+                        }),
+
+                    // 11) Gastos por Tipo -> Categoría
+                    GastosPorTipoCategoria = MapBySchema(ds,
+                        defaultIndex: 11,
+                        requiredCols: new[] { "TipoGasto", "Categoria", "TotalGasto" },
+                        map: r => new GastoTipoCategoriaVM
+                        {
+                            TipoGasto = Get<string>(r, "TipoGasto") ?? "",
+                            Categoria = Get<string>(r, "Categoria") ?? "",
+                            TotalGasto = Get<decimal>(r, "TotalGasto"),
+                        }),
+
+                    // 12) Gastos mensual por tipo
+                    GastosMensualPorTipo = MapBySchema(ds,
+                        defaultIndex: 12,
+                        requiredCols: new[] { "Anio", "Mes", "TipoGeneral", "Total" },
+                        map: r => new GastoMensualTipoVM
+                        {
+                            Anio = Get<int>(r, "Anio"),
+                            Mes = Get<int>(r, "Mes"),
+                            TipoGeneral = Get<string>(r, "TipoGeneral") ?? "",
+                            Total = Get<decimal>(r, "Total"),
+                        }),
+
+                    // 13) Gastos totales por tipo (todo el rango)
+                    GastosTotalesPorTipo = MapBySchema(ds,
+                        defaultIndex: 13,
+                        requiredCols: new[] { "TipoGeneral", "Total" },
+                        map: r => new GastoTipoTotalVM
+                        {
+                            TipoGeneral = Get<string>(r, "TipoGeneral") ?? "",
+                            Total = Get<decimal>(r, "Total"),
+                        }),
+
+                    // 14) Comparativa real mensual (EnMano vs gastos)
+                    ComparativaRealMensual = MapBySchema(ds,
+                        defaultIndex: 14,
+                        requiredCols: new[] { "Anio", "Mes", "IngresoEnMano", "GastoFabricacion", "GastoOperativo", "ResultadoMes" },
+                        map: r => new ComparativaRealMensualVM
+                        {
+                            Anio = Get<int>(r, "Anio"),
+                            Mes = Get<int>(r, "Mes"),
+                            IngresoEnMano = Get<decimal>(r, "IngresoEnMano"),
+                            GastoFabricacion = Get<decimal>(r, "GastoFabricacion"),
+                            GastoOperativo = Get<decimal>(r, "GastoOperativo"),
+                            ResultadoMes = Get<decimal>(r, "ResultadoMes"),
+                        }),
                 };
 
                 return Ok(vm);
@@ -145,7 +191,7 @@ namespace SistemaBronx.Application.Controllers
                 ? ds.Tables[index].Rows[0]
                 : null;
 
-        // MapBySchema tolerante al indice: si el RS en defaultIndex no tiene las columnas, busca por esquema
+        // Busca por índice y, si no matchea columnas, por esquema.
         private static List<T> MapBySchema<T>(
             DataSet ds,
             int defaultIndex,
@@ -199,6 +245,12 @@ namespace SistemaBronx.Application.Controllers
             MargenBrutoPct = Get<decimal?>(r, "MargenBrutoPct"),
             MargenOperativoPct = Get<decimal?>(r, "MargenOperativoPct"),
             MargenNetoPct = Get<decimal?>(r, "MargenNetoPct"),
+
+            // columnas nuevas del SP
+            IVATotal = Get<decimal>(r, "IVA_Total"),
+            NetoTotal = Get<decimal>(r, "Neto_Total"),
+            CostoFinancieroTotal = Get<decimal>(r, "CostoFinanciero_Total"),
+            IngresoEnManoTotal = Get<decimal>(r, "IngresoEnMano_Total"),
         };
 
         private static ProdVM MapProd(DataRow r) => new()
