@@ -569,8 +569,8 @@ input:disabled {
 }
 
 
-.colorEncabezado {
-    background: linear-gradient(to right, #005bea, #418bf9, #7baaf7);
+.colorEncabezadoModals {
+    background: #1b2434 !important;
     color: white;
     border: none !important
 }

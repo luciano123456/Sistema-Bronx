@@ -511,7 +511,7 @@ async function calcularDatosProducto() {
     }
 
     // Campo total de insumos
-    $('#TotalInsumos').val(formatoMoneda.format(InsumoTotal));
+    $('#TotalInsumos').val(formatNumber(InsumoTotal));
 
     // Recalcular IVA + Ganancia + costo total
     calcularIVAyGanancia();
@@ -522,14 +522,20 @@ async function calcularDatosProducto() {
 }
 
 function calcularIVAyGanancia() {
-    const totalInsumos = convertirMonedaAFloat($('#TotalInsumos').val());
-    const porcIVA = toNumberSoft($('#porcIVA').val());
-    const porcGanancia = toNumberSoft($('#porcGanancia').val());
+    // Obtener valores y asegurarse de que sean números
+    const totalInsumos = parseFloat(convertirMonedaAFloat(document.getElementById("TotalInsumos").value));
+    const porcIVA = parseFloat(document.getElementById("porcIVA").value) || 0;
+    const porcGanancia = parseFloat(document.getElementById("porcGanancia").value) || 0;
 
+    // Calcular valores
     const totalGanancia = (totalInsumos * porcGanancia) / 100;
+
     const totalIVA = ((totalGanancia + totalInsumos) * porcIVA) / 100;
+
+
+    // Calcular costo total y redondear a múltiplos de 100
     let costoTotal = totalInsumos + totalGanancia + totalIVA;
-    costoTotal = Math.ceil(costoTotal / 100) * 100;
+
 
     $('#totalIVA').val(formatoMoneda.format(totalIVA));
     $('#totalGanancia').val(formatoMoneda.format(totalGanancia));

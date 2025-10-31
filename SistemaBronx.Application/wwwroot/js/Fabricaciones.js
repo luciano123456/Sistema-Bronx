@@ -235,9 +235,10 @@ async function configurarDataTable(data, incluirFinalizados) {
                 await aplicarFiltrosRestaurados(api, '#grd_Fabricaciones', 'estadoFabricaciones', false);
                 localStorage.removeItem('estadoFabricaciones');
 
+               
                 setTimeout(function () {
                     gridFabricaciones.columns.adjust();
-                }, 10);
+                }, 1);
 
                 const visiblesInit = api.rows({ filter: 'applied' }).data().toArray();
                 actualizarKpisFabricaciones(visiblesInit);
@@ -434,14 +435,17 @@ async function configurarDataTable(data, incluirFinalizados) {
                     const celda = $(rowElement).find('td').eq(colIndex);
 
                     if (colIndex === 6) {
-                        rowData.IdColor = newValue;
+                        rowData.IdColor = (newValue === '' || newValue == null) ? null : parseInt(newValue, 10);
                         rowData.Color = newText;
                     } else if (colIndex === 7) {
-                        rowData.IdEstado = parseInt(newValue);
+                        rowData.IdEstado = (newValue === '' || newValue == null) ? null : parseInt(newValue, 10);
                         rowData.Estado = newText;
                     } else {
-                        let header = gridFabricaciones.column(colIndex).header().textContent;
-                        rowData[header] = newText;
+                        // Fallback por cabecera visible (mismo criterio que usás en Insumos)
+                        const headerText = dt.column(colIndex).header().textContent.trim();
+                        if (headerText && Object.prototype.hasOwnProperty.call(rowData, headerText)) {
+                            rowData[headerText] = newText;
+                        }
                     }
 
                     guardarFiltrosPantalla('#grd_Fabricaciones', 'estadoFabricaciones', false);
@@ -450,7 +454,8 @@ async function configurarDataTable(data, incluirFinalizados) {
 
                     celda.addClass('blinking');
 
-                    await aplicarFiltrosRestaurados(gridFabricaciones, '#grd_Fabricaciones', 'estadoFabricaciones', false);
+                // 6) Un solo draw al final (sin invalidaciones extras)
+                dt.draw(false);
 
                     try {
                         await guardarCambiosFila(rowData);
@@ -460,6 +465,16 @@ async function configurarDataTable(data, incluirFinalizados) {
                     } catch (error) {
                         console.error(`Error guardando la fila ${i + 1}:`, error);
                     }
+                }, 0);
+
+                // 10) Limpiar selección y estado
+                if (typeof filasSeleccionadas !== 'undefined' && Array.isArray(filasSeleccionadas)) {
+                    for (const n of filasSeleccionadas) {
+                        n.classList.remove('selected');
+                        // quitar 'selected' de todas las celdas (si lo usás)
+                        for (const td of n.cells) td.classList.remove('selected');
+                    }
+                    filasSeleccionadas = [];
                 }
 
                 $(filasSeleccionadas).each(function (index, rowElement) {
