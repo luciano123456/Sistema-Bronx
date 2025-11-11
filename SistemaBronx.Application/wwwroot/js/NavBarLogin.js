@@ -579,6 +579,15 @@ function esVistaPedidoNuevoModif() {
 }
 
 
+function esVistaCotizacionNuevoModif() {
+    const segs = (location.pathname || '').toLowerCase().split('/').filter(Boolean);
+    for (let i = 0; i < segs.length - 1; i++) {
+        if (segs[i] === 'cotizaciones' && segs[i + 1] === 'nuevomodif') return true;
+    }
+    return false;
+}
+
+
 
 function resolverDestinoSeguro(href) {
     if (!href || href === '#' || /^\s*javascript:/i.test(href)) return null;
@@ -597,46 +606,6 @@ function navegarAhora(url) {
     setTimeout(() => location.assign(url), 10);
 }
 
-/* =========================================================
-   2) Modal (usa TU modal ya existente)
-   Devuelve 'guardar' | 'salir' | 'quedarse'
-   ========================================================= */
-async function abrirModalGuardarOSalir(mensaje, esNuevo) {
-    return new Promise((resolve) => {
-        const modalEl = document.getElementById('modalGuardarSalir');
-        const lblMsg = document.getElementById('modalGuardarSalirMensaje');
-        const btnOK = document.getElementById('btnGuardarYSalir');
-        const btnCX = document.getElementById('btnCancelarYSALIR');
-
-        if (!modalEl || !lblMsg || !btnOK || !btnCX) {
-            console.error('Falta el modal #modalGuardarSalir o sus botones.');
-            resolve('quedarse');
-            return;
-        }
-
-        lblMsg.textContent = mensaje || (esNuevo
-            ? 'Estás saliendo del pedido nuevo. ¿Deseás registrar el pedido antes de irte?'
-            : 'Estás saliendo del pedido. ¿Deseás guardar antes de irte?');
-
-        btnOK.textContent = esNuevo ? 'Registrar y salir' : 'Guardar y salir';
-
-        // Evitar listeners duplicados clonando botones
-        const okCl = btnOK.cloneNode(true);
-        const cxCl = btnCX.cloneNode(true);
-        btnOK.parentNode.replaceChild(okCl, btnOK);
-        btnCX.parentNode.replaceChild(cxCl, btnCX);
-
-        // Bootstrap 5: getOrCreateInstance
-        const bs = bootstrap.Modal.getOrCreateInstance(modalEl, { backdrop: 'static', keyboard: false });
-        let decision = null;
-
-        modalEl.addEventListener('hidden.bs.modal', () => resolve(decision || 'quedarse'), { once: true });
-        okCl.addEventListener('click', () => { decision = 'guardar'; bs.hide(); }, { once: true });
-        cxCl.addEventListener('click', () => { decision = 'salir'; bs.hide(); }, { once: true });
-
-        bs.show();
-    });
-}
 
 /* =========================================================
    3) Guard hook para redirección post-guardar (OPCIONAL)
@@ -656,12 +625,24 @@ async function navTo(anchorEl) {
     const destino = resolverDestinoSeguro(anchorEl.getAttribute('href'));
     if (!destino) return false;
 
-    // Si NO estamos en Nuevo/Modif → navegar directo
-    if (!esVistaPedidoNuevoModif()) { navegarAhora(destino); return false; }
+    let eleccion = '';
 
-    // En Nuevo/Modif SIEMPRE validamos
-    const esNuevo = (document.getElementById('IdPedido')?.value || '') === '';
-    const eleccion = await abrirModalGuardarOSalir(null, esNuevo);
+    // Si NO estamos en Nuevo/Modif → navegar directo
+    if (!esVistaPedidoNuevoModif() && !esVistaCotizacionNuevoModif()) {
+        navegarAhora(destino); return false;
+    }
+
+    if (esVistaPedidoNuevoModif()) {
+        // En Nuevo/Modif SIEMPRE validamos
+        const esNuevo = (document.getElementById('IdPedido')?.value || '') === '';
+        eleccion = await abrirModalGuardarOSalir(null, esNuevo, 'el pedido');
+    }
+
+    if (esVistaCotizacionNuevoModif()) {
+        // En Nuevo/Modif SIEMPRE validamos
+        const esNuevo = (document.getElementById('IdCotizacion')?.value || '') === '';
+        eleccion = await abrirModalGuardarOSalir(null, esNuevo, 'la cotizacion');
+    }
 
     if (eleccion === 'guardar') {
         // Guardar y luego ir al destino elegido
@@ -674,7 +655,7 @@ async function navTo(anchorEl) {
             if (ret && typeof ret.then === 'function') {
                 await ret;
             } else {
-                window.errorModal && window.errorModal('No se pudo guardar el pedido.');
+                window.errorModal && window.errorModal(`No se pudo guardar.`);
                 return;
             }
             // Si tu guardar NO redirigió ni llamó al hook, lo hacemos nosotros:

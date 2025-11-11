@@ -2848,7 +2848,7 @@ $('#Formasdepago').on('change', function () {
     calcularDatosPedido();       // re-calcula totales/saldo (y vuelve a reflejar CF)
 });
 
-$('#PorcDesc, #ImporteAbonado').on('input change blur', function () {
+$('#PorcDesc, #ImporteAbonado').on('blur', function () {
     calcularDatosPedido(); // para que CF se recalcule al cambiar descuentos/pagos
 });
 

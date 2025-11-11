@@ -162,7 +162,7 @@ async function configurarDataTable(data, incluirFinalizados) {
                 const api = this.api();
                 const estadoGuardado = JSON.parse(localStorage.getItem('estadoFabricaciones')) || {};
 
-              
+
 
                 for (const config of columnConfig) {
                     const index = config.index;
@@ -235,7 +235,7 @@ async function configurarDataTable(data, incluirFinalizados) {
                 await aplicarFiltrosRestaurados(api, '#grd_Fabricaciones', 'estadoFabricaciones', false);
                 localStorage.removeItem('estadoFabricaciones');
 
-               
+
                 setTimeout(function () {
                     gridFabricaciones.columns.adjust();
                 }, 1);
