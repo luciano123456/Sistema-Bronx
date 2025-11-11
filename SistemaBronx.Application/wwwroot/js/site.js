@@ -68,51 +68,6 @@ function confirmarModal(mensaje) {
 }
 
 
-// Modal con cierre correcto y resolución post-hidden
-async function abrirModalGuardarOSalir(mensaje, esNuevo) {
-    return new Promise((resolve) => {
-        const modalEl = document.getElementById('modalGuardarSalir');
-        const lblMsg = document.getElementById('modalGuardarSalirMensaje');
-        const btnOK = document.getElementById('btnGuardarYSalir');
-        const btnCancel = document.getElementById('btnCancelarYSALIR');
-
-        // set textos
-        lblMsg.innerText = mensaje || (esNuevo
-            ? 'Estás saliendo del pedido nuevo. ¿Deseás registrar el pedido antes de irte?'
-            : 'Tenés cambios sin guardar. ¿Deseás guardar el pedido antes de salir?');
-        btnOK.textContent = esNuevo ? 'Registrar y salir' : 'Guardar y salir';
-
-        // evitar listeners duplicados
-        const okCl = btnOK.cloneNode(true);
-        const cxCl = btnCancel.cloneNode(true);
-        btnOK.parentNode.replaceChild(okCl, btnOK);
-        btnCancel.parentNode.replaceChild(cxCl, btnCancel);
-
-        const bsModal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
-
-        let decision = null; // 'guardar' | 'salir' | 'quedarse'
-
-        // Siempre resolvemos DESPUÉS de que el modal se cierre
-        modalEl.addEventListener('hidden.bs.modal', () => {
-            resolve(decision || 'quedarse');
-        }, { once: true });
-
-        okCl.addEventListener('click', () => {
-            decision = 'guardar';
-            bsModal.hide(); // ⬅️ cerrar modal
-        }, { once: true });
-
-        cxCl.addEventListener('click', () => {
-            decision = 'salir';
-            bsModal.hide(); // ⬅️ cerrar modal
-        }, { once: true });
-
-        // Si tocan la X, queda 'quedarse'
-        // (no hace falta setear decision)
-
-        bsModal.show();
-    });
-}
 
 
 function formatNumber(number) {
@@ -128,6 +83,47 @@ function formatNumber(number) {
 
     // Combina la parte entera y la parte decimal
     return "$" + parts.join(",");
+}
+
+/* =========================================================
+   2) Modal (usa TU modal ya existente)
+   Devuelve 'guardar' | 'salir' | 'quedarse'
+   ========================================================= */
+async function abrirModalGuardarOSalir(mensaje, esNuevo, modo) {
+    return new Promise((resolve) => {
+        const modalEl = document.getElementById('modalGuardarSalir');
+        const lblMsg = document.getElementById('modalGuardarSalirMensaje');
+        const btnOK = document.getElementById('btnGuardarYSalir');
+        const btnCX = document.getElementById('btnCancelarYSALIR');
+
+        if (!modalEl || !lblMsg || !btnOK || !btnCX) {
+            console.error('Falta el modal #modalGuardarSalir o sus botones.');
+            resolve('quedarse');
+            return;
+        }
+
+        lblMsg.textContent = mensaje || (esNuevo
+            ? `Estás saliendo de ${modo}. ¿Deseás registrar ${modo} antes de irte?`
+            : `Estás saliendo de ${modo}. ¿Deseás guardar antes de irte?`);
+
+        btnOK.textContent = esNuevo ? 'Registrar y salir' : 'Guardar y salir';
+
+        // Evitar listeners duplicados clonando botones
+        const okCl = btnOK.cloneNode(true);
+        const cxCl = btnCX.cloneNode(true);
+        btnOK.parentNode.replaceChild(okCl, btnOK);
+        btnCX.parentNode.replaceChild(cxCl, btnCX);
+
+        // Bootstrap 5: getOrCreateInstance
+        const bs = bootstrap.Modal.getOrCreateInstance(modalEl, { backdrop: 'static', keyboard: false });
+        let decision = null;
+
+        modalEl.addEventListener('hidden.bs.modal', () => resolve(decision || 'quedarse'), { once: true });
+        okCl.addEventListener('click', () => { decision = 'guardar'; bs.hide(); }, { once: true });
+        cxCl.addEventListener('click', () => { decision = 'salir'; bs.hide(); }, { once: true });
+
+        bs.show();
+    });
 }
 
 
