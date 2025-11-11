@@ -301,6 +301,7 @@ async function configurarDataTable(data, incluirFinalizados) {
                     }
                 });
             } else {
+                // ✅ Si NO se presiona Ctrl ni Shift, limpiar todo y seleccionar solo la nueva fila
                 if (!fila.hasClass('selected') || filasSeleccionadas.length == 1) {
                     filasSeleccionadas = [fila[0]];
                     $('#grd_Fabricaciones tbody tr').removeClass('selected');
@@ -427,67 +428,111 @@ async function configurarDataTable(data, incluirFinalizados) {
                 input.focus();
             }
 
+            function getFilasObjetivo(dt, filasSeleccionadas, trActual) {
+                // Si hay selección múltiple, editamos esas; si no, solo la fila actual.
+                if (Array.isArray(filasSeleccionadas) && filasSeleccionadas.length > 0) {
+                    return [...filasSeleccionadas];
+                }
+                return [trActual];
+            }
+
+            // === Reemplazo de saveEdit/cancelEdit ===
             async function saveEdit(colIndex, newText, newValue) {
-                for (let i = 0; i < filasSeleccionadas.length; i++) {
-                    const rowElement = filasSeleccionadas[i];
-                    let rowData = gridFabricaciones.row($(rowElement)).data();
+                const dt = gridFabricaciones;
 
-                    const celda = $(rowElement).find('td').eq(colIndex);
+                // 1) Guardar estado de filtros ANTES de tocar datos
+                guardarFiltrosPantalla("#grd_Fabricaciones", "filtrosFabricaciones", true);
 
+                // 2) Calcular el índice visible de la columna editada
+                const visibleIndex = dt.column(colIndex).index('visible');
+
+                // 3) Determinar filas objetivo (multi-selección o fila actual)
+                const trActual = $(cell.node()).closest('tr')[0];
+                const filas = getFilasObjetivo(dt, typeof filasSeleccionadas !== 'undefined' ? filasSeleccionadas : [], trActual);
+
+                // 4) Edición en lote sin draw por cada fila
+                for (let i = 0; i < filas.length; i++) {
+                    const rowNode = filas[i];
+                    const rowData = dt.row($(rowNode)).data();
+
+                    // Tomo el texto original (para evitar re-escrituras innecesarias)
+                    let originalText = dt.cell(rowNode, colIndex).data();
+                    // Si venía con HTML, me quedo con el texto plano
+                    if (typeof originalText === 'string') {
+                        const tmp = document.createElement('div');
+                        tmp.innerHTML = originalText;
+                        originalText = tmp.textContent.trim();
+                    }
+
+                    // Si no cambió, sigo con la próxima
+                    if (String(originalText) === String(newText)) {
+                        continue;
+                    }
+
+                    // 4.a) Actualizar el modelo según la columna
                     if (colIndex === 6) {
+                        // Color
                         rowData.IdColor = (newValue === '' || newValue == null) ? null : parseInt(newValue, 10);
                         rowData.Color = newText;
                     } else if (colIndex === 7) {
+                        // Estado
                         rowData.IdEstado = (newValue === '' || newValue == null) ? null : parseInt(newValue, 10);
                         rowData.Estado = newText;
                     } else {
-                        // Fallback por cabecera visible (mismo criterio que usás en Insumos)
+                        // Resto de columnas: asigno por cabecera visible (como fallback seguro)
+                        // Si tenés un map dataSrc por columna, podés usarlo acá.
                         const headerText = dt.column(colIndex).header().textContent.trim();
                         if (headerText && Object.prototype.hasOwnProperty.call(rowData, headerText)) {
                             rowData[headerText] = newText;
+                        } else {
+                            // Si la propiedad no existe, no ensucio el modelo.
+                            // (Si querés forzar, podés crear un map ColIndex->Propiedad)
                         }
                     }
 
-                    guardarFiltrosPantalla('#grd_Fabricaciones', 'estadoFabricaciones', false);
+                    // 4.b) Actualizar solo esa fila sin redibujar toda la tabla
+                    dt.row($(rowNode)).data(rowData);
 
-                    gridFabricaciones.cell(rowElement, colIndex).data(newText).draw(false);
+                    // 4.c) Feedback visual en la celda correcta (por índice visible)
+                    // OJO: si la columna está oculta, no existe el TD visual; chequeo primero:
+                    const $tds = $(rowNode).find('td');
+                    if (visibleIndex != null && visibleIndex >= 0 && visibleIndex < $tds.length) {
+                        const $celda = $tds.eq(visibleIndex);
+                        $celda.addClass('blinking');
+                        setTimeout(() => $celda.removeClass('blinking'), 3000);
+                    }
 
-                    celda.addClass('blinking');
-
-                // 6) Un solo draw al final (sin invalidaciones extras)
-                dt.draw(false);
-
+                    // 4.d) Persistir cada fila en backend
                     try {
                         await guardarCambiosFila(rowData);
-                        setTimeout(function () {
-                            $(rowElement).find('td').eq(colIndex).removeClass('blinking');
-                        }, 3000);
-                    } catch (error) {
-                        console.error(`Error guardando la fila ${i + 1}:`, error);
+                    } catch (err) {
+                        console.error('Error guardando fila', err);
                     }
-                }, 0);
-
-                // 10) Limpiar selección y estado
-                if (typeof filasSeleccionadas !== 'undefined' && Array.isArray(filasSeleccionadas)) {
-                    for (const n of filasSeleccionadas) {
-                        n.classList.remove('selected');
-                        // quitar 'selected' de todas las celdas (si lo usás)
-                        for (const td of n.cells) td.classList.remove('selected');
-                    }
-                    filasSeleccionadas = [];
                 }
 
-                $(filasSeleccionadas).each(function (index, rowElement) {
-                    $(rowElement).removeClass('selected');
-                    $(rowElement).find('td').removeClass('selected');
-                });
+                // 5) Un solo draw al final
+                dt.draw(false);
 
+                // 6) Reaplicar filtros guardados (como en Insumos)
+                await aplicarFiltrosRestaurados(dt, "#grd_Fabricaciones", "filtrosFabricaciones", true);
+
+                // 7) Limpiar selección y salir de modo edición
+                if (typeof filasSeleccionadas !== 'undefined' && Array.isArray(filasSeleccionadas)) {
+                    $(filasSeleccionadas).each((_, n) => {
+                        $(n).removeClass('selected').find('td').removeClass('selected');
+                    });
+                    filasSeleccionadas = [];
+                }
                 isEditing = false;
-                filasSeleccionadas = [];
             }
 
-            function cancelEdit() {
+            async function cancelEdit() {
+                // Restaurar el valor original SOLO de la celda actual y redibujar
                 gridFabricaciones.cell(cell.index()).data(originalData).draw(false);
+
+                // Reaplicar filtros como en Insumos (por si la restauración cambió algo visual)
+                await aplicarFiltrosRestaurados(gridFabricaciones, "#grd_Fabricaciones", "filtrosFabricaciones", true);
+
                 isEditing = false;
             }
         });
