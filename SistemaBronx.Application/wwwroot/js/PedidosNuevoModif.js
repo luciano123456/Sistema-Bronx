@@ -288,15 +288,14 @@ async function configurarDataTableProductosModal(data) {
             ],
             orderCellsTop: true,
             fixedHeader: false,
-            "columnDefs": [
-
+            columnDefs: [
                 {
-                    "render": function (data, type, row) {
-                        return formatNumber(data); // Formatear números
-                    },
-                    "targets": [2] // Índices de las columnas de números
-                },
-
+                    targets: [2],
+                    render: function (data, type, row) {
+                        const v = Math.ceil((Number(data) || 0) / 100) * 100;
+                        return formatNumber(v);
+                    }
+                }
             ],
 
             initComplete: async function () {
@@ -1366,7 +1365,7 @@ async function guardarProducto() {
                     data.Categoria = Categoria,
                     data.CostoUnitario = CostoUnitario,
                     data.PorcGanancia = PorcGanancia,
-                    data.PrecioVentaUnitario  = PrecioVenta / Cantidad,
+                    data.PrecioVentaUnitario = Math.ceil((PrecioVenta / Cantidad) / 100) * 100;
                     data.Ganancia = Ganancia,
                     data.PorcIva = PorcIva,
                     data.IVA = TotalIva,
@@ -1408,7 +1407,7 @@ async function guardarProducto() {
         gridProductos.row.add({
             Id: detalleId,
             IdProducto: IdProducto,
-            PrecioVentaUnitario: PrecioVenta / Cantidad,
+            PrecioVentaUnitario: Math.ceil((PrecioVenta / Cantidad) / 100) * 100,
             Nombre: NombreProducto,
             IdCategoria: IdCategoria,
             Categoria: Categoria,
@@ -1436,7 +1435,7 @@ async function guardarProducto() {
                 CantidadInicial: insumoData.CantidadInicial,
                 IdInsumo: insumoData.IdInsumo,
                 Insumo: insumoData.Nombre,
-                PrecioVentaUnitario: insumoData.PrecioVenta / insumoData.Cantidad,
+                PrecioVentaUnitario: Math.ceil((insumoData.PrecioVenta / insumoData.Cantidad) / 100) * 100,
                 IdTipo: insumoData.IdTipo,
                 Tipo: insumoData.Tipo,
                 IdCategoria: insumoData.IdCategoria,
@@ -1594,7 +1593,8 @@ function calcularIVAyGanancia() {
     const totalIVA = totalIVAUnitario * cantidad;
 
     // Calcular costo total para la cantidad (incluyendo insumos, ganancia e IVA)
-    const costoTotal = (totalInsumos + gananciaUnitario + totalIVAUnitario) * cantidad;
+    const costoTotal = Math.ceil((totalInsumos + gananciaUnitario + totalIVAUnitario) / 100) * 100 * cantidad;
+
 
     // Mostrar resultados formateados
     document.getElementById("ProductoModalIva").value = formatoMoneda.format(totalIVA);
@@ -2911,3 +2911,11 @@ function actualizarCostoFinanciero() {
 
 }
 
+
+
+function ceilToStep(value, step = 0.1) {
+    const v = Number(value) || 0;
+    const factor = 1 / step;
+    // restamos un epsilon para no subir valores que ya son múltiplos exactos
+    return Math.ceil((v - 1e-12) * factor) / factor;
+}

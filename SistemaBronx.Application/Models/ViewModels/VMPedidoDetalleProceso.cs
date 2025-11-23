@@ -44,6 +44,7 @@ namespace SistemaBronx.Application.Models.ViewModels
         public string? Categoria { get; set; }
         public string? Color { get; set; }
         public string? Estado { get; set; }
+        public string? Cliente { get; set; }
 
         public int? IdEstado { get; set; }
 

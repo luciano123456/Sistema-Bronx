@@ -47,6 +47,7 @@ namespace SistemaBronx.Application.Controllers
                     Categoria = detalleProceso.IdInsumoNavigation.IdCategoriaNavigation != null ? detalleProceso.IdInsumoNavigation.IdCategoriaNavigation.Nombre : "",
                     IdDetalle = detalleProceso.IdDetalle,
                     FechaActualizacion = detalleProceso.FechaActualizacion,
+                    Cliente = detalleProceso.IdPedidoNavigation.IdClienteNavigation != null ? detalleProceso.IdPedidoNavigation.IdClienteNavigation.Nombre : "",
                 }).ToList();
 
                 return Ok(lista);
