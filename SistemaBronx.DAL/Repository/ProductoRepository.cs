@@ -331,6 +331,35 @@ namespace SistemaBronx.DAL.Repository
             }
         }
 
+        public async Task<bool> ActualizarSoloProducto(Producto model)
+        {
+            try
+            {
+                var productoExistente = await _dbcontext.Productos
+                    .FirstOrDefaultAsync(p => p.Id == model.Id);
+
+                if (productoExistente == null)
+                    return false;
+
+                // Solo campos de cabecera / configuración
+                productoExistente.Nombre = model.Nombre;
+                productoExistente.IdCategoria = model.IdCategoria;
+                productoExistente.PorcGanancia = model.PorcGanancia;
+                productoExistente.PorcIva = model.PorcIva;
+
+                // Si querés que la edición en línea también pueda modificar el costo unitario:
+                // (si no, borrá esta línea)
+                productoExistente.CostoUnitario = model.CostoUnitario;
+
+                await _dbcontext.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
 
     }
 }
