@@ -13,5 +13,7 @@ namespace SistemaBronx.BLL.Service
 
         Task<List<ProductosInsumo>> ObtenerInsumos(int idProducto);
         Task<bool> ActualizarInsumos(List<ProductosInsumo> insumos);
+
+        Task<bool> ActualizarSoloProducto(Producto model);
     }
 }

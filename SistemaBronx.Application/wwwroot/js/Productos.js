@@ -1,13 +1,19 @@
 ﻿// ============================== Productos.js ==============================
 let gridProductos;
+let isEditingProducto = false;
 
+// Config de filtros por columna
 const columnConfigProductos = [
     { index: 1, name: 'Nombre', filterType: 'text' },
     { index: 2, name: 'Categoria', filterType: 'select', fetchDataFunc: listaProductosCategoriaFilter },
     { index: 3, name: 'Porc. IVA', filterType: 'text' },
     { index: 4, name: 'Porc. Ganancia', filterType: 'text' },
-    { index: 5, name: 'Costo Unitario', filterType: 'text' },
+    // CostoUnitario: SIN filtro
+    { index: 5, name: 'Costo Unitario', filterType: 'text' }
 ];
+
+// Cache de categorías para no pedirlas mil veces en la edición inline
+let cacheCategoriasProductos = null;
 
 /* ============================
    Arranque
@@ -19,24 +25,35 @@ $(document).ready(async () => {
 /* ============================
    Acciones / navegación
    ============================ */
-function nuevoProducto() { window.location.href = '/Productos/NuevoModif'; }
+function nuevoProducto() {
+    window.location.href = '/Productos/NuevoModif';
+}
+
 function editarProducto(id) {
     guardarFiltrosPantalla?.('#grd_Productos', 'estadoProductos', false);
     window.location.href = '/Productos/NuevoModif/' + id;
 }
+
 function duplicarProducto(id) {
     guardarFiltrosPantalla?.('#grd_Productos', 'estadoProductos', false);
     localStorage.setItem("DuplicarProducto", true);
     window.location.href = '/Productos/NuevoModif/' + id;
 }
+
 async function eliminarProducto(id) {
     if (!window.confirm("¿Desea eliminar el Producto?")) return;
     try {
         const response = await fetch("Productos/Eliminar?id=" + id, { method: "DELETE" });
         if (!response.ok) throw new Error("Error al eliminar el Producto.");
         const ok = await response.json();
-        if (ok?.valor ?? ok) { exitoModal?.("Producto eliminado correctamente"); await listaProductos(); }
-    } catch (e) { console.error(e); }
+        if (ok?.valor ?? ok) {
+            exitoModal?.("Producto eliminado correctamente");
+            await listaProductos();
+        }
+    } catch (e) {
+        console.error(e);
+        errorModal?.("Ocurrió un error al eliminar el producto.");
+    }
 }
 
 /* ============================
@@ -52,7 +69,10 @@ async function listaProductos() {
 async function configurarDataTableProductos(data) {
     if (!gridProductos) {
         // Header con filtros clonados
-        $('#grd_Productos thead tr').clone(true).addClass('filters').appendTo('#grd_Productos thead');
+        $('#grd_Productos thead tr')
+            .clone(true)
+            .addClass('filters')
+            .appendTo('#grd_Productos thead');
 
         gridProductos = $('#grd_Productos').DataTable({
             data,
@@ -62,7 +82,9 @@ async function configurarDataTableProductos(data) {
             pageLength: 50,
             columns: [
                 {
-                    data: "Id", title: '', width: "1%",
+                    data: "Id",
+                    title: '',
+                    width: "1%",
                     render: function (data) {
                         return `
             <div class="acciones-menu" data-id="${data}">
@@ -82,7 +104,8 @@ async function configurarDataTableProductos(data) {
               </div>
             </div>`;
                     },
-                    orderable: false, searchable: false,
+                    orderable: false,
+                    searchable: false,
                 },
                 { data: 'Nombre' },
                 { data: 'Categoria' },
@@ -112,7 +135,10 @@ async function configurarDataTableProductos(data) {
             orderCellsTop: true,
             fixedHeader: false,
             columnDefs: [
-                { targets: [5], render: (data) => formatNumber(redondearCien(data)) },
+                {
+                    targets: [5],
+                    render: (data) => formatNumber(redondearCien(data))
+                },
             ],
             initComplete: async function () {
                 const api = this.api();
@@ -123,14 +149,21 @@ async function configurarDataTableProductos(data) {
                 for (const cfg of columnConfigProductos) {
                     const idx = cfg.index;
                     const name = cfg.name;
+                    const type = cfg.filterType;
+
                     const $cell = $('.filters th').eq(idx);
                     const valorGuardado = estadoGuardado?.filtrosPorNombre?.[name];
 
                     if (!api.column(idx).visible()) continue;
+                    if (!type) {
+                        // Sin filtro para esta columna (si algún día ponés null de nuevo)
+                        $cell.empty();
+                        continue;
+                    }
 
                     $cell.attr('data-colname', name).empty();
 
-                    if (cfg.filterType === 'select') {
+                    if (type === 'select') {
                         const $sel = $(`<select id="filter${idx}" multiple="multiple"><option value=""></option></select>`)
                             .attr('data-index', idx)
                             .appendTo($cell)
@@ -147,13 +180,12 @@ async function configurarDataTableProductos(data) {
                         const dataSel = await cfg.fetchDataFunc();
                         dataSel.forEach(item => $sel.append(`<option value="${item.Nombre}">${item.Nombre}</option>`));
 
-                        // Select2 dentro del wrapper de DataTable (no hay panel)
+                        // Select2 dentro del wrapper de DataTable
                         $sel.select2({
                             placeholder: 'Seleccionar...',
                             width: '100%',
                             dropdownParent: $('#grd_Productos').closest('.dataTables_wrapper')
                         });
-
 
                         if (valorGuardado) {
                             const vals = Array.isArray(valorGuardado) ? valorGuardado : [valorGuardado];
@@ -165,45 +197,51 @@ async function configurarDataTableProductos(data) {
                                 await api.column(idx).search(rx, true, false).draw();
                             }
                         }
-                    } else {
+                    } else if (type === 'text') {
                         const $input = $('<input type="text" class="form-control form-control-sm dt-input-dark" placeholder="Buscar..." />')
                             .attr('data-index', idx)
                             .val(valorGuardado || '')
                             .appendTo($cell)
                             .on('keyup change', function () {
-                                const rx = this.value ? '(((' + $.fn.dataTable.util.escapeRegex(this.value) + ')))' : '';
+                                const rx = this.value
+                                    ? '(((' + $.fn.dataTable.util.escapeRegex(this.value) + ')))'
+                                    : '';
                                 const cur = this.selectionStart || 0;
                                 api.column(idx).search(rx, !!this.value, !this.value).draw();
                                 $(this).focus()[0].setSelectionRange(cur, cur);
                             });
 
                         if (valorGuardado) {
-                            api.column(idx).search('(((' + $.fn.dataTable.util.escapeRegex(valorGuardado) + ')))', true, false);
+                            api.column(idx)
+                                .search('(((' + $.fn.dataTable.util.escapeRegex(valorGuardado) + ')))', true, false);
                         }
                     }
                 }
+
                 // sin filtro en col 0 (acciones)
                 $('.filters th').eq(0).empty();
 
-                // Menú columnas + restaurar estado (si tenés esa helper global)
+                // Menú columnas + restaurar estado
                 await configurarOpcionesColumnasProductos();
                 await aplicarFiltrosRestaurados?.(api, idTabla, 'estadoProductos', true);
                 localStorage.removeItem('estadoProductos');
 
                 // Ajuste + primer cálculo de KPIs
-                setTimeout(() => { gridProductos?.columns.adjust(); calcularTotalesProductos(); }, 10);
+                setTimeout(() => {
+                    gridProductos?.columns.adjust();
+                    calcularTotalesProductos();
+                }, 10);
 
                 // Recalcular en cada draw
-                $('#grd_Productos').off('draw.dt.calc').on('draw.dt.calc', calcularTotalesProductos);
+                $('#grd_Productos')
+                    .off('draw.dt.calc')
+                    .on('draw.dt.calc', calcularTotalesProductos);
 
-                // UX filas
-                $('#grd_Productos tbody').on('mouseenter', 'tr', function () { $(this).css('cursor', 'pointer'); });
-                $('#grd_Productos tbody').on('dblclick', 'tr', function () {
-                    const id = gridProductos.row(this).data().Id;
-                    editarProducto(id);
+                // UX filas (hover y selección visual, SIN abrir formulario)
+                $('#grd_Productos tbody').on('mouseenter', 'tr', function () {
+                    $(this).css('cursor', 'pointer');
                 });
 
-                // selección visual
                 let filaSel = null;
                 $('#grd_Productos tbody').on('click', 'tr', function () {
                     if (filaSel) {
@@ -214,7 +252,183 @@ async function configurarDataTableProductos(data) {
                     $(filaSel).addClass('seleccionada');
                     $('td', filaSel).addClass('seleccionada');
                 });
+
+                // =====================================================
+                // EDICIÓN EN LÍNEA (dblclick) + BLINK EN COSTO UNITARIO
+                // =====================================================
+                $('#grd_Productos tbody')
+                    .off('dblclick.productos')
+                    .on('dblclick.productos', 'td', async function () {
+                        if (isEditingProducto) return;
+
+                        const cell = gridProductos.cell(this);
+                        const colIndex = cell.index().column;
+                        const rowIdx = cell.index().row;
+                        let rowData = gridProductos.row(rowIdx).data();
+                        if (!rowData) return;
+
+                        // No editar acciones ni CostoUnitario
+                        if (colIndex === 0 || colIndex === 5) return;
+
+                        isEditingProducto = true;
+                        const $td = $(this);
+                        const originalData = cell.data();
+
+                        if ($td.find('input, select').length > 0) {
+                            isEditingProducto = false;
+                            return;
+                        }
+
+                        function cancelarEdicion() {
+                            gridProductos.cell(cell.index()).data(originalData).draw(false);
+                            isEditingProducto = false;
+                        }
+
+                        async function guardarEdicion(newText, extraValue = null) {
+                            // Actualizamos el rowData en memoria según la columna
+                            if (colIndex === 1) {            // Nombre
+                                rowData.Nombre = newText;
+                            } else if (colIndex === 2) {     // Categoría (select)
+                                rowData.IdCategoria = extraValue;
+                                rowData.Categoria = newText;
+                            } else if (colIndex === 3) {     // Porc. IVA
+                                rowData.PorcIva = newText !== '' ? Number(newText) : null;
+                            } else if (colIndex === 4) {     // Porc. Ganancia
+                                rowData.PorcGanancia = newText !== '' ? Number(newText) : null;
+                            }
+
+                            // Modelo para backend (solo cabecera)
+                            const modelo = {
+                                Id: rowData.Id,
+                                Nombre: rowData.Nombre,
+                                IdCategoria: rowData.IdCategoria,
+                                PorcGanancia: rowData.PorcGanancia || 0,
+                                PorcIva: rowData.PorcIva || 0,
+                                CostoUnitario: rowData.CostoUnitario // el SP recalcula en base a insumos
+                            };
+
+                            try {
+                                // 1) Actualizar SOLO el producto
+                                const resp = await fetch('/Productos/ActualizarSoloProducto', {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json;charset=utf-8' },
+                                    body: JSON.stringify(modelo)
+                                });
+
+                                if (!resp.ok) throw new Error('Error al actualizar el producto');
+
+                                const json = await resp.json();
+                                if (!json?.valor) {
+                                    throw new Error('El servidor devolvió un error al actualizar');
+                                }
+
+                                // 2) Volver a leer el producto DESDE Lista() para traer el nuevo CostoUnitario
+                                try {
+                                    const respLista = await fetch('/Productos/Lista');
+                                    if (respLista.ok) {
+                                        const lista = await respLista.json();
+                                        const actualizado = lista.find(p => p.Id === rowData.Id);
+                                        if (actualizado) {
+                                            // nos quedamos con lo que manda el SP: IVA, Ganancia y CostoUnitario recalculado
+                                            rowData.PorcIva = actualizado.PorcIva;
+                                            rowData.PorcGanancia = actualizado.PorcGanancia;
+                                            rowData.CostoUnitario = actualizado.CostoUnitario;
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.warn('No se pudo refrescar la lista de productos para el costo nuevo', e);
+                                }
+
+                                // 3) Actualizar la fila en la tabla
+                                gridProductos.row(rowIdx).data(rowData).draw(false);
+
+                                // Blink en la celda editada
+                                $td.addClass('blinking');
+                                setTimeout(() => $td.removeClass('blinking'), 3000);
+
+                                // Si tocaste IVA o Ganancia => también blink en CostoUnitario (columna 5)
+                                if (colIndex === 3 || colIndex === 4) {
+                                    const $tdCosto = $(gridProductos.cell(rowIdx, 5).node());
+                                    $tdCosto.addClass('blinking');
+                                    setTimeout(() => $tdCosto.removeClass('blinking'), 3000);
+                                }
+
+                                calcularTotalesProductos();
+                            } catch (err) {
+                                console.error(err);
+                                errorModal?.('Ocurrió un error al guardar el producto.');
+                                // restaurar dato original si falla
+                                gridProductos.cell(cell.index()).data(originalData).draw(false);
+                            } finally {
+                                isEditingProducto = false;
+                            }
+                        }
+
+
+                        // =======================
+                        // COLUMNA: CATEGORÍA
+                        // =======================
+                        if (colIndex === 2) {
+                            if (!cacheCategoriasProductos) {
+                                cacheCategoriasProductos = await listaProductosCategoriaFilter();
+                            }
+
+                            const $select = $('<select class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;"></select>');
+
+                            cacheCategoriasProductos.forEach(cat => {
+                                $select.append(`<option value="${cat.Id}">${cat.Nombre}</option>`);
+                            });
+
+                            $td.empty().append($select);
+
+                            if (rowData.IdCategoria != null) {
+                                $select.val(String(rowData.IdCategoria));
+                            }
+
+                            const $ok = $('<i class="fa fa-check text-success" style="margin-left:4px; cursor:pointer;"></i>')
+                                .on('click', () => {
+                                    const valId = Number($select.val());
+                                    const text = $select.find('option:selected').text();
+                                    guardarEdicion(text, valId);
+                                });
+
+                            const $cancel = $('<i class="fa fa-times text-danger" style="margin-left:4px; cursor:pointer;"></i>')
+                                .on('click', cancelarEdicion);
+
+                            $td.append($ok).append($cancel);
+                            $select.focus();
+                        } else {
+                            // =======================
+                            // Nombre / PorcIva / PorcGanancia
+                            // =======================
+                            let valueToDisplay = originalData;
+                            if (valueToDisplay == null) valueToDisplay = '';
+                            if (typeof valueToDisplay === 'string') {
+                                valueToDisplay = valueToDisplay.replace(/<[^>]+>/g, "");
+                            }
+
+                            const $input = $('<input type="text" class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
+                                .val(valueToDisplay)
+                                .on('keydown', function (e) {
+                                    if (e.key === 'Enter') {
+                                        guardarEdicion($(this).val());
+                                    } else if (e.key === 'Escape') {
+                                        cancelarEdicion();
+                                    }
+                                });
+
+                            const $ok = $('<i class="fa fa-check text-success" style="margin-left:4px; cursor:pointer;"></i>')
+                                .on('click', () => guardarEdicion($input.val()));
+
+                            const $cancel = $('<i class="fa fa-times text-danger" style="margin-left:4px; cursor:pointer;"></i>')
+                                .on('click', cancelarEdicion);
+
+                            $td.empty().append($input).append($ok).append($cancel);
+                            $input.focus();
+                        }
+                    });
             }
+
         });
     } else {
         gridProductos.clear().rows.add(data).draw();
@@ -264,10 +478,16 @@ function configurarOpcionesColumnasProductos() {
 function toggleAccionesProd(id) {
     const $dd = $(`.acciones-menu[data-id="${id}"] .acciones-dropdown`);
     if ($dd.is(":visible")) $dd.hide();
-    else { $('.acciones-dropdown').hide(); $dd.show(); }
+    else {
+        $('.acciones-dropdown').hide();
+        $dd.show();
+    }
 }
+
 $(document).on('click', function (e) {
-    if (!$(e.target).closest('.acciones-menu').length) $('.acciones-dropdown').hide();
+    if (!$(e.target).closest('.acciones-menu').length) {
+        $('.acciones-dropdown').hide();
+    }
 });
 
 /* ============================
@@ -289,6 +509,7 @@ if (typeof window.formatNumber !== 'function') {
         return v.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 }
+
 function redondearCien(value) {
     if (value == null || value === '') return '';
     const num = Number(value);
@@ -315,7 +536,9 @@ function calcularTotalesProductos() {
     if ($sumCost.length) $sumCost.text(formatNumber(sumaCostos));
 }
 
-
+/* ============================
+   Select2 chips helper (por si lo usás en otros lados)
+   ============================ */
 // Muestra solo N chips y agrega un badge "+N" con tooltip de los ocultos
 function enhanceSelect2ChipSummary($select, maxVisible = 2) {
     const s2 = $select.data('select2');
@@ -323,17 +546,12 @@ function enhanceSelect2ChipSummary($select, maxVisible = 2) {
     const $selection = s2.$container.find('.select2-selection--multiple');
 
     function updateSummary() {
-        // Aseguramos que existan los chips
         const $chips = $selection.find('.select2-selection__choice');
-        // Mostrar todos para recalcular y luego ocultar excedentes
         $chips.show();
 
         const extra = Math.max(0, $chips.length - maxVisible);
         if (extra > 0) {
-            // oculto visualmente el excedente (no lo saco del DOM)
             $chips.slice(maxVisible).hide();
-
-            // tooltip con los ocultos
             const hidden = $chips.slice(maxVisible).map(function () {
                 return $(this).attr('title') || $(this).text().trim();
             }).get();
@@ -345,17 +563,11 @@ function enhanceSelect2ChipSummary($select, maxVisible = 2) {
         }
     }
 
-    // Actualizar cuando select2 agrega/remueve chips
     $select.on('change select2:select select2:unselect', () => setTimeout(updateSummary, 0));
 
-    // Click en el badge (o en la caja) abre el dropdown
-    $selection.on('mousedown', function (e) {
-        // Evita que el click se "pierda" si se hace sobre el badge
+    $selection.on('mousedown', function () {
         if (!s2.isOpen()) { $select.select2('open'); }
     });
 
-    // Primer render
     setTimeout(updateSummary, 0);
 }
-
-

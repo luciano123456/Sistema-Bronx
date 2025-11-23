@@ -25,7 +25,9 @@ namespace SistemaBronx.Application.Controllers
             return View();
         }
 
-
+        // ======================================================
+        // LISTA (SIN INSUMOS)
+        // ======================================================
         [HttpGet]
         public async Task<IActionResult> Lista()
         {
@@ -41,7 +43,8 @@ namespace SistemaBronx.Application.Controllers
                     PorcIva = c.PorcIva,
                     IdCategoria = c.IdCategoria,
                     CostoUnitario = c.CostoUnitario,
-                    Categoria = c.IdCategoriaNavigation.Nombre
+                    Categoria = c.IdCategoriaNavigation.Nombre,
+                    TotalInsumos = 0   // ⬅ NO SE CALCULA EN LISTA
                 }).ToList();
 
                 return Ok(lista);
@@ -53,7 +56,9 @@ namespace SistemaBronx.Application.Controllers
         }
 
 
-
+        // ======================================================
+        // LISTA CATEGORÍAS
+        // ======================================================
         [HttpGet]
         public async Task<IActionResult> ListaCategorias()
         {
@@ -68,6 +73,10 @@ namespace SistemaBronx.Application.Controllers
             return Ok(lista);
         }
 
+
+        // ======================================================
+        // LISTA INSUMOS DE UN PRODUCTO
+        // ======================================================
         [HttpGet]
         public async Task<IActionResult> ListaInsumosProducto(int IdProducto)
         {
@@ -87,8 +96,9 @@ namespace SistemaBronx.Application.Controllers
         }
 
 
-
-
+        // ======================================================
+        // INSERTAR
+        // ======================================================
         [HttpPost]
         public async Task<IActionResult> Insertar([FromBody] VMProducto model)
         {
@@ -124,6 +134,9 @@ namespace SistemaBronx.Application.Controllers
         }
 
 
+        // ======================================================
+        // ACTUALIZAR
+        // ======================================================
         [HttpPut]
         public async Task<IActionResult> Actualizar([FromBody] VMProducto model)
         {
@@ -136,39 +149,42 @@ namespace SistemaBronx.Application.Controllers
                 PorcGanancia = model.PorcGanancia,
             };
 
-           
-
             List<ProductosInsumo> ProductosInsumo = new List<ProductosInsumo>();
 
-            // Agregar los pagos de clientes
             if (model.ProductosInsumos != null && model.ProductosInsumos.Any())
             {
                 foreach (var insumo in model.ProductosInsumos)
                 {
-                    var nuevoInsumo = new ProductosInsumo
+                    ProductosInsumo.Add(new ProductosInsumo
                     {
                         Cantidad = insumo.Cantidad,
                         IdInsumo = insumo.IdInsumo,
                         IdProducto = insumo.IdProducto,
-                    };
-                    ProductosInsumo.Add(nuevoInsumo);
+                    });
                 }
             }
 
             bool respuesta = await _ProductosService.Actualizar(Productos, ProductosInsumo);
 
-
             return Ok(new { valor = respuesta });
         }
 
+
+        // ======================================================
+        // ELIMINAR
+        // ======================================================
         [HttpDelete]
         public async Task<IActionResult> Eliminar(int id)
         {
             bool respuesta = await _ProductosService.Eliminar(id);
-
             return StatusCode(StatusCodes.Status200OK, new { valor = respuesta });
         }
 
+
+
+        // ======================================================
+        // EDITAR INFO (ACÁ SÍ CALCULA TOTALINSUMOS)
+        // ======================================================
         [HttpGet]
         public async Task<IActionResult> EditarInfo(int id)
         {
@@ -176,8 +192,14 @@ namespace SistemaBronx.Application.Controllers
 
             if (id > 0)
             {
-
                 var model = await _ProductosService.Obtener(id);
+
+                // Calcular total insumos SOLO ACÁ
+                var insumos = await _ProductosService.ObtenerInsumos(id);
+
+                decimal totalInsumos = insumos.Sum(i =>
+                    (decimal)i.IdInsumoNavigation.PrecioVenta * i.Cantidad
+                );
 
                 var Producto = new VMProducto
                 {
@@ -188,13 +210,10 @@ namespace SistemaBronx.Application.Controllers
                     PorcGanancia = (decimal)model.PorcGanancia,
                     CostoUnitario = model.CostoUnitario,
                     Categoria = model.IdCategoriaNavigation.Nombre,
-
+                    TotalInsumos = totalInsumos
                 };
 
-                var ProductosInsumos = await _ProductosService.ObtenerInsumos(id);
-
-
-                var insumosJson = ProductosInsumos.Select(p => new VMProductoInsumo
+                var ProductosInsumos = insumos.Select(p => new VMProductoInsumo
                 {
                     Nombre = p.IdInsumoNavigation.Descripcion,
                     Cantidad = p.Cantidad,
@@ -215,28 +234,42 @@ namespace SistemaBronx.Application.Controllers
                     Tipo = p.IdInsumoNavigation.IdTipoNavigation.Nombre,
                     IdUnidadMedida = p.IdInsumoNavigation.IdUnidadMedida,
                     IdProveedor = (int)p.IdInsumoNavigation.IdProveedor,
-                    Proveedor = p.IdInsumoNavigation.IdProveedorNavigation != null ? p.IdInsumoNavigation.IdProveedorNavigation.Nombre : ""
+                    Proveedor = p.IdInsumoNavigation.IdProveedorNavigation?.Nombre ?? ""
                 }).ToList();
 
-
-
                 result.Add("Producto", Producto);
-                result.Add("Insumos", insumosJson);
+                result.Add("Insumos", ProductosInsumos);
 
-                // Serialize with ReferenceHandler.Preserve to handle circular references
                 var jsonOptions = new JsonSerializerOptions
                 {
                     ReferenceHandler = ReferenceHandler.Preserve
                 };
 
-                return Ok(System.Text.Json.JsonSerializer.Serialize(result, jsonOptions));
+                return Ok(JsonSerializer.Serialize(result, jsonOptions));
             }
 
             return Ok(new { });
         }
 
+        [HttpPut]
+        public async Task<IActionResult> ActualizarSoloProducto([FromBody] VMProducto model)
+        {
+            if (model == null || model.Id <= 0)
+                return BadRequest(new { mensaje = "Modelo inválido" });
 
+            var producto = new Producto
+            {
+                Id = model.Id,
+                Nombre = model.Nombre,
+                IdCategoria = model.IdCategoria,
+                PorcGanancia = model.PorcGanancia,
+                PorcIva = model.PorcIva,
+                CostoUnitario = model.CostoUnitario // si lo manejás desde la grilla
+            };
 
+            var ok = await _ProductosService.ActualizarSoloProducto(producto);
+            return Ok(new { valor = ok });
+        }
 
 
         public async Task<IActionResult> NuevoModif(int? id)
@@ -248,10 +281,7 @@ namespace SistemaBronx.Application.Controllers
             return View();
         }
 
-        public IActionResult Privacy()
-        {
-            return View();
-        }
+        public IActionResult Privacy() => View();
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()

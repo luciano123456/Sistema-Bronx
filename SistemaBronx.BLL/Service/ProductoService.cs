@@ -1,18 +1,17 @@
 ﻿using SistemaBronx.Models;
 using SistemaBronx.DAL.Repository;
-using SistemaBronx.Models;
 
 namespace SistemaBronx.BLL.Service
 {
     public class ProductoService : IProductoService
     {
-
         private readonly IProductoRepository<Producto> _contactRepo;
 
         public ProductoService(IProductoRepository<Producto> contactRepo)
         {
             _contactRepo = contactRepo;
         }
+
         public async Task<bool> Actualizar(Producto model, List<ProductosInsumo> insumos)
         {
             return await _contactRepo.Actualizar(model, insumos);
@@ -32,6 +31,7 @@ namespace SistemaBronx.BLL.Service
         {
             return await _contactRepo.Obtener(id);
         }
+
         public async Task<List<Producto>> ObtenerTodos()
         {
             return await _contactRepo.ObtenerTodos();
@@ -52,6 +52,10 @@ namespace SistemaBronx.BLL.Service
             return await _contactRepo.ObtenerInsumos(idProducto);
         }
 
-
+        // ⬇⬇⬇ NUEVO
+        public async Task<bool> ActualizarSoloProducto(Producto model)
+        {
+            return await _contactRepo.ActualizarSoloProducto(model);
+        }
     }
 }
