@@ -398,15 +398,19 @@ async function anadirInsumo() {
     const $totalInput = $("#totalInput");
     const $proveedorInput = $("#insumoProveedor");
 
-    $insumoSelect.off('change').on("change", function () {
-        const idSel = Number($(this).val());
-        const item = insumos.find(p => p.Id === idSel);
-        const costo = item?.CostoUnitario ?? 0;
-        $cantidadInput.val(1);
-        $precioInput.val(formatoMoneda.format(costo));
-        $totalInput.val(formatoMoneda.format(costo));
-        $proveedorInput.val(item?.Proveedor || '');
-    });
+    $insumoSelect
+        .off('change.insumo')           // solo quitás TU handler
+        .on('change.insumo', function () {
+            const idSel = Number($(this).val());
+            const item = insumos.find(p => p.Id === idSel);
+            const costo = item?.CostoUnitario ?? 0;
+
+            $cantidadInput.val(1);
+            $precioInput.val(formatoMoneda.format(costo));
+            $totalInput.val(formatoMoneda.format(costo));
+            $proveedorInput.val(item?.Proveedor || '');
+        });
+
 
     $insumoSelect.trigger("change");
 
