@@ -15,7 +15,8 @@ const columnConfig = [
     { index: 9, name: 'Descripcion', filterType: 'text' },
     { index: 10, name: 'Categoria', filterType: 'select', fetchDataFunc: listaCategoriasFilter },
     { index: 11, name: 'Proveedor', filterType: 'select', fetchDataFunc: listaProveedoresFilter },
-    { index: 12, name: 'text', filterType: 'text' }
+    { index: 12, name: 'text', filterType: 'text' },
+    { index: 13, name: 'text', filterType: 'select', fetchDataFunc: listaClientesFilter },
 ];
 
 // ===== Persistencia del switch =====
@@ -119,6 +120,7 @@ async function configurarDataTable(data, incluirFinalizados) {
                         return new Date(data).toLocaleString('es-AR');
                     }
                 },
+                { data: 'Cliente' },
                 { data: 'IdPedido', visible: false },
             ],
             dom: 'Bfrtip',
@@ -162,7 +164,27 @@ async function configurarDataTable(data, incluirFinalizados) {
                 const api = this.api();
                 const estadoGuardado = JSON.parse(localStorage.getItem('estadoFabricaciones')) || {};
 
-
+                // [Persistencia sort/paginación] — listeners para guardar cambios de estado
+                api.on('order.dt', function () {
+                    const st = JSON.parse(localStorage.getItem('estadoFabricaciones')) || {};
+                    st.order = api.order();
+                    st.page = api.page();
+                    st.pageLength = api.page.len();
+                    localStorage.setItem('estadoFabricaciones', JSON.stringify(st));
+                });
+                api.on('length.dt', function () {
+                    const st = JSON.parse(localStorage.getItem('estadoFabricaciones')) || {};
+                    st.pageLength = api.page.len();
+                    st.page = api.page();
+                    localStorage.setItem('estadoFabricaciones', JSON.stringify(st));
+                });
+                api.on('page.dt', function () {
+                    const st = JSON.parse(localStorage.getItem('estadoFabricaciones')) || {};
+                    st.page = api.page();
+                    st.pageLength = api.page.len();
+                    localStorage.setItem('estadoFabricaciones', JSON.stringify(st));
+                });
+                // [Fin Persistencia sort/paginación]
 
                 for (const config of columnConfig) {
                     const index = config.index;
@@ -233,8 +255,21 @@ async function configurarDataTable(data, incluirFinalizados) {
 
                 await configurarOpcionesColumnas();
                 await aplicarFiltrosRestaurados(api, '#grd_Fabricaciones', 'estadoFabricaciones', false);
-                localStorage.removeItem('estadoFabricaciones');
 
+                // [Persistencia sort/paginación] — restaurar pageLength, orden y página
+                if (Number.isInteger(estadoGuardado?.pageLength)) {
+                    api.page.len(estadoGuardado.pageLength);
+                }
+                if (estadoGuardado?.order && Array.isArray(estadoGuardado.order)) {
+                    api.order(estadoGuardado.order);
+                }
+                api.draw(false);
+                if (Number.isInteger(estadoGuardado?.page)) {
+                    api.page(estadoGuardado.page).draw(false);
+                }
+                // [Fin Persistencia sort/paginación]
+
+                localStorage.removeItem('estadoFabricaciones');
 
                 setTimeout(function () {
                     gridFabricaciones.columns.adjust();
@@ -279,12 +314,12 @@ async function configurarDataTable(data, incluirFinalizados) {
 
                 if (index === -1) {
                     filasSeleccionadas.push(fila[0]);
-                    fila.addClass('selected');
-                    $('td', fila).addClass('selected');
+                    fila.addClass('seleccionada');
+                    $('td', fila).addClass('seleccionada');
                 } else {
                     filasSeleccionadas.splice(index, 1);
-                    fila.removeClass('selected');
-                    $('td', fila).removeClass('selected');
+                    fila.removeClass('seleccionada');
+                    $('td', fila).removeClass('seleccionada');
                 }
             } else if (shiftPresionado && ultimaFilaSeleccionada) {
                 var filas = $('#grd_Fabricaciones tbody tr');
@@ -296,18 +331,18 @@ async function configurarDataTable(data, incluirFinalizados) {
                 filas.slice(inicio, fin + 1).each(function () {
                     if (!filasSeleccionadas.includes(this)) {
                         filasSeleccionadas.push(this);
-                        $(this).addClass('selected');
-                        $('td', this).addClass('selected');
+                        $(this).addClass('seleccionada');
+                        $('td', this).addClass('seleccionada');
                     }
                 });
             } else {
                 // ✅ Si NO se presiona Ctrl ni Shift, limpiar todo y seleccionar solo la nueva fila
-                if (!fila.hasClass('selected') || filasSeleccionadas.length == 1) {
+                if (!fila.hasClass('seleccionada') || filasSeleccionadas.length == 1) {
                     filasSeleccionadas = [fila[0]];
-                    $('#grd_Fabricaciones tbody tr').removeClass('selected');
-                    $('#grd_Fabricaciones tbody tr td').removeClass('selected');
-                    fila.addClass('selected');
-                    $('td', fila).addClass('selected');
+                    $('#grd_Fabricaciones tbody tr').removeClass('seleccionada');
+                    $('#grd_Fabricaciones tbody tr td').removeClass('seleccionada');
+                    fila.addClass('seleccionada');
+                    $('td', fila).addClass('seleccionada');
                 }
             }
             ultimaFilaSeleccionada = fila[0];
@@ -580,7 +615,7 @@ function configurarOpcionesColumnas() {
     container.empty();
 
     columnas.forEach((col, index) => {
-        if (col.data && col.data != "Id" && index != 13) {
+        if (col.data && col.data != "Id" && index != 14) {
             const isChecked = savedConfig && savedConfig[`col_${index}`] !== undefined ? savedConfig[`col_${index}`] : true;
 
             grid.column(index).visible(isChecked);
@@ -612,6 +647,16 @@ function configurarOpcionesColumnas() {
 
 function editarPedido(id) {
     guardarFiltrosPantalla('#grd_Fabricaciones', 'estadoFabricaciones', false);
+
+    // [Persistencia sort/paginación] — guardar orden, página y pageLength antes de salir
+    const api = $('#grd_Fabricaciones').DataTable();
+    const estado = JSON.parse(localStorage.getItem('estadoFabricaciones')) || {};
+    estado.order = api.order();
+    estado.page = api.page();
+    estado.pageLength = api.page.len();
+    localStorage.setItem('estadoFabricaciones', JSON.stringify(estado));
+    // [Fin Persistencia sort/paginación]
+
     localStorage.setItem("RedireccionFabricaciones", 1);
     window.location.href = '/Pedidos/NuevoModif/' + id;
 }
@@ -661,6 +706,14 @@ async function listaCategorias() {
         select.appendChild(option);
     }
 }
+
+async function listaClientesFilter() {
+    const response = await fetch(`/Clientes/Lista`);
+    const data = await response.json();
+    return data.map(dto => ({ Id: dto.Id, Nombre: dto.Nombre }));
+}
+
+
 async function listaProveedoresFilter() {
     const response = await fetch(`/Proveedores/Lista`);
     const data = await response.json();

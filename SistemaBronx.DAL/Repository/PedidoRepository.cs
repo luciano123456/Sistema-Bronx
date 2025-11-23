@@ -264,10 +264,10 @@ namespace SistemaBronx.DAL.Repository
                         .ThenInclude(x => x.IdEstadoNavigation)
                     .AsQueryable();
 
-                if (FechaDesde != DateTime.MinValue)
+                if (FechaDesde != DateTime.MinValue && IdCliente == -1)
                     query = query.Where(x => x.Fecha >= FechaDesde);
 
-                if (FechaHasta != DateTime.MinValue)
+                if (FechaHasta != DateTime.MinValue && IdCliente == -1)
                     query = query.Where(x => x.Fecha <= FechaHasta);
 
                 if (IdCliente != -1)
@@ -303,11 +303,13 @@ namespace SistemaBronx.DAL.Repository
                 var q = _dbcontext.PedidosDetalleProcesos
                     .AsNoTracking()
                     .Include(x => x.IdCategoriaNavigation)
+                    .Include(x => x.IdPedidoNavigation).ThenInclude(p => p.IdClienteNavigation)
                     .Include(x => x.IdProductoNavigation)
                     .Include(x => x.IdEstadoNavigation)
                     .Include(x => x.IdProveedorNavigation)
                     .Include(x => x.IdInsumoNavigation).ThenInclude(p => p.IdCategoriaNavigation)
                     .Include(x => x.IdColorNavigation)
+                    
                     .AsQueryable();
 
                 if (!incluirFinalizados)

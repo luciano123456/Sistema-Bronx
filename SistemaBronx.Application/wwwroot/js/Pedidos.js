@@ -248,7 +248,7 @@ async function configurarDataTable(data) {
                 $('.filters th').eq(0).empty();
 
                 // ===== Chips (Todos / Sí / No) Finalizado/Facturado =====
-                function addTriChips(api, colIndex, etiqueta) {
+                function addTriChips(api, colIndex, etiqueta, metodo) {
                     const $cell = $('.filters th').eq(colIndex);
                     if (!$cell.length) return;
 
@@ -278,10 +278,10 @@ async function configurarDataTable(data) {
                     $wrap.on('click', '.chip', function (e) { e.preventDefault(); e.stopPropagation(); apply($(this).data('val')); });
                     $wrap.on('keydown', '.chip', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $(this).trigger('click'); } });
 
-                    apply('all'); // default
+                    apply(metodo); // default
                 }
-                addTriChips(api, 12, 'Finalizado');
-                addTriChips(api, 13, 'Facturado');
+                addTriChips(api, 12, 'Finalizado', '0');
+                addTriChips(api, 13, 'Facturado', 'all');
 
                 // ===== Totales en cada draw =====
                 $('#grd_Pedidos').off('draw.dt.calc').on('draw.dt.calc', calcularTotalesPedidos);
