@@ -96,6 +96,13 @@ builder.Services.AddScoped<ICotizacioneservice, Cotizacioneservice>();
 builder.Services.AddScoped<IAnalisisDatosRepository, AnalisisDatosRepository>();
 builder.Services.AddScoped<IAnalisisDatosService, AnalisisDatosService>();
 
+builder.Services.AddScoped<IStockRepository, StockRepository>();
+builder.Services.AddScoped<IStockService, StockService>();
+
+builder.Services.AddScoped<IGenericRepository<StockTiposMovimiento>, StockTiposMovimientoRepository>();
+builder.Services.AddScoped<IStockTiposMovimientoService, StockTiposMovimientoService>();
+
+
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>
     {

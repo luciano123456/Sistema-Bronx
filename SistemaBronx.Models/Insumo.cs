@@ -38,4 +38,8 @@ public partial class Insumo
     public virtual ICollection<PedidosDetalleProceso> PedidosDetalleProcesos { get; set; } = new List<PedidosDetalleProceso>();
 
     public virtual ICollection<ProductosInsumo> ProductosInsumos { get; set; } = new List<ProductosInsumo>();
+
+    public virtual ICollection<StockMovimientosDetalle> StockMovimientosDetalles { get; set; } = new List<StockMovimientosDetalle>();
+
+    public virtual ICollection<StockSaldo> StockSaldos { get; set; } = new List<StockSaldo>();
 }

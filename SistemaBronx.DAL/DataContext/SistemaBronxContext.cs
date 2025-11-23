@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using SistemaBronx.Models;
 
 namespace SistemaBronx.DAL.DataContext;
@@ -15,19 +14,6 @@ public partial class SistemaBronxContext : DbContext
     public SistemaBronxContext(DbContextOptions<SistemaBronxContext> options)
         : base(options)
     {
-    }
-
-
-    private readonly IConfiguration _configuration;
-
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured)
-        {
-            var connectionString = _configuration.GetConnectionString("SistemaDB");
-            optionsBuilder.UseSqlServer(connectionString);
-        }
     }
 
     public virtual DbSet<Cliente> Clientes { get; set; }
@@ -84,11 +70,21 @@ public partial class SistemaBronxContext : DbContext
 
     public virtual DbSet<Rol> Roles { get; set; }
 
+    public virtual DbSet<StockMovimiento> StockMovimientos { get; set; }
+
+    public virtual DbSet<StockMovimientosDetalle> StockMovimientosDetalles { get; set; }
+
+    public virtual DbSet<StockSaldo> StockSaldos { get; set; }
+
+    public virtual DbSet<StockTiposMovimiento> StockTiposMovimientos { get; set; }
+
     public virtual DbSet<UnidadesDeMedida> UnidadesDeMedida { get; set; }
 
     public virtual DbSet<User> Usuarios { get; set; }
 
- 
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=DESKTOP-3MT5F5F; Database=Sistema_Bronx; Integrated Security=true; Trusted_Connection=True; Encrypt=False");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -563,6 +559,92 @@ public partial class SistemaBronxContext : DbContext
             entity.Property(e => e.Nombre)
                 .HasMaxLength(100)
                 .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<StockMovimiento>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__StockMov__3214EC07FC8D4452");
+
+            entity.Property(e => e.Comentario).HasMaxLength(500);
+            entity.Property(e => e.Fecha)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.FechaAlta)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+
+            entity.HasOne(d => d.IdTipoMovimientoNavigation).WithMany(p => p.StockMovimientos)
+                .HasForeignKey(d => d.IdTipoMovimiento)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StockMovimientos_Tipo");
+        });
+
+        modelBuilder.Entity<StockMovimientosDetalle>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__StockMov__3214EC07CD70D712");
+
+            entity.ToTable("StockMovimientosDetalle");
+
+            entity.Property(e => e.Cantidad).HasColumnType("decimal(18, 3)");
+            entity.Property(e => e.CostoUnitario).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.FechaCreado)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.SubTotal)
+                .HasComputedColumnSql("([Cantidad]*isnull([CostoUnitario],(0)))", true)
+                .HasColumnType("decimal(37, 5)");
+            entity.Property(e => e.TipoItem)
+                .HasMaxLength(1)
+                .IsUnicode(false)
+                .IsFixedLength();
+
+            entity.HasOne(d => d.IdInsumoNavigation).WithMany(p => p.StockMovimientosDetalles)
+                .HasForeignKey(d => d.IdInsumo)
+                .HasConstraintName("FK_StockMov_Detalle_Insumo");
+
+            entity.HasOne(d => d.IdMovimientoNavigation).WithMany(p => p.StockMovimientosDetalles)
+                .HasForeignKey(d => d.IdMovimiento)
+                .HasConstraintName("FK_StockMovimientosDetalle_Mov");
+
+            entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.StockMovimientosDetalles)
+                .HasForeignKey(d => d.IdProducto)
+                .HasConstraintName("FK_StockMov_Detalle_Producto");
+        });
+
+        modelBuilder.Entity<StockSaldo>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__StockSal__3214EC077A76277A");
+
+            entity.HasIndex(e => new { e.TipoItem, e.IdProducto, e.IdInsumo }, "UX_StockSaldos_Item").IsUnique();
+
+            entity.Property(e => e.CantidadActual).HasColumnType("decimal(18, 3)");
+            entity.Property(e => e.FechaUltMovimiento)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.TipoItem)
+                .HasMaxLength(1)
+                .IsUnicode(false)
+                .IsFixedLength();
+
+            entity.HasOne(d => d.IdInsumoNavigation).WithMany(p => p.StockSaldos)
+                .HasForeignKey(d => d.IdInsumo)
+                .HasConstraintName("FK_StockSaldos_Insumo");
+
+            entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.StockSaldos)
+                .HasForeignKey(d => d.IdProducto)
+                .HasConstraintName("FK_StockSaldos_Producto");
+        });
+
+        modelBuilder.Entity<StockTiposMovimiento>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__StockTip__3214EC07E9B465FF");
+
+            entity.ToTable("StockTiposMovimiento");
+
+            entity.Property(e => e.Activo)
+                .IsRequired()
+                .HasDefaultValueSql("((1))");
+            entity.Property(e => e.Nombre).HasMaxLength(100);
         });
 
         modelBuilder.Entity<UnidadesDeMedida>(entity =>

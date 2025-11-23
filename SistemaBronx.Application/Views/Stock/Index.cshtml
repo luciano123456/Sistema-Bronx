@@ -1,0 +1,91 @@
+﻿@{
+    ViewData["Title"] = "Stock";
+}
+
+@section Estilos {
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css" />
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+
+    <!-- Estilos generales -->
+    <link rel="stylesheet" href="~/css/redisenopantallas.css" />
+}
+
+<div class="container page-99" style="margin-top:100px;">
+    <!-- HEADER -->
+    <div class="cc-header shadow-lg rounded-4 p-4 mb-4">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div class="d-flex align-items-center gap-3">
+                <span class="cc-badge"><i class="fa fa-cubes"></i></span>
+                <div>
+                    <h2 class="m-0 fw-800">Stock</h2>
+                    <small class="text-muted-cc">Movimientos y saldos actuales</small>
+                </div>
+            </div>
+
+            <div class="ms-auto">
+                <button class="btn btn-success px-3 py-2" onclick="nuevoMovimiento()">
+                    <i class="fa fa-plus-square me-2"></i> Nuevo Movimiento
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLA MOVIMIENTOS -->
+    <div class="card-glass p-3 mb-5">
+        <h4 class="fw-bold mb-3"><i class="fa fa-history me-2"></i> Movimientos</h4>
+
+        <table id="grd_Movimientos" class="display nowrap compact dt-dark" style="width:100%">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Comentario</th>
+                    <th># Items</th>
+                    <th>Anulado</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- TABLA SALDOS -->
+    <div class="card-glass p-3">
+        <h4 class="fw-bold mb-3"><i class="fa fa-balance-scale me-2"></i> Saldos</h4>
+
+        <table id="grd_Saldos" class="display nowrap compact dt-dark" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Tipo</th>
+                    <th>ID Producto</th>
+                    <th>Producto</th>
+                    <th>ID Insumo</th>
+                    <th>Insumo</th>
+                    <th>Cantidad Actual</th>
+                    <th>Fecha Últ. Mov.</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<partial name="~/Views/Utils/Modals.cshtml" />
+
+@section Scripts {
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+
+    <!-- Script REAL -->
+    <script src="~/js/Stock.js?v=1.0"></script>
+}

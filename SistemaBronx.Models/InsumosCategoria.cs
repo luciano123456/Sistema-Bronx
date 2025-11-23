@@ -9,6 +9,8 @@ public partial class InsumosCategoria
 
     public string Nombre { get; set; } = null!;
 
+    public virtual ICollection<CotizacionesDetalleProceso> CotizacionesDetalleProcesos { get; set; } = new List<CotizacionesDetalleProceso>();
+
     public virtual ICollection<Insumo> Insumos { get; set; } = new List<Insumo>();
 
     public virtual ICollection<PedidosDetalleProceso> PedidosDetalleProcesos { get; set; } = new List<PedidosDetalleProceso>();

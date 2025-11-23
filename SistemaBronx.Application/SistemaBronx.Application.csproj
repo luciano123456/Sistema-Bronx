@@ -7,6 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="Views\Stock\Index.cshtml" />
+    <Content Remove="Views\Stock\NuevoModif.cshtml" />
     <Content Remove="wwwroot\css\NavBarLogin.css~RF1f800e21.TMP" />
     <Content Remove="wwwroot\js\AnalisisDatos.js" />
     <Content Remove="wwwroot\js\CotizacionesNuevoModif.js" />
@@ -19,6 +21,7 @@
     <Content Remove="wwwroot\js\NavBarLogin.js" />
     <Content Remove="wwwroot\js\CotizacionesNuevoModif.js" />
     <Content Remove="wwwroot\js\Proveedores.js" />
+    <Content Remove="wwwroot\js\Stock.js" />
     <Content Remove="wwwroot\js\Usuarios.js" />
     <Content Remove="wwwroot\js\UsuariosConfiguracion.js" />
     <Content Remove="wwwroot\js\Utils\moment.js" />
@@ -26,6 +29,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Views\Stock\Index.cshtml" />
+    <None Include="Views\Stock\NuevoModif.cshtml" />
     <None Include="Views\Productos\Index.cshtml" />
     <None Include="Views\Productos\NuevoModif.cshtml" />
     <None Include="wwwroot\Imagenes\Clientes.png" />
@@ -35,6 +40,7 @@
     <None Include="wwwroot\js\Insumos.js" />
     <None Include="wwwroot\js\Login.js" />
     <None Include="wwwroot\js\CotizacionesNuevoModif.js" />
+    <None Include="wwwroot\js\Stock.js" />
     <None Include="wwwroot\js\UsuariosConfiguracion.js" />
     <None Include="wwwroot\js\Usuarios.js" />
     <None Include="wwwroot\js\Zonas.js" />
