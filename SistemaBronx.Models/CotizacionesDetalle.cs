@@ -29,7 +29,7 @@ public partial class CotizacionesDetalle
 
     public virtual ICollection<CotizacionesDetalleProceso> CotizacionesDetalleProcesos { get; set; } = new List<CotizacionesDetalleProceso>();
 
-    public virtual PedidosCategoria? IdCategoriaNavigation { get; set; }
+    public virtual ProductosCategoria? IdCategoriaNavigation { get; set; }
 
     public virtual Color? IdColorNavigation { get; set; }
 

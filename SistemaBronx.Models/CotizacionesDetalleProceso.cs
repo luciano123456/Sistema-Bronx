@@ -41,7 +41,7 @@ public partial class CotizacionesDetalleProceso
 
     public DateTime? FechaActualizacion { get; set; }
 
-    public virtual PedidosCategoria? IdCategoriaNavigation { get; set; }
+    public virtual InsumosCategoria? IdCategoriaNavigation { get; set; }
 
     public virtual Color? IdColorNavigation { get; set; }
 
