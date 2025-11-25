@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SistemaBronx.Application.Models.ViewModels;
 using SistemaBronx.BLL.Service;
 using SistemaBronx.Models;
 using System;
@@ -22,61 +23,133 @@ namespace SistemaBronx.Application.Controllers
         // =====================================================
         // INDEX
         // =====================================================
-        public IActionResult Index()
-        {
-            return View();
-        }
+        public IActionResult Index() => View();
+        public IActionResult NuevoModif() => View();
+
 
         // =====================================================
-        // LISTA MOVIMIENTOS
+        // SALDOS (GRID PRINCIPAL)
         // =====================================================
         [HttpGet]
-        public async Task<IActionResult> Lista()
+        public async Task<IActionResult> Saldos()
         {
-            var lista = await _svc.ObtenerMovimientos();
+            var saldos = await _svc.ObtenerSaldos();
 
-            var plano = lista.Select(m => new
+            var plano = saldos.Select(s => new
             {
-                m.Id,
-                Fecha = m.Fecha.ToString("yyyy-MM-dd HH:mm"),
-                TipoMovimiento = m.IdTipoMovimientoNavigation?.Nombre,
-                m.Comentario,
-                CantidadItems = m.StockMovimientosDetalles?.Count ?? 0,
-                m.EsAnulado
+                s.TipoItem,
+                s.IdProducto,
+                Producto = s.IdProductoNavigation?.Nombre,
+                s.IdInsumo,
+                Insumo = s.IdInsumoNavigation?.Descripcion,
+                s.CantidadActual,
+                Fecha = s.FechaUltMovimiento.ToString("dd-MM-yyyy HH:mm")
             });
 
             return Json(plano);
         }
 
-        // =====================================================
-        // NUEVO / MODIFICAR
-        // =====================================================
-        [HttpGet]
-        public IActionResult NuevoModif(int? id)
+        [HttpPut]
+        public async Task<IActionResult> Restaurar(int id)
         {
-            ViewBag.IdMovimiento = id ?? 0;
-            return View();
+            var ok = await _svc.RestaurarMovimiento(id);
+            return Json(new { valor = ok });
         }
 
         // =====================================================
-        // OBTENER MOVIMIENTO POR ID
+        // HISTORIAL POR ÍTEM
+        // =====================================================
+        [HttpGet]
+        public async Task<IActionResult> HistorialItem(string tipoItem, int? idProducto, int? idInsumo)
+        {
+            if (string.IsNullOrWhiteSpace(tipoItem))
+                return Json(new List<VMStockViewModels.VMStockMovimientoDetalle>());
+
+            tipoItem = tipoItem.ToUpper();
+
+            var movimientos = await _svc.ObtenerMovimientosItem(tipoItem, idProducto, idInsumo);
+
+            var vm = movimientos
+                .OrderBy(m => m.Fecha)
+                .SelectMany(m =>
+                    m.StockMovimientosDetalles
+                        .Where(d =>
+                            d.TipoItem == tipoItem &&
+                            d.IdProducto == idProducto &&
+                            d.IdInsumo == idInsumo)
+                        .Select(d => new VMStockViewModels.VMStockMovimientoDetalle
+                        {
+                            Id = d.Id,
+                            TipoItem = d.TipoItem,
+                            IdProducto = d.IdProducto,
+                            IdInsumo = d.IdInsumo,
+                            IdMovimiento = d.IdMovimiento,
+
+                            // Cantidad firmada: + si entrada, - si salida
+                            Cantidad = (m.IdTipoMovimientoNavigation?.EsEntrada ?? false)
+                                ? d.Cantidad
+                                : -d.Cantidad,
+
+                            NombreItem = d.IdProductoNavigation != null
+                                ? d.IdProductoNavigation.Nombre
+                                : d.IdInsumoNavigation != null
+                                    ? d.IdInsumoNavigation.Descripcion
+                                    : string.Empty,
+
+                            // Campos extra para el historial
+                            Fecha = m.Fecha,
+                            TipoMovimiento = m.IdTipoMovimientoNavigation != null
+                                ? m.IdTipoMovimientoNavigation.Nombre
+                                : string.Empty,
+                            Comentario = m.Comentario,
+                            EsEntrada = m.IdTipoMovimientoNavigation?.EsEntrada ?? false,
+                            EsAnulado = m.EsAnulado
+                        })
+                )
+                .ToList();
+
+            return Json(vm);
+        }
+
+
+        // =====================================================
+        // OBTENER UN MOVIMIENTO
         // =====================================================
         [HttpGet]
         public async Task<IActionResult> Obtener(int id)
         {
             var mov = await _svc.ObtenerMovimiento(id);
-            if (mov == null)
-                return Json(null);
+            if (mov == null) return Json(null);
 
-            return Json(new
+            var dto = new
             {
-                Movimiento = mov,
-                Detalles = mov.StockMovimientosDetalles?.ToList()
-            });
+                mov.Id,
+                mov.IdTipoMovimiento,
+                TipoMovimientoNombre = mov.IdTipoMovimientoNavigation?.Nombre,
+                mov.Comentario,
+                mov.Fecha,
+                mov.EsAnulado,
+
+                Detalles = mov.StockMovimientosDetalles.Select(d => new {
+                    d.Id,
+                    d.IdMovimiento,
+                    d.TipoItem,
+                    d.IdProducto,
+                    d.IdInsumo,
+                    Cantidad = d.Cantidad,
+                    CostoUnitario = d.CostoUnitario,
+                    NombreItem = d.IdProductoNavigation != null
+                        ? d.IdProductoNavigation.Nombre
+                        : d.IdInsumoNavigation?.Descripcion
+                })
+            };
+
+            return Json(dto);
         }
 
+
         // =====================================================
-        // REGISTRAR NUEVO MOVIMIENTO
+        // REGISTRAR
         // =====================================================
         [HttpPost]
         public async Task<IActionResult> Registrar([FromBody] StockMovimiento model)
@@ -90,14 +163,13 @@ namespace SistemaBronx.Application.Controllers
                 if (usuario == null)
                     return Json(new { valor = false, msg = "Sesión expirada" });
 
-                var detalles = model.StockMovimientosDetalles?.ToList() ?? new List<StockMovimientosDetalle>();
-
-              
+                model.IdUsuario = usuario.Id;
                 model.Fecha = DateTime.Now;
                 model.FechaAlta = DateTime.Now;
-                model.IdUsuario = usuario.Id;
 
-                var ok = await _svc.RegistrarMovimiento(model, detalles);
+                var detalles = model.StockMovimientosDetalles?.ToList() ?? new List<StockMovimientosDetalle>();
+
+                bool ok = await _svc.RegistrarMovimiento(model, detalles);
 
                 return Json(new { valor = ok });
             }
@@ -107,8 +179,20 @@ namespace SistemaBronx.Application.Controllers
             }
         }
 
+        [HttpDelete]
+        public async Task<IActionResult> EliminarDetalle(int idDetalle)
+        {
+            var ok = await _svc.EliminarDetalleMovimiento(idDetalle);
+
+            if (!ok)
+                return NotFound(new { ok = false, mensaje = "No se pudo eliminar el detalle (no existe o el movimiento está anulado)." });
+
+            return Ok(new { ok = true });
+        }
+
+
         // =====================================================
-        // MODIFICAR MOVIMIENTO
+        // MODIFICAR
         // =====================================================
         [HttpPut]
         public async Task<IActionResult> Modificar([FromBody] StockMovimiento model)
@@ -126,7 +210,7 @@ namespace SistemaBronx.Application.Controllers
 
                 var detalles = model.StockMovimientosDetalles?.ToList() ?? new List<StockMovimientosDetalle>();
 
-                var ok = await _svc.ModificarMovimiento(model, detalles);
+                bool ok = await _svc.ModificarMovimiento(model, detalles);
 
                 return Json(new { valor = ok });
             }
@@ -136,57 +220,27 @@ namespace SistemaBronx.Application.Controllers
             }
         }
 
+
         // =====================================================
-        // ANULAR MOVIMIENTO
+        // ANULAR
         // =====================================================
         [HttpPut]
         public async Task<IActionResult> Anular(int id)
         {
-            var ok = await _svc.AnularMovimiento(id);
+            bool ok = await _svc.AnularMovimiento(id);
             return Json(new { valor = ok });
         }
 
+
+
         // =====================================================
-        // ELIMINAR MOVIMIENTO
+        // ELIMINAR
         // =====================================================
         [HttpDelete]
         public async Task<IActionResult> Eliminar(int id)
         {
-            var ok = await _svc.EliminarMovimiento(id);
+            bool ok = await _svc.EliminarMovimiento(id);
             return Json(new { valor = ok });
-        }
-
-        // =====================================================
-        // LISTA DE SALDOS
-        // =====================================================
-        [HttpGet]
-        public async Task<IActionResult> Saldos()
-        {
-            var saldos = await _svc.ObtenerSaldos();
-
-            var plano = saldos.Select(s => new
-            {
-                s.Id,
-                s.TipoItem,
-                s.IdProducto,
-                Producto = s.IdProductoNavigation?.Nombre,
-                s.IdInsumo,
-                Insumo = s.IdInsumoNavigation?.Descripcion,
-                s.CantidadActual,
-                Fecha = s.FechaUltMovimiento.ToString("yyyy-MM-dd HH:mm")
-            });
-
-            return Json(plano);
-        }
-
-        // =====================================================
-        // OBTENER SALDO INDIVIDUAL
-        // =====================================================
-        [HttpGet]
-        public async Task<IActionResult> ObtenerSaldo(string tipoItem, int? idProducto, int? idInsumo)
-        {
-            var saldo = await _svc.ObtenerSaldoItem(tipoItem, idProducto, idInsumo);
-            return Json(saldo);
         }
     }
 }

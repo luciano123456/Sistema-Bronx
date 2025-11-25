@@ -23,8 +23,14 @@ namespace SistemaBronx.BLL.Service
         public Task<bool> AnularMovimiento(int idMovimiento)
             => _repo.AnularMovimiento(idMovimiento);
 
+        public Task<bool> RestaurarMovimiento(int idMovimiento)
+            => _repo.RestaurarMovimiento(idMovimiento);
+
         public Task<bool> EliminarMovimiento(int idMovimiento)
             => _repo.EliminarMovimiento(idMovimiento);
+
+        public Task<bool> EliminarDetalleMovimiento(int idDetalle)
+       => _repo.EliminarDetalleMovimiento(idDetalle);
 
         public Task<List<StockMovimiento>> ObtenerMovimientos()
             => _repo.ObtenerMovimientos();
@@ -37,5 +43,8 @@ namespace SistemaBronx.BLL.Service
 
         public Task<StockSaldo?> ObtenerSaldoItem(string tipoItem, int? idProducto, int? idInsumo)
             => _repo.ObtenerSaldoItem(tipoItem, idProducto, idInsumo);
+
+        public Task<List<StockMovimiento>> ObtenerMovimientosItem(string tipoItem, int? idProducto, int? idInsumo)
+            => _repo.ObtenerMovimientosItem(tipoItem, idProducto, idInsumo);
     }
 }

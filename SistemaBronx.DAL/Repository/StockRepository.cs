@@ -1,6 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SistemaBronx.DAL.DataContext;
 using SistemaBronx.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace SistemaBronx.DAL.Repository
 {
@@ -12,185 +16,35 @@ namespace SistemaBronx.DAL.Repository
         {
             _db = db;
         }
-        // ============================================================
-        // REGISTRAR MOVIMIENTO
-        // ============================================================
-        public async Task<bool> RegistrarMovimiento(StockMovimiento mov, List<StockMovimientosDetalle> detalles)
+
+        /* ============================================================
+           HELPERS PRIVADOS
+        ============================================================ */
+
+        private async Task<bool> GetEsEntradaAsync(int idTipoMovimiento)
         {
-            await using var tx = await _db.Database.BeginTransactionAsync();
-
-            try
-            {
-                // ----- CABECERA -----
-                mov.Id = 0; // por las dudas, que lo maneje el identity
-                mov.Fecha = DateTime.Now;
-                mov.FechaAlta = DateTime.Now;
-
-                _db.StockMovimientos.Add(mov);
-                await _db.SaveChangesAsync();   // acá ya tenés mov.Id
-
-                // ----- DETALLE -----
-                foreach (var det in detalles)
-                {
-                    // Crear un NUEVO detalle, no usar el que viene del body
-                    var nuevoDet = new StockMovimientosDetalle
-                    {
-                        // NUNCA seteamos Id
-                        IdMovimiento = mov.Id,
-
-                        // En tu base: 'P' / 'I' (char(1))
-                        TipoItem = det.TipoItem,      // ya tiene 'P' o 'I'
-                        IdProducto = det.IdProducto,
-                        IdInsumo = det.IdInsumo,
-
-                        Cantidad = det.Cantidad,
-                        CostoUnitario = det.CostoUnitario
-                        // SubTotal NO se setea: lo calcula la computed column
-                    };
-
-                    _db.StockMovimientosDetalles.Add(nuevoDet);
-
-                    // Usamos nuevoDet para aplicar al saldo
-                    await AplicarMovimientoASaldo(nuevoDet, mov.IdTipoMovimiento == 1);
-                }
-
-                await _db.SaveChangesAsync();
-                await tx.CommitAsync();
-                return true;
-            }
-            catch
-            {
-                await tx.RollbackAsync();
-                return false;
-            }
+            return await _db.StockTiposMovimientos
+                .Where(t => t.Id == idTipoMovimiento)
+                .Select(t => t.EsEntrada)
+                .FirstOrDefaultAsync();
         }
 
-        // ============================================================
-        // MODIFICAR MOVIMIENTO
-        // ============================================================
-        public async Task<bool> ModificarMovimiento(StockMovimiento nuevoMov, List<StockMovimientosDetalle> nuevosDetalles)
+        private bool EsEntradaLocal(StockMovimiento mov)
         {
-            using var tx = await _db.Database.BeginTransactionAsync();
-            try
-            {
-                var oldMov = await _db.StockMovimientos
-                    .Include(m => m.StockMovimientosDetalles)
-                    .FirstOrDefaultAsync(m => m.Id == nuevoMov.Id);
-
-                if (oldMov == null) return false;
-
-                // REVERTIR TODO EL MOVIMIENTO ANTERIOR
-                foreach (var oldDet in oldMov.StockMovimientosDetalles)
-                {
-                    await AplicarMovimientoASaldo(oldDet, (oldMov.IdTipoMovimiento == 1), revertir: true);
-                }
-
-                // ACTUALIZAR CABECERA
-                oldMov.Fecha = nuevoMov.Fecha;
-                oldMov.IdTipoMovimiento = nuevoMov.IdTipoMovimiento;
-                oldMov.Comentario = nuevoMov.Comentario;
-
-                // BORRAR DETALLES VIEJOS
-                _db.StockMovimientosDetalles.RemoveRange(oldMov.StockMovimientosDetalles);
-
-                // GUARDAR DETALLES NUEVOS
-                foreach (var det in nuevosDetalles)
-                {
-                    det.IdMovimiento = oldMov.Id;
-                    det.SubTotal = (det.CostoUnitario ?? 0) * det.Cantidad;
-
-                    _db.StockMovimientosDetalles.Add(det);
-                    await AplicarMovimientoASaldo(det, nuevoMov.IdTipoMovimiento == 1);
-                }
-
-                await _db.SaveChangesAsync();
-                await tx.CommitAsync();
-                return true;
-            }
-            catch
-            {
-                await tx.RollbackAsync();
-                return false;
-            }
+            return mov.IdTipoMovimientoNavigation?.EsEntrada ?? false;
         }
 
-        // ============================================================
-        // ANULAR MOVIMIENTO
-        // ============================================================
-        public async Task<bool> AnularMovimiento(int idMovimiento)
+        /// <summary>
+        /// Aplica o revierte el impacto de un detalle sobre StockSaldos
+        /// esEntrada = true => suma stock, false => resta
+        /// revertir = true => invierte el signo (deshacer)
+        /// </summary>
+        private async Task AplicarStock(StockMovimientosDetalle det, bool esEntrada, bool revertir)
         {
-            using var tx = await _db.Database.BeginTransactionAsync();
-            try
-            {
-                var mov = await _db.StockMovimientos
-                    .Include(m => m.StockMovimientosDetalles)
-                    .FirstOrDefaultAsync(m => m.Id == idMovimiento);
+            var signo = esEntrada ? 1m : -1m;
+            if (revertir) signo *= -1m;
 
-                if (mov == null) return false;
-
-                // REVERTIR SALDO
-                foreach (var det in mov.StockMovimientosDetalles)
-                {
-                    await AplicarMovimientoASaldo(det, mov.IdTipoMovimiento == 1, revertir: true);
-                }
-
-                mov.EsAnulado = true;
-                await _db.SaveChangesAsync();
-                await tx.CommitAsync();
-
-                return true;
-            }
-            catch
-            {
-                await tx.RollbackAsync();
-                return false;
-            }
-        }
-
-        // ============================================================
-        // ELIMINAR MOVIMIENTO
-        // ============================================================
-        public async Task<bool> EliminarMovimiento(int idMovimiento)
-        {
-            using var tx = await _db.Database.BeginTransactionAsync();
-            try
-            {
-                var mov = await _db.StockMovimientos
-                    .Include(m => m.StockMovimientosDetalles)
-                    .FirstOrDefaultAsync(m => m.Id == idMovimiento);
-
-                if (mov == null) return false;
-
-                // REVERTIR SALDO
-                foreach (var det in mov.StockMovimientosDetalles)
-                {
-                    await AplicarMovimientoASaldo(det, mov.IdTipoMovimiento == 1, revertir: true);
-                }
-
-                _db.StockMovimientosDetalles.RemoveRange(mov.StockMovimientosDetalles);
-                _db.StockMovimientos.Remove(mov);
-
-                await _db.SaveChangesAsync();
-                await tx.CommitAsync();
-
-                return true;
-            }
-            catch
-            {
-                await tx.RollbackAsync();
-                return false;
-            }
-        }
-
-        // ============================================================
-        // APLICAR O REVERTIR SALDO
-        // ============================================================
-        private async Task AplicarMovimientoASaldo(StockMovimientosDetalle det, bool esEntrada, bool revertir = false)
-        {
-            var signo = esEntrada ? 1 : -1;
-            if (revertir) signo *= -1;
-
-            var cantidad = det.Cantidad * signo;
+            var delta = det.Cantidad * signo;
 
             var saldo = await _db.StockSaldos.FirstOrDefaultAsync(s =>
                 s.TipoItem == det.TipoItem &&
@@ -205,26 +59,313 @@ namespace SistemaBronx.DAL.Repository
                     TipoItem = det.TipoItem,
                     IdProducto = det.IdProducto,
                     IdInsumo = det.IdInsumo,
-                    CantidadActual = cantidad,
+                    CantidadActual = 0,
                     FechaUltMovimiento = DateTime.Now
                 };
                 _db.StockSaldos.Add(saldo);
             }
-            else
+
+            saldo.CantidadActual += delta;
+            saldo.FechaUltMovimiento = DateTime.Now;
+        }
+
+        /* ============================================================
+           REGISTRAR
+        ============================================================ */
+        public async Task<bool> RegistrarMovimiento(StockMovimiento mov, List<StockMovimientosDetalle> detalles)
+        {
+            await using var tx = await _db.Database.BeginTransactionAsync();
+            try
             {
-                saldo.CantidadActual += cantidad;
-                saldo.FechaUltMovimiento = DateTime.Now;
-                _db.StockSaldos.Update(saldo);
+                // CABECERA
+                mov.Id = 0;
+                mov.EsAnulado = false;
+                mov.Fecha = DateTime.Now;
+                mov.FechaAlta = DateTime.Now;
+                mov.StockMovimientosDetalles = null; 
+
+                _db.StockMovimientos.Add(mov);
+                await _db.SaveChangesAsync();   // mov.Id listo
+
+                // SIEMPRE obtener el ES_ENTRADA directo desde la DB
+                var esEntrada = await GetEsEntradaAsync(mov.IdTipoMovimiento);
+
+                // DETALLE
+                foreach (var det in detalles)
+                {
+                    var nuevoDet = new StockMovimientosDetalle
+                    {
+                        IdMovimiento = mov.Id,
+                        TipoItem = (det.TipoItem ?? "").ToUpper(),
+                        IdProducto = det.IdProducto,
+                        IdInsumo = det.IdInsumo,
+                        Cantidad = det.Cantidad,
+                        CostoUnitario = det.CostoUnitario,
+                        FechaCreado = DateTime.Now
+                    };
+
+                    _db.StockMovimientosDetalles.Add(nuevoDet);
+
+                    // aplicar stock correctamente
+                    await AplicarStock(nuevoDet, esEntrada, false);
+                }
+
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                return false;
             }
         }
 
-        // ============================================================
-        // CONSULTAS
-        // ============================================================
+        /* ============================================================
+           MODIFICAR
+        ============================================================ */
+        public async Task<bool> ModificarMovimiento(StockMovimiento mov, List<StockMovimientosDetalle> nuevosDetalles)
+        {
+            await using var tx = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                var existente = await _db.StockMovimientos
+                    .Include(m => m.StockMovimientosDetalles)
+                    .Include(m => m.IdTipoMovimientoNavigation)
+                    .FirstOrDefaultAsync(m => m.Id == mov.Id);
+
+                if (existente == null)
+                    return false;
+
+                // 1) Revertir impacto anterior SOLO si estaba activo
+                if (!existente.EsAnulado)
+                {
+                    var esEntradaViejo = EsEntradaLocal(existente)
+                        || await GetEsEntradaAsync(existente.IdTipoMovimiento);
+
+                    foreach (var detViejo in existente.StockMovimientosDetalles)
+                    {
+                        await AplicarStock(detViejo, esEntradaViejo, revertir: true);
+                    }
+                }
+
+                // 2) Actualizar cabecera (mantengo FechaAlta)
+                existente.Fecha = mov.Fecha;
+                existente.IdTipoMovimiento = mov.IdTipoMovimiento;
+                existente.Comentario = mov.Comentario;
+                existente.IdUsuario = mov.IdUsuario;
+                existente.EsAnulado = false;    // al modificar, queda activo
+
+                // 3) Borrar detalles viejos
+                _db.StockMovimientosDetalles.RemoveRange(existente.StockMovimientosDetalles);
+
+                // 4) Insertar nuevos detalles y aplicar stock
+                var esEntradaNuevo = await GetEsEntradaAsync(mov.IdTipoMovimiento);
+
+                foreach (var det in nuevosDetalles)
+                {
+                    var nuevoDet = new StockMovimientosDetalle
+                    {
+                        IdMovimiento = existente.Id,
+                        TipoItem = (det.TipoItem ?? "").ToUpper(),
+                        IdProducto = det.IdProducto,
+                        IdInsumo = det.IdInsumo,
+                        Cantidad = det.Cantidad,
+                        CostoUnitario = det.CostoUnitario,
+                        FechaCreado = DateTime.Now
+                    };
+
+                    _db.StockMovimientosDetalles.Add(nuevoDet);
+                    await AplicarStock(nuevoDet, esEntradaNuevo, revertir: false);
+                }
+
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                return false;
+            }
+        }
+
+        /* ============================================================
+           ANULAR
+        ============================================================ */
+        public async Task<bool> AnularMovimiento(int idMovimiento)
+        {
+            await using var tx = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                var mov = await _db.StockMovimientos
+                    .Include(m => m.StockMovimientosDetalles)
+                    .Include(m => m.IdTipoMovimientoNavigation)
+                    .FirstOrDefaultAsync(m => m.Id == idMovimiento);
+
+                if (mov == null)
+                    return false;
+
+                if (mov.EsAnulado)
+                    return true; // ya estaba anulado
+
+                var esEntrada = EsEntradaLocal(mov)
+                    || await GetEsEntradaAsync(mov.IdTipoMovimiento);
+
+                // Revertir impacto
+                foreach (var det in mov.StockMovimientosDetalles)
+                {
+                    await AplicarStock(det, esEntrada, revertir: true);
+                }
+
+                mov.EsAnulado = true;
+
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                return false;
+            }
+        }
+
+        /* ============================================================
+           RESTAURAR (quitar anulación)
+        ============================================================ */
+        public async Task<bool> RestaurarMovimiento(int idMovimiento)
+        {
+            await using var tx = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                var mov = await _db.StockMovimientos
+                    .Include(m => m.StockMovimientosDetalles)
+                    .Include(m => m.IdTipoMovimientoNavigation)
+                    .FirstOrDefaultAsync(m => m.Id == idMovimiento);
+
+                if (mov == null)
+                    return false;
+
+                if (!mov.EsAnulado)
+                    return true; // ya estaba activo
+
+                var esEntrada = EsEntradaLocal(mov)
+                    || await GetEsEntradaAsync(mov.IdTipoMovimiento);
+
+                // Volver a aplicar impacto
+                foreach (var det in mov.StockMovimientosDetalles)
+                {
+                    await AplicarStock(det, esEntrada, revertir: false);
+                }
+
+                mov.EsAnulado = false;
+
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                return false;
+            }
+        }
+
+        /* ============================================================
+           ELIMINAR
+        ============================================================ */
+        public async Task<bool> EliminarMovimiento(int idMovimiento)
+        {
+            await using var tx = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                var mov = await _db.StockMovimientos
+                    .Include(m => m.StockMovimientosDetalles)
+                    .Include(m => m.IdTipoMovimientoNavigation)
+                    .FirstOrDefaultAsync(m => m.Id == idMovimiento);
+
+                if (mov == null)
+                    return false;
+
+                // Si NO está anulado, primero revertimos el impacto
+                if (!mov.EsAnulado)
+                {
+                    var esEntrada = EsEntradaLocal(mov)
+                        || await GetEsEntradaAsync(mov.IdTipoMovimiento);
+
+                    foreach (var det in mov.StockMovimientosDetalles)
+                    {
+                        await AplicarStock(det, esEntrada, revertir: true);
+                    }
+                }
+
+                _db.StockMovimientosDetalles.RemoveRange(mov.StockMovimientosDetalles);
+                _db.StockMovimientos.Remove(mov);
+
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                return false;
+            }
+        }
+
+        /* ============================================================
+   ELIMINAR DETALLE (NO CABECERA)
+============================================================ */
+        public async Task<bool> EliminarDetalleMovimiento(int idDetalle)
+        {
+            await using var tx = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                var det = await _db.StockMovimientosDetalles
+                    .Include(d => d.IdMovimientoNavigation)
+                    .ThenInclude(m => m.IdTipoMovimientoNavigation)
+                    .FirstOrDefaultAsync(d => d.Id == idDetalle);
+
+                if (det == null)
+                    return false;
+
+                var mov = det.IdMovimientoNavigation;
+
+                // si el movimiento está anulado, no deberíamos tocar stock
+                if (mov.EsAnulado)
+                    return false;
+
+                // mismo criterio que usás en Anular / Restaurar
+                var esEntrada = EsEntradaLocal(mov)
+                    || await GetEsEntradaAsync(mov.IdTipoMovimiento);
+
+                // Revertir el impacto de ESTE detalle en StockSaldos
+                await AplicarStock(det, esEntrada, revertir: true);
+
+                // Eliminar el detalle
+                _db.StockMovimientosDetalles.Remove(det);
+
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                return false;
+            }
+        }
+
+
+        /* ============================================================
+           CONSULTAS
+        ============================================================ */
         public async Task<List<StockMovimiento>> ObtenerMovimientos()
         {
             return await _db.StockMovimientos
                 .Include(m => m.StockMovimientosDetalles)
+                .Include(m => m.IdTipoMovimientoNavigation)
                 .OrderByDescending(m => m.Fecha)
                 .ToListAsync();
         }
@@ -232,8 +373,19 @@ namespace SistemaBronx.DAL.Repository
         public async Task<StockMovimiento?> ObtenerMovimiento(int id)
         {
             return await _db.StockMovimientos
+                .Where(m => m.Id == id)
+
+                // Tipo de movimiento
+                .Include(m => m.IdTipoMovimientoNavigation)
+
+                // Detalles
                 .Include(m => m.StockMovimientosDetalles)
-                .FirstOrDefaultAsync(m => m.Id == id);
+                    .ThenInclude(d => d.IdProductoNavigation)
+
+                .Include(m => m.StockMovimientosDetalles)
+                    .ThenInclude(d => d.IdInsumoNavigation)
+
+                .FirstOrDefaultAsync();
         }
 
         public async Task<List<StockSaldo>> ObtenerSaldos()
@@ -242,16 +394,42 @@ namespace SistemaBronx.DAL.Repository
                 .Include(s => s.IdProductoNavigation)
                 .Include(s => s.IdInsumoNavigation)
                 .OrderBy(s => s.TipoItem)
+                .ThenBy(s => s.IdProducto ?? s.IdInsumo)
                 .ToListAsync();
         }
 
         public async Task<StockSaldo?> ObtenerSaldoItem(string tipoItem, int? idProducto, int? idInsumo)
         {
+            tipoItem = (tipoItem ?? "").ToUpper();
+
             return await _db.StockSaldos.FirstOrDefaultAsync(s =>
                 s.TipoItem == tipoItem &&
                 s.IdProducto == idProducto &&
                 s.IdInsumo == idInsumo
             );
         }
+
+        public async Task<List<StockMovimiento>> ObtenerMovimientosItem(string tipoItem, int? idProducto, int? idInsumo)
+        {
+            tipoItem = (tipoItem ?? "").ToUpper();
+
+            var query = _db.StockMovimientos
+                .Include(m => m.StockMovimientosDetalles)
+                .Include(m => m.IdTipoMovimientoNavigation)
+                .AsQueryable();
+
+            query = query.Where(m =>
+                m.StockMovimientosDetalles.Any(d =>
+                    d.TipoItem == tipoItem &&
+                    d.IdProducto == idProducto &&
+                    d.IdInsumo == idInsumo
+                ));
+
+            return await query
+                .OrderBy(m => m.Fecha)
+                .ToListAsync();
+        }
     }
+
+
 }

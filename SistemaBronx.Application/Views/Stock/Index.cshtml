@@ -12,67 +12,162 @@
 
     <!-- Estilos generales -->
     <link rel="stylesheet" href="~/css/redisenopantallas.css" />
+
+    <!-- Estilos específicos de stock -->
+    <link rel="stylesheet" href="~/css/Stock.css?v=5.0" />
 }
 
 <div class="container page-99" style="margin-top:100px;">
     <!-- HEADER -->
-    <div class="cc-header shadow-lg rounded-4 p-4 mb-4">
+    <div class="cc-header shadow-lg rounded-4 p-4 mb-4 stock-header">
         <div class="d-flex align-items-center gap-3 flex-wrap">
             <div class="d-flex align-items-center gap-3">
-                <span class="cc-badge"><i class="fa fa-cubes"></i></span>
+                <span class="cc-badge stock-badge"><i class="fa fa-cubes"></i></span>
                 <div>
                     <h2 class="m-0 fw-800">Stock</h2>
-                    <small class="text-muted-cc">Movimientos y saldos actuales</small>
+                    <small class="text-muted-cc">Saldos actuales de productos e insumos</small>
                 </div>
             </div>
 
-            <div class="ms-auto">
-                <button class="btn btn-success px-3 py-2" onclick="nuevoMovimiento()">
-                    <i class="fa fa-plus-square me-2"></i> Nuevo Movimiento
+            <div class="ms-auto d-flex flex-wrap gap-3">
+                <div class="cc-stat">
+                    <div class="label">Items con stock</div>
+                    <div class="value" id="kpiItemsStock">0</div>
+                </div>
+                <button class="btn btn-success px-3 py-2 stock-btn-nuevo" onclick="nuevoMovimiento()">
+                    <i class="fa fa-plus-square me-2"></i> Nuevo movimiento
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- TABLA MOVIMIENTOS -->
-    <div class="card-glass p-3 mb-5">
-        <h4 class="fw-bold mb-3"><i class="fa fa-history me-2"></i> Movimientos</h4>
+    <!-- TABLA STOCK -->
+    <div class="card-glass p-3 mb-5 stock-card">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fa fa-balance-scale text-light"></i>
+                <h4 class="fw-800 m-0">Stock actual</h4>
+            </div>
+            <small class="text-muted-cc">
+                Hacé click en el ícono <i class="fa fa-history"></i> para ver el historial de movimientos del ítem.
+            </small>
+        </div>
 
-        <table id="grd_Movimientos" class="display nowrap compact dt-dark" style="width:100%">
-            <thead>
-                <tr>
-                    <th></th>
-                    <th>Fecha</th>
-                    <th>Tipo</th>
-                    <th>Comentario</th>
-                    <th># Items</th>
-                    <th>Anulado</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-
-    <!-- TABLA SALDOS -->
-    <div class="card-glass p-3">
-        <h4 class="fw-bold mb-3"><i class="fa fa-balance-scale me-2"></i> Saldos</h4>
-
-        <table id="grd_Saldos" class="display nowrap compact dt-dark" style="width:100%">
-            <thead>
-                <tr>
-                    <th>Tipo</th>
-                    <th>ID Producto</th>
-                    <th>Producto</th>
-                    <th>ID Insumo</th>
-                    <th>Insumo</th>
-                    <th>Cantidad Actual</th>
-                    <th>Fecha Últ. Mov.</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <div class="dt-dark-wrap">
+            <table id="grd_Stock" class="display nowrap compact dt-dark stock-grid" style="width:100%">
+                <thead>
+                    <tr>
+                        <th style="width:10%">Tipo</th>
+                        <th>Ítem</th>
+                        <th style="width:14%">Stock</th>
+                        <th style="width:18%">Último movimiento</th>
+                        <th style="width:8%"></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 </div>
+
+<!-- MODAL HISTORIAL POR ITEM -->
+<div class="modal fade" id="modalHistorialStock" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content stock-modal">
+            <div class="modal-header stock-modal-header">
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <span class="stock-modal-icon">
+                        <i class="fa fa-history"></i>
+                    </span>
+                    <div>
+                        <h5 class="modal-title fw-800 mb-1" id="histItemNombre">Historial de stock</h5>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span id="histItemTipo" class="stock-pill stock-pill-generic"></span>
+                            <small class="text-muted-cc">
+                                Movimientos del ítem (entradas/salidas, ordenado por fecha).
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close stock-btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body stock-modal-body">
+                <!-- Resumen -->
+                <div class="stock-hist-resumen mb-3">
+                    <div class="stock-hist-chip chip-in">
+                        <i class="fa fa-arrow-down me-1"></i> Entradas
+                        <span class="ms-auto" id="histTotalEntradas">0</span>
+                    </div>
+                    <div class="stock-hist-chip chip-out">
+                        <i class="fa fa-arrow-up me-1"></i> Salidas
+                        <span class="ms-auto" id="histTotalSalidas">0</span>
+                    </div>
+                    <div class="stock-hist-chip chip-neto">
+                        <i class="fa fa-balance-scale me-1"></i> Neto
+                        <span class="ms-auto" id="histTotalNeto">0</span>
+                    </div>
+                </div>
+
+                <!-- Tabla historial -->
+                <div class="dt-dark-wrap">
+                    <table id="grd_Historial" class="display nowrap compact dt-dark stock-grid" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th style="width:18%">Fecha</th>
+                                <th style="width:18%">Tipo movimiento</th>
+                                <th>Comentario</th>
+                                <th style="width:14%">Cantidad</th>
+                                <th style="width:14%">Dirección</th>
+                                <th style="width:18%">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer stock-modal-footer">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL — DETALLE COMPLETO DEL MOVIMIENTO -->
+<div class="modal fade" id="modalMovimientoDetalle" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content stockmov-modal">
+
+            <div class="modal-header stockmov-header">
+                <div class="d-flex flex-column">
+                    <h5 class="fw-800 mb-1">Detalle del movimiento</h5>
+                    <small class="text-muted-cc">Información completa del movimiento y sus ítems.</small>
+                </div>
+                <button type="button" class="btn-close stock-btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body stockmov-body">
+                <div class="mb-3">
+                    <div><strong>Fecha:</strong> <span id="movDetFecha"></span></div>
+                    <div><strong>Tipo:</strong> <span id="movDetTipo"></span></div>
+                    <div><strong>Comentario:</strong> <span id="movDetComentario">-</span></div>
+                </div>
+
+                <hr>
+
+                <div class="row g-3" id="movDetItems"></div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <partial name="~/Views/Utils/Modals.cshtml" />
 
@@ -86,6 +181,12 @@
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
 
-    <!-- Script REAL -->
-    <script src="~/js/Stock.js?v=1.0"></script>
+    <!-- Bootstrap (modals) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Utilidades base -->
+    <script src="~/js/site.js"></script>
+
+    <!-- Script de Stock -->
+    <script src="~/js/Stock.js?v=5.1"></script>
 }

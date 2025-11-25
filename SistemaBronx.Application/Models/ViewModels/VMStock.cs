@@ -11,10 +11,12 @@ namespace SistemaBronx.Application.Models.ViewModels
         public class VMStockMovimiento
         {
             public int Id { get; set; }
-            public int IdTipoMovimiento { get; set; } // 1 = Entrada, 2 = Salida
+            public int IdTipoMovimiento { get; set; }
             public string? Observacion { get; set; }
 
-            public bool EsEntrada => IdTipoMovimiento == 1;
+            public bool EsEntrada { get; set; }
+
+            public bool EsAnulado { get; set; }   // 👈 NUEVO
 
             public string Usuario { get; set; }
             public int? IdUsuario { get; set; }
@@ -23,6 +25,8 @@ namespace SistemaBronx.Application.Models.ViewModels
 
             public List<VMStockMovimientoDetalle> Detalles { get; set; } = new();
         }
+
+
 
         // ===============================================
         // DETALLE
@@ -38,11 +42,20 @@ namespace SistemaBronx.Application.Models.ViewModels
 
             public int? IdProducto { get; set; }
             public int? IdInsumo { get; set; }
+            public int? IdMovimiento { get; set; }
 
             public decimal Cantidad { get; set; }
 
             public string NombreItem { get; set; } // Producto/Insumo
+
+            // ===== CAMPOS EXTRA PARA HISTORIAL POR ÍTEM =====
+            public DateTime Fecha { get; set; }
+            public string TipoMovimiento { get; set; }
+            public string Comentario { get; set; }
+            public bool EsEntrada { get; set; }
+            public bool EsAnulado { get; set; }
         }
+
 
         // ===============================================
         // SALDO
