@@ -3,92 +3,334 @@ using SistemaBronx.DAL.DataContext;
 using SistemaBronx.Models;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Runtime.Intrinsics.Arm;
-using System.Text;
 using System.Threading.Tasks;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace SistemaBronx.DAL.Repository
 {
     public class PedidoRepository : IPedidosRepository<Pedido>
     {
-
         private readonly SistemaBronxContext _dbcontext;
+
+        // Movimiento de stock automático para salidas por pedido
+        private const int ID_TIPO_MOV_PEDIDO = 8;
 
         public PedidoRepository(SistemaBronxContext context)
         {
             _dbcontext = context;
         }
 
+        /* ============================================================
+           HELPERS STOCK
+        ============================================================ */
 
-        public async Task<bool> Insertar(Pedido pedido, IQueryable<PedidosDetalle> pedidosDetalle, IQueryable<PedidosDetalleProceso> pedidosDetalleProceso)
+        private async Task AplicarStockSalidaAsync(string tipoItem, int? idProducto, int? idInsumo, decimal cantidad)
         {
-            using var transaction = await _dbcontext.Database.BeginTransactionAsync();
+            tipoItem = (tipoItem ?? "").ToUpper();
+
+            var saldo = await _dbcontext.StockSaldos.FirstOrDefaultAsync(s =>
+                s.TipoItem == tipoItem &&
+                s.IdProducto == idProducto &&
+                s.IdInsumo == idInsumo
+            );
+
+            if (saldo == null)
+            {
+                saldo = new StockSaldo
+                {
+                    TipoItem = tipoItem,
+                    IdProducto = idProducto,
+                    IdInsumo = idInsumo,
+                    CantidadActual = 0,
+                    FechaUltMovimiento = DateTime.Now
+                };
+                _dbcontext.StockSaldos.Add(saldo);
+            }
+
+            saldo.CantidadActual -= cantidad;
+            saldo.FechaUltMovimiento = DateTime.Now;
+        }
+
+        private async Task RevertirStockSalidaAsync(string tipoItem, int? idProducto, int? idInsumo, decimal cantidad)
+        {
+            tipoItem = (tipoItem ?? "").ToUpper();
+
+            var saldo = await _dbcontext.StockSaldos.FirstOrDefaultAsync(s =>
+                s.TipoItem == tipoItem &&
+                s.IdProducto == idProducto &&
+                s.IdInsumo == idInsumo
+            );
+
+            if (saldo == null)
+            {
+                saldo = new StockSaldo
+                {
+                    TipoItem = tipoItem,
+                    IdProducto = idProducto,
+                    IdInsumo = idInsumo,
+                    CantidadActual = 0,
+                    FechaUltMovimiento = DateTime.Now
+                };
+                _dbcontext.StockSaldos.Add(saldo);
+            }
+
+            saldo.CantidadActual += cantidad;
+            saldo.FechaUltMovimiento = DateTime.Now;
+        }
+
+        /* ============================================================
+           REVERSIÓN TOTAL DEL STOCK DEL PEDIDO
+        ============================================================ */
+
+        public async Task<bool> RevertirUsoStockPedido(int idPedido)
+        {
             try
             {
+                // PRODUCTOS
+                var linksProd = await _dbcontext.PedidosDetalleStocks
+                    .Include(l => l.IdPedidoDetalleNavigation)
+                    .Include(l => l.IdStockMovimientoDetalleNavigation)
+                        .ThenInclude(d => d.IdMovimientoNavigation)
+                    .Where(l => l.IdPedidoDetalleNavigation.IdPedido == idPedido)
+                    .ToListAsync();
 
-                // Insertamos el pedido y guardamos cambios para obtener su ID
-                _dbcontext.Pedidos.Add(pedido);
-                await _dbcontext.SaveChangesAsync();
+                // PROCESOS / INSUMOS
+                var linksProc = await _dbcontext.PedidosDetalleProcesosStocks
+                    .Include(l => l.IdPedidoDetalleProcesoNavigation)
+                    .Include(l => l.IdStockMovimientoDetalleNavigation)
+                        .ThenInclude(d => d.IdMovimientoNavigation)
+                    .Where(l => l.IdPedidoDetalleProcesoNavigation.IdPedido == idPedido)
+                    .ToListAsync();
 
-                var idMapping = new Dictionary<int, int>(); // 🔹 Mapeo de ID temporal a ID real
+                if (!linksProd.Any() && !linksProc.Any())
+                    return true;
 
-                // **Registrar PedidosDetalle**
-                foreach (var detalle in pedidosDetalle)
+                var detallesStock = new HashSet<StockMovimientosDetalle>();
+                var movimientos = new HashSet<StockMovimiento>();
+
+                // revertir productos
+                foreach (var link in linksProd)
                 {
-                    int idTemporal = detalle.Id; // Guardamos el ID original
+                    var det = link.IdStockMovimientoDetalleNavigation;
+                    var mov = det.IdMovimientoNavigation;
 
-                    detalle.Id = 0; // Permitimos que la base de datos genere el ID
-                    detalle.IdPedido = pedido.Id; // Asociamos al nuevo pedido
-                    _dbcontext.PedidosDetalles.Add(detalle);
-                    await _dbcontext.SaveChangesAsync(); // 🔹 Guardamos para obtener los IDs reales
-                    idMapping[idTemporal] = detalle.Id;
+                    detallesStock.Add(det);
+                    movimientos.Add(mov);
+
+                    await RevertirStockSalidaAsync(det.TipoItem, det.IdProducto, det.IdInsumo, link.CantidadUsada);
                 }
 
-
-
-
-
-                // **Registrar PedidosDetalleProceso**
-                foreach (var proceso in pedidosDetalleProceso)
+                // revertir procesos (insumos)
+                foreach (var link in linksProc)
                 {
-                    proceso.IdPedido = pedido.Id; // Asociamos al nuevo pedido
+                    var det = link.IdStockMovimientoDetalleNavigation;
+                    var mov = det.IdMovimientoNavigation;
 
-                    // 🔹 Buscar el ID real del detalle asociado
-                    if (proceso.IdDetalle.HasValue && idMapping.TryGetValue(proceso.IdDetalle.Value, out int idReal))
-                    {
-                        proceso.IdDetalle = idReal; // Asignamos el nuevo ID real del detalle
-                    }
-                    else
-                    {
-                        throw new Exception($"No se encontró un IdDetalle válido para el proceso con IdDetalle={proceso.IdDetalle}");
-                    }
+                    detallesStock.Add(det);
+                    movimientos.Add(mov);
 
-                    proceso.Id = 0; // Permitimos que la base de datos genere el ID
-                    _dbcontext.PedidosDetalleProcesos.Add(proceso);
+                    await RevertirStockSalidaAsync(det.TipoItem, det.IdProducto, det.IdInsumo, link.CantidadUsada);
                 }
 
-                await _dbcontext.SaveChangesAsync();
-                await transaction.CommitAsync();
+                // borrar relaciones
+                _dbcontext.PedidosDetalleStocks.RemoveRange(linksProd);
+                _dbcontext.PedidosDetalleProcesosStocks.RemoveRange(linksProc);
+
+                // borrar detalles stock
+                _dbcontext.StockMovimientosDetalles.RemoveRange(detallesStock);
+
+                // borrar movimientos vacíos
+                foreach (var mov in movimientos)
+                {
+                    bool existen = await _dbcontext.StockMovimientosDetalles.AnyAsync(d => d.IdMovimiento == mov.Id);
+                    if (!existen)
+                        _dbcontext.StockMovimientos.Remove(mov);
+                }
+
+                // reset cantidades usadas
+                foreach (var d in await _dbcontext.PedidosDetalles.Where(x => x.IdPedido == idPedido).ToListAsync())
+                    d.CantidadUsadaStock = 0;
+
+                foreach (var p in await _dbcontext.PedidosDetalleProcesos.Where(x => x.IdPedido == idPedido).ToListAsync())
+                    p.CantidadUsadaStock = 0;
+
                 return true;
             }
-            catch (Exception ex)
+            catch
             {
-                await transaction.RollbackAsync();
-                Console.WriteLine($"Error en la transacción: {ex.Message}");
                 return false;
             }
         }
 
+        /* ============================================================
+           APLICAR USO DE STOCK
+        ============================================================ */
 
-
-
-        public async Task<bool> Actualizar(Pedido pedido, IQueryable<PedidosDetalle> pedidosDetalle, IQueryable<PedidosDetalleProceso> pedidosDetalleProceso)
+        public async Task<bool> AplicarUsoStockPedido(
+            Pedido pedido,
+            IEnumerable<PedidosDetalle> detalles,
+            IEnumerable<PedidosDetalleProceso> procesos)
         {
-            using var transaction = await _dbcontext.Database.BeginTransactionAsync();
+            try
+            {
+                var listaDetalles = detalles.ToList();
+                var listaProcesos = procesos.ToList();
+
+                decimal totalUso = listaDetalles.Sum(d => d.CantidadUsadaStock ?? 0)
+                                  + listaProcesos.Sum(p => p.CantidadUsadaStock ?? 0);
+
+                if (totalUso <= 0)
+                    return true;
+
+                var mov = new StockMovimiento
+                {
+                    Fecha = DateTime.Now,
+                    FechaAlta = DateTime.Now,
+                    IdTipoMovimiento = ID_TIPO_MOV_PEDIDO,
+                    Comentario = $"Salida por pedido #{pedido.Id}",
+                    IdUsuario = null,
+                    EsAnulado = false,
+                };
+
+                _dbcontext.StockMovimientos.Add(mov);
+                await _dbcontext.SaveChangesAsync();
+
+                // PRODUCTOS
+                foreach (var d in listaDetalles)
+                {
+                    var uso = d.CantidadUsadaStock ?? 0;
+                    if (uso <= 0 || d.IdProducto is null)
+                        continue;
+
+                    var detStock = new StockMovimientosDetalle
+                    {
+                        IdMovimiento = mov.Id,
+                        TipoItem = "P",
+                        IdProducto = d.IdProducto,
+                        IdInsumo = null,
+                        Cantidad = uso,
+                        CostoUnitario = 0,
+                        FechaCreado = DateTime.Now
+                    };
+
+                    _dbcontext.StockMovimientosDetalles.Add(detStock);
+
+                    var link = new PedidosDetalleStock
+                    {
+                        IdPedidoDetalle = d.Id,
+                        IdStockMovimientoDetalleNavigation = detStock,
+                        CantidadUsada = uso
+                    };
+                    _dbcontext.PedidosDetalleStocks.Add(link);
+
+                    await AplicarStockSalidaAsync("P", d.IdProducto, null, uso);
+                }
+
+                // PROCESOS (INSUMOS)
+                foreach (var p in listaProcesos)
+                {
+                    var uso = p.CantidadUsadaStock ?? 0;
+                    if (uso <= 0 || p.IdInsumo is null)
+                        continue;
+
+                    var detStock = new StockMovimientosDetalle
+                    {
+                        IdMovimiento = mov.Id,
+                        TipoItem = "I",
+                        IdProducto = null,
+                        IdInsumo = p.IdInsumo,
+                        Cantidad = uso,
+                        CostoUnitario = 0,
+                        FechaCreado = DateTime.Now
+                    };
+
+                    _dbcontext.StockMovimientosDetalles.Add(detStock);
+
+                    var link = new PedidosDetalleProcesosStock
+                    {
+                        IdPedidoDetalleProceso = p.Id,
+                        IdStockMovimientoDetalleNavigation = detStock,
+                        CantidadUsada = uso
+                    };
+                    _dbcontext.PedidosDetalleProcesosStocks.Add(link);
+
+                    await AplicarStockSalidaAsync("I", null, p.IdInsumo, uso);
+                }
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /* ============================================================
+           INSERTAR
+        ============================================================ */
+
+        public async Task<bool> Insertar(
+            Pedido pedido,
+            IQueryable<PedidosDetalle> pedidosDetalle,
+            IQueryable<PedidosDetalleProceso> pedidosDetalleProceso)
+        {
+            await using var tx = await _dbcontext.Database.BeginTransactionAsync();
+            try
+            {
+                _dbcontext.Pedidos.Add(pedido);
+                await _dbcontext.SaveChangesAsync();
+
+                var idMapping = new Dictionary<int, int>();
+
+                var detList = pedidosDetalle.ToList();
+                foreach (var d in detList)
+                {
+                    int tempId = d.Id;
+                    d.Id = 0;
+                    d.IdPedido = pedido.Id;
+
+                    _dbcontext.PedidosDetalles.Add(d);
+                    await _dbcontext.SaveChangesAsync();
+
+                    idMapping[tempId] = d.Id;
+                }
+
+                var procList = pedidosDetalleProceso.ToList();
+                foreach (var p in procList)
+                {
+                    p.IdPedido = pedido.Id;
+                    if (p.IdDetalle.HasValue && idMapping.TryGetValue(p.IdDetalle.Value, out int realId))
+                        p.IdDetalle = realId;
+
+                    p.Id = 0;
+                    _dbcontext.PedidosDetalleProcesos.Add(p);
+                }
+
+                await _dbcontext.SaveChangesAsync();
+
+                await AplicarUsoStockPedido(pedido, detList, procList);
+                await _dbcontext.SaveChangesAsync();
+
+                await tx.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                return false;
+            }
+        }
+
+        /* ============================================================
+           ACTUALIZAR
+        ============================================================ */
+
+        public async Task<bool> Actualizar(
+            Pedido pedido,
+            IQueryable<PedidosDetalle> pedidosDetalle,
+            IQueryable<PedidosDetalleProceso> pedidosDetalleProceso)
+        {
+            await using var tx = await _dbcontext.Database.BeginTransactionAsync();
             try
             {
                 var pedidoExistente = await _dbcontext.Pedidos
@@ -96,167 +338,164 @@ namespace SistemaBronx.DAL.Repository
                     .Include(p => p.PedidosDetalleProcesos)
                     .FirstOrDefaultAsync(p => p.Id == pedido.Id);
 
-                if (pedidoExistente == null) return false; // El pedido no existe
+                if (pedidoExistente == null)
+                    return false;
+
+                // Revertir stock previo
+                await RevertirUsoStockPedido(pedido.Id);
 
                 _dbcontext.Entry(pedidoExistente).CurrentValues.SetValues(pedido);
 
-                // **Actualizar PedidosDetalle**
-                var idsProductos = pedidosDetalle.Select(pd => pd.Id).ToList();
-                var detallesAEliminar = pedidoExistente.PedidosDetalles.Where(pd => !idsProductos.Contains(pd.Id)).ToList();
-                _dbcontext.PedidosDetalles.RemoveRange(detallesAEliminar);
+                // update detalle productos
+                var nuevosDetalles = pedidosDetalle.ToList();
+                var idsProd = nuevosDetalles.Select(x => x.Id).ToList();
 
-                var idMapping = new Dictionary<int, int>(); // 🔹 Mapear ID temporal a ID real
+                var eliminarProd = pedidoExistente.PedidosDetalles.Where(x => !idsProd.Contains(x.Id)).ToList();
+                _dbcontext.PedidosDetalles.RemoveRange(eliminarProd);
 
-                foreach (var detalle in pedidosDetalle)
+                var idMapping = new Dictionary<int, int>();
+
+                foreach (var d in nuevosDetalles)
                 {
-                    var detalleExistente = pedidoExistente.PedidosDetalles.FirstOrDefault(pd => pd.Id > 0 && pd.Id == detalle.Id);
-                    if (detalleExistente != null)
+                    var detExist = pedidoExistente.PedidosDetalles.FirstOrDefault(x => x.Id == d.Id);
+
+                    if (detExist != null)
                     {
-                        detalleExistente.Cantidad = detalle.Cantidad;
-                        detalleExistente.CostoUnitario = detalle.CostoUnitario;
-                        detalleExistente.PrecioVenta = detalle.PrecioVenta;
-                        detalleExistente.PorcIva = detalle.PorcIva;
-                        detalleExistente.IdCategoria = detalle.IdCategoria;
-                        detalleExistente.IdColor = detalle.IdColor;
-                        detalleExistente.PorcGanancia = detalle.PorcGanancia;
-                        detalleExistente.Producto = detalle.Producto;
+                        detExist.Cantidad = d.Cantidad;
+                        detExist.CostoUnitario = d.CostoUnitario;
+                        detExist.PrecioVenta = d.PrecioVenta;
+                        detExist.PorcIva = d.PorcIva;
+                        detExist.IdCategoria = d.IdCategoria;
+                        detExist.IdColor = d.IdColor;
+                        detExist.IdProducto = d.IdProducto;
+                        detExist.PorcGanancia = d.PorcGanancia;
+                        detExist.Producto = d.Producto;
+                        detExist.CantidadUsadaStock = d.CantidadUsadaStock;
                     }
                     else
                     {
-                        int idTemporal = detalle.Id; // Guardamos el ID que viene
-                        detalle.Id = 0; // Permitimos que la base de datos genere el ID
-                        detalle.IdPedido = pedido.Id;
-                        _dbcontext.PedidosDetalles.Add(detalle);
-                        await _dbcontext.SaveChangesAsync(); // 🔹 Guardamos para obtener el ID real
-                        idMapping[idTemporal] = detalle.Id; // Mapeamos el ID temporal al real
+                        int tempId = d.Id;
+                        d.Id = 0;
+                        d.IdPedido = pedido.Id;
+
+                        _dbcontext.PedidosDetalles.Add(d);
+                        await _dbcontext.SaveChangesAsync();
+
+                        idMapping[tempId] = d.Id;
                     }
                 }
 
-                // **Actualizar PedidosDetalleProceso**
-                var idsProcesos = pedidosDetalleProceso.Select(pdp => pdp.Id).ToList();
-                var procesosAEliminar = pedidoExistente.PedidosDetalleProcesos.Where(pdp => !idsProcesos.Contains(pdp.Id)).ToList();
-                _dbcontext.PedidosDetalleProcesos.RemoveRange(procesosAEliminar);
+                // update procesos
+                var nuevosProc = pedidosDetalleProceso.ToList();
+                var idsProc = nuevosProc.Select(p => p.Id).ToList();
 
-                foreach (var proceso in pedidosDetalleProceso)
+                var eliminarProc = pedidoExistente.PedidosDetalleProcesos
+                    .Where(p => !idsProc.Contains(p.Id))
+                    .ToList();
+
+                _dbcontext.PedidosDetalleProcesos.RemoveRange(eliminarProc);
+
+                foreach (var p in nuevosProc)
                 {
-                    var procesoExistente = pedidoExistente.PedidosDetalleProcesos.FirstOrDefault(pdp => pdp.Id > 0 && pdp.Id == proceso.Id);
-                    if (procesoExistente != null)
+                    var procExist = pedidoExistente.PedidosDetalleProcesos.FirstOrDefault(x => x.Id == p.Id);
+
+                    if (procExist != null)
                     {
-                        procesoExistente.Cantidad = proceso.Cantidad;
-                        procesoExistente.IdCategoria = proceso.IdCategoria;
-                        procesoExistente.Comentarios = proceso.Comentarios;
-                        procesoExistente.Descripcion = proceso.Descripcion;
-                        procesoExistente.Especificacion = proceso.Especificacion;
-                        procesoExistente.IdColor = proceso.IdColor;
-                        procesoExistente.FechaActualizacion = DateTime.Now;
-                        procesoExistente.SubTotal = proceso.SubTotal;
-                        procesoExistente.IdEstado = proceso.IdEstado;
-                        procesoExistente.IdTipo = proceso.IdTipo;
-                        procesoExistente.PrecioUnitario = proceso.PrecioUnitario;
+                        procExist.Cantidad = p.Cantidad;
+                        procExist.IdCategoria = p.IdCategoria;
+                        procExist.Comentarios = p.Comentarios;
+                        procExist.Descripcion = p.Descripcion;
+                        procExist.Especificacion = p.Especificacion;
+                        procExist.IdColor = p.IdColor;
+                        procExist.SubTotal = p.SubTotal;
+                        procExist.IdEstado = p.IdEstado;
+                        procExist.IdTipo = p.IdTipo;
+                        procExist.PrecioUnitario = p.PrecioUnitario;
+                        procExist.IdUnidadMedida = p.IdUnidadMedida;
+                        procExist.IdProveedor = p.IdProveedor;
+                        procExist.IdProducto = p.IdProducto;
+                        procExist.IdInsumo = p.IdInsumo;
+                        procExist.CantidadUsadaStock = p.CantidadUsadaStock;
+                        procExist.FechaActualizacion = DateTime.Now;
                     }
                     else
                     {
-                        proceso.IdPedido = pedido.Id;
+                        p.IdPedido = pedido.Id;
 
-                        // 🔹 Buscar el ID real en el diccionario
-                        if (proceso.IdDetalle.HasValue && idMapping.TryGetValue(proceso.IdDetalle.Value, out int idReal))
-                        {
-                            proceso.IdDetalle = idReal; // Asignamos el nuevo ID real
-                            proceso.Id = 0;
-                        }
+                        if (p.IdDetalle.HasValue && idMapping.TryGetValue(p.IdDetalle.Value, out int realId))
+                            p.IdDetalle = realId;
 
-
-                        _dbcontext.PedidosDetalleProcesos.Add(proceso);
+                        p.Id = 0;
+                        _dbcontext.PedidosDetalleProcesos.Add(p);
                     }
                 }
 
                 await _dbcontext.SaveChangesAsync();
-                await transaction.CommitAsync();
+
+                await AplicarUsoStockPedido(pedidoExistente, nuevosDetalles, nuevosProc);
+                await _dbcontext.SaveChangesAsync();
+
+                await tx.CommitAsync();
                 return true;
             }
-            catch (Exception)
+            catch
             {
-                await transaction.RollbackAsync();
+                await tx.RollbackAsync();
                 return false;
             }
         }
 
+
+        /* ============================================================
+           UPDATE SIMPLE DETALLE PROCESO
+        ============================================================ */
 
         public async Task<bool> ActualizarDetalleProceso(PedidosDetalleProceso pedidosDetalleProceso)
         {
-            using var transaction = await _dbcontext.Database.BeginTransactionAsync();
-
             try
             {
-                var pedidoDetalleExistente = await _dbcontext.PedidosDetalleProcesos
-                    .FirstOrDefaultAsync(p => p.Id == pedidosDetalleProceso.Id);
+                var existe = await _dbcontext.PedidosDetalleProcesos
+                    .FirstOrDefaultAsync(x => x.Id == pedidosDetalleProceso.Id);
 
-                if (pedidoDetalleExistente == null)
-                {
-                    return false; // El pedido no existe
-                }
+                if (existe == null)
+                    return false;
 
-
-                pedidoDetalleExistente.Cantidad = pedidosDetalleProceso.Cantidad;
-                pedidoDetalleExistente.Comentarios = pedidosDetalleProceso.Comentarios;
-                pedidoDetalleExistente.Descripcion = pedidosDetalleProceso.Descripcion;
-                pedidoDetalleExistente.Especificacion = pedidosDetalleProceso.Especificacion;
-                pedidoDetalleExistente.IdColor = pedidosDetalleProceso.IdColor;
-                pedidoDetalleExistente.FechaActualizacion = DateTime.Now;
-                pedidoDetalleExistente.IdEstado = pedidosDetalleProceso.IdEstado;
-
-                // Actualizar datos del pedido
-                _dbcontext.Entry(pedidoDetalleExistente).CurrentValues.SetValues(pedidoDetalleExistente);
-
+                existe.Cantidad = pedidosDetalleProceso.Cantidad;
+                existe.Comentarios = pedidosDetalleProceso.Comentarios;
+                existe.Descripcion = pedidosDetalleProceso.Descripcion;
+                existe.Especificacion = pedidosDetalleProceso.Especificacion;
+                existe.IdColor = pedidosDetalleProceso.IdColor;
+                existe.IdEstado = pedidosDetalleProceso.IdEstado;
+                existe.FechaActualizacion = DateTime.Now;
 
                 await _dbcontext.SaveChangesAsync();
-                await transaction.CommitAsync();
-
                 return true;
             }
-            catch (Exception ex)
+            catch
             {
-                await transaction.RollbackAsync();
                 return false;
             }
         }
 
+        /* ============================================================
+           LISTAR Y OBTENER
+        ============================================================ */
 
         public async Task<PedidosDetalle> ObtenerProducto(int IdPedido, int IdProducto)
         {
-            var resultado = new Dictionary<string, object>();
-
-            try
-            {
-                var producto = await _dbcontext.PedidosDetalles.Where(x => x.IdPedido == IdPedido && x.IdProducto == IdProducto).FirstOrDefaultAsync();
-                if (producto == null)
-                {
-                    return null;
-                }
-
-                return producto;
-
-            }
-            catch (Exception ex)
-            {
-                return null;
-            }
-
+            return await _dbcontext.PedidosDetalles
+                .FirstOrDefaultAsync(x => x.IdPedido == IdPedido && x.IdProducto == IdProducto);
         }
+
         public async Task<List<Pedido>> ObtenerPedidos(
-    DateTime FechaDesde,
-    DateTime FechaHasta,
-    int IdCliente,
-    string Estado,
-    int Finalizado)
+            DateTime FechaDesde, DateTime FechaHasta, int IdCliente, string Estado, int Finalizado)
         {
             try
             {
-                // Normalizo rangos: FechaHasta al final del día
                 if (FechaHasta != DateTime.MinValue)
                     FechaHasta = FechaHasta.Date.AddDays(1).AddTicks(-1);
 
-                var query = _dbcontext.Pedidos
+                var q = _dbcontext.Pedidos
                     .AsNoTracking()
                     .Include(x => x.IdClienteNavigation)
                     .Include(x => x.IdFormaPagoNavigation)
@@ -265,34 +504,33 @@ namespace SistemaBronx.DAL.Repository
                     .AsQueryable();
 
                 if (FechaDesde != DateTime.MinValue && IdCliente == -1)
-                    query = query.Where(x => x.Fecha >= FechaDesde);
+                    q = q.Where(x => x.Fecha >= FechaDesde);
 
                 if (FechaHasta != DateTime.MinValue && IdCliente == -1)
-                    query = query.Where(x => x.Fecha <= FechaHasta);
+                    q = q.Where(x => x.Fecha <= FechaHasta);
 
                 if (IdCliente != -1)
-                    query = query.Where(x => x.IdCliente == IdCliente);
+                    q = q.Where(x => x.IdCliente == IdCliente);
 
                 if (Finalizado != -1)
-                    query = query.Where(x => x.Finalizado == Finalizado);
+                    q = q.Where(x => x.Finalizado == Finalizado);
 
                 if (!string.Equals(Estado, "TODOS", StringComparison.OrdinalIgnoreCase))
                 {
                     if (Estado == "ENTREGAR")
-                        query = query.Where(x => x.Saldo <= 0);
+                        q = q.Where(x => x.Saldo <= 0);
                     else if (Estado == "EN PROCESO")
-                        query = query.Where(x => x.Saldo >= 0);
+                        q = q.Where(x => x.Saldo >= 0);
                 }
 
-                // 👇 Orden final: fecha desc + (desempate por Id desc)
-                return await query
+                return await q
                     .OrderByDescending(x => x.Fecha)
                     .ThenByDescending(x => x.Id)
                     .ToListAsync();
             }
             catch
             {
-                return null;
+                return new List<Pedido>();
             }
         }
 
@@ -309,15 +547,13 @@ namespace SistemaBronx.DAL.Repository
                     .Include(x => x.IdProveedorNavigation)
                     .Include(x => x.IdInsumoNavigation).ThenInclude(p => p.IdCategoriaNavigation)
                     .Include(x => x.IdColorNavigation)
-                    
                     .AsQueryable();
 
                 if (!incluirFinalizados)
                 {
-                    // Filtra por nombre de estado (cubre "Finalizado", "Finalizada", etc.)
-                    q = q.Where(p =>
-                        p.IdEstadoNavigation == null ||
-                        !EF.Functions.Like(p.IdEstadoNavigation.Nombre, "%Finaliz%"));
+                    q = q.Where(x =>
+                        x.IdEstadoNavigation == null ||
+                        !EF.Functions.Like(x.IdEstadoNavigation.Nombre, "%FINALIZ%"));
                 }
 
                 return await q.ToListAsync();
@@ -328,143 +564,127 @@ namespace SistemaBronx.DAL.Repository
             }
         }
 
-
         public async Task<List<PedidosDetalleProceso>> ObtenerDetalleProcesos()
         {
-            var resultado = new Dictionary<string, object>();
-
             try
             {
-                var producto = await _dbcontext.PedidosDetalleProcesos
+                return await _dbcontext.PedidosDetalleProcesos
                     .Include(x => x.IdCategoriaNavigation)
                     .Include(x => x.IdProductoNavigation)
                     .Include(x => x.IdEstadoNavigation)
                     .Include(x => x.IdProveedorNavigation)
-                    .Include(x => x.IdInsumoNavigation)
-                    .ThenInclude(p => p.IdCategoriaNavigation)
+                    .Include(x => x.IdInsumoNavigation).ThenInclude(x => x.IdCategoriaNavigation)
                     .Include(x => x.IdColorNavigation)
                     .ToListAsync();
-
-                return producto;
-
             }
-            catch (Exception ex)
+            catch
             {
-                return null;
+                return new List<PedidosDetalleProceso>();
             }
-
         }
 
         public async Task<PedidosDetalleProceso> ObtenerInsumo(int IdPedido, int IdInsumo)
         {
-            var resultado = new Dictionary<string, object>();
-
-            try
-            {
-                var producto = await _dbcontext.PedidosDetalleProcesos.Where(x => x.IdPedido == IdPedido && x.IdInsumo == IdInsumo).FirstOrDefaultAsync();
-
-                return producto;
-
-            }
-            catch (Exception ex)
-            {
-                return null;
-            }
-
+            return await _dbcontext.PedidosDetalleProcesos
+                .FirstOrDefaultAsync(x => x.IdPedido == IdPedido && x.IdInsumo == IdInsumo);
         }
-
 
         public async Task<Pedido> ObtenerPedido(int pedidoId)
         {
-            var resultado = new Dictionary<string, object>();
-
             try
             {
-                var pedido = await _dbcontext.Pedidos
+                return await _dbcontext.Pedidos
                     .Include(p => p.IdClienteNavigation)
-                    .Include(p => p.IdFormaPagoNavigation) // Formas de Pago
+                    .Include(p => p.IdFormaPagoNavigation)
                     .Include(p => p.PedidosDetalles)
-                        .ThenInclude(pd => pd.IdProductoNavigation)
+                        .ThenInclude(d => d.IdProductoNavigation)
                     .Include(p => p.PedidosDetalles)
-                        .ThenInclude(pd => pd.IdColorNavigation)
+                        .ThenInclude(d => d.IdColorNavigation)
                     .Include(p => p.PedidosDetalles)
-                        .ThenInclude(pd => pd.IdCategoriaNavigation)
+                        .ThenInclude(d => d.IdCategoriaNavigation)
                     .Include(p => p.PedidosDetalleProcesos)
-                        .ThenInclude(pdp => pdp.IdProductoNavigation)
+                        .ThenInclude(dp => dp.IdProductoNavigation)
                     .Include(p => p.PedidosDetalleProcesos)
-                        .ThenInclude(pdp => pdp.IdColorNavigation)
+                        .ThenInclude(dp => dp.IdColorNavigation)
                     .Include(p => p.PedidosDetalleProcesos)
-                        .ThenInclude(pdp => pdp.IdCategoriaNavigation)
+                        .ThenInclude(dp => dp.IdCategoriaNavigation)
                     .Include(p => p.PedidosDetalleProcesos)
-                        .ThenInclude(pdp => pdp.IdInsumoNavigation)
-                        .Include(p => p.PedidosDetalleProcesos)
-                        .ThenInclude(pdp => pdp.IdTipoNavigation)
+                        .ThenInclude(dp => dp.IdInsumoNavigation)
                     .Include(p => p.PedidosDetalleProcesos)
-                        .ThenInclude(pdp => pdp.IdProveedorNavigation)
-                        .Include(p => p.PedidosDetalleProcesos)
-                        .ThenInclude(pdp => pdp.IdEstadoNavigation)
+                        .ThenInclude(dp => dp.IdTipoNavigation)
                     .Include(p => p.PedidosDetalleProcesos)
-                        .ThenInclude(pdp => pdp.IdUnidadMedidaNavigation)
+                        .ThenInclude(dp => dp.IdProveedorNavigation)
+                    .Include(p => p.PedidosDetalleProcesos)
+                        .ThenInclude(dp => dp.IdEstadoNavigation)
+                    .Include(p => p.PedidosDetalleProcesos)
+                        .ThenInclude(dp => dp.IdUnidadMedidaNavigation)
                     .FirstOrDefaultAsync(p => p.Id == pedidoId);
-
-                return pedido;
             }
-            catch (Exception ex)
+            catch
             {
                 return null;
             }
-
         }
 
+        /* ============================================================
+           ELIMINAR
+        ============================================================ */
 
         public async Task<bool> EliminarInsumo(int IdPedido, int IdInsumo)
         {
             try
             {
-                PedidosDetalleProceso model = _dbcontext.PedidosDetalleProcesos.First(c => c.IdPedido == IdPedido && c.IdInsumo == IdInsumo);
+                var model = _dbcontext.PedidosDetalleProcesos
+                    .First(c => c.IdPedido == IdPedido && c.IdInsumo == IdInsumo);
+
                 _dbcontext.PedidosDetalleProcesos.Remove(model);
                 await _dbcontext.SaveChangesAsync();
                 return true;
             }
-            catch (Exception ex)
+            catch
             {
                 return false;
             }
-
         }
 
         public async Task<bool> EliminarProducto(int IdPedido, int IdProducto)
         {
             try
             {
-                PedidosDetalle model = _dbcontext.PedidosDetalles.First(c => c.IdPedido == IdPedido && c.IdProducto == IdProducto);
+                var model = _dbcontext.PedidosDetalles
+                    .First(c => c.IdPedido == IdPedido && c.IdProducto == IdProducto);
+
                 _dbcontext.PedidosDetalles.Remove(model);
                 await _dbcontext.SaveChangesAsync();
                 return true;
             }
-            catch (Exception ex)
+            catch
             {
                 return false;
             }
-
         }
-
 
         public async Task<bool> EliminarPedido(int id)
         {
+            await using var tx = await _dbcontext.Database.BeginTransactionAsync();
             try
             {
-                Pedido model = _dbcontext.Pedidos.First(c => c.Id == id);
+                // revert stock
+                await RevertirUsoStockPedido(id);
+
+                var model = _dbcontext.Pedidos.First(c => c.Id == id);
                 _dbcontext.Pedidos.Remove(model);
+
                 await _dbcontext.SaveChangesAsync();
+                await tx.CommitAsync();
+
                 return true;
             }
-            catch (Exception ex)
+            catch
             {
+                await tx.RollbackAsync();
                 return false;
             }
-
         }
-
     }
 }

@@ -36,6 +36,8 @@ namespace SistemaBronx.Application.Models.ViewModels
 
         public decimal? SubTotal { get; set; }
         public decimal? CantidadInicial { get; set; }
+        public decimal? CantidadUsadaStock { get; set; }
+
 
         public string? Comentarios { get; set; }
         public string? Insumo { get; set; }
@@ -45,6 +47,7 @@ namespace SistemaBronx.Application.Models.ViewModels
         public string? Color { get; set; }
         public string? Estado { get; set; }
         public string? Cliente { get; set; }
+        
 
         public int? IdEstado { get; set; }
 

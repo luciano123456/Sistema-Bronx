@@ -1313,6 +1313,12 @@ async function guardarProducto() {
 
     const editando = IdProductoEditando != "" ? true : false;
 
+    await abrirModalUsoStockDesdeProducto(IdProducto, NombreProducto, Cantidad);
+    window.onConfirmarUsoStock = function (seleccion) {
+        aplicarUsoStockAlProducto(seleccion, IdProducto);
+    };
+    return;
+
     if (!editando) {
         if (NombreProducto == "") {
             errorModal("Debes seleccionar un producto");
@@ -2918,4 +2924,241 @@ function ceilToStep(value, step = 0.1) {
     const factor = 1 / step;
     // restamos un epsilon para no subir valores que ya son múltiplos exactos
     return Math.ceil((v - 1e-12) * factor) / factor;
+}
+
+
+async function obtenerStockParaProducto(idProducto, cantidadSolicitada) {
+    const respProd = await fetch(`/Stock/ObtenerStockProducto?idProducto=${idProducto}`);
+    const stockProd = await respProd.json();
+
+    const respIns = await fetch(`/Stock/ObtenerStockInsumosDelProducto?idProducto=${idProducto}`);
+    const stockInsumos = await respIns.json();
+
+    return {
+        idProducto,
+        cantidadSolicitada,
+        nombre: stockProd.NombreProducto,
+        stockProductoTotal: stockProd.StockTotal ?? 0,
+        stockInsumos
+    };
+}
+
+
+async function abrirModalUsoStockDesdeProducto(idProducto, nombreProducto, cantidadSolicitada) {
+    const payload = await obtenerStockParaProducto(idProducto, cantidadSolicitada);
+    window.__usoStock = payload;
+
+    // Producto terminado
+    document.getElementById("usoProdNombre").innerText = nombreProducto;
+    document.getElementById("usoProdStock").innerText = payload.stockProductoTotal;
+    document.getElementById("usoProdSolicitado").innerText = cantidadSolicitada;
+
+    const slider = document.getElementById("usoProdSlider");
+    slider.max = payload.stockProductoTotal;
+    slider.value = 0;
+
+    actualizarSliderProducto();
+
+    // Insumos
+    const cont = document.getElementById("usoInsumosContainer");
+    cont.innerHTML = "";
+
+    payload.stockInsumos.forEach(ins => {
+        const div = document.createElement("div");
+        div.className = "insumo-card";
+        div.innerHTML = `
+            <h6>${ins.Insumo}</h6>
+            <div class="usoStock-row"><span class="lbl">Disponible:</span><span class="val text-success fw-bold">${ins.StockTotalDisponible}</span></div>
+            <div class="usoStock-row"><span class="lbl">Necesario:</span><span class="val">${ins.CantidadNecesaria}</span></div>
+            <input type="range" class="form-range slider-insumo" 
+                data-id="${ins.IdInsumo}" 
+                min="0" 
+                max="${ins.StockTotalDisponible}" 
+                value="0">
+            <div class="usoStock-row">
+                <span>Usar: <strong class="ins-uso">0</strong></span>
+                <span>Falta: <strong class="ins-falta">${ins.CantidadNecesaria}</strong></span>
+            </div>
+        `;
+        cont.appendChild(div);
+    });
+
+    document.querySelectorAll(".slider-insumo").forEach(sl => {
+        sl.addEventListener("input", actualizarInsumoSlider);
+    });
+
+    new bootstrap.Modal(document.getElementById("modalUsoStockNuevo")).show();
+}
+
+
+function actualizarSliderProducto() {
+    const usar = Number(document.getElementById("usoProdSlider").value);
+    const solicitado = Number(__usoStock.cantidadSolicitada);
+
+    document.getElementById("usoProdUsar").innerText = usar;
+    document.getElementById("usoProdFabricar").innerText = solicitado - usar;
+}
+
+function actualizarInsumoSlider(e) {
+    const slider = e.target;
+    const usar = Number(slider.value);
+    const idInsumo = Number(slider.dataset.id);
+
+    const card = slider.closest(".insumo-card");
+    const usarSpan = card.querySelector(".ins-uso");
+    const faltaSpan = card.querySelector(".ins-falta");
+
+    const stockInfo = __usoStock.stockInsumos.find(x => x.IdInsumo === idInsumo);
+
+    usarSpan.textContent = usar;
+    faltaSpan.textContent = Math.max(0, stockInfo.CantidadNecesaria - usar);
+}
+
+document.getElementById("btnConfirmarUsoStock").addEventListener("click", confirmarUsoStock);
+
+function confirmarUsoStock() {
+    const usarProducto = document.getElementById("chkUsarProd").checked
+        ? Number(document.getElementById("usoProdSlider").value)
+        : 0;
+
+    const usarInsumos = [];
+    if (document.getElementById("chkUsarInsumos").checked) {
+        document.querySelectorAll(".slider-insumo").forEach(sl => {
+            usarInsumos.push({
+                IdInsumo: Number(sl.dataset.id),
+                Usar: Number(sl.value)
+            });
+        });
+    }
+
+    if (typeof window.onConfirmarUsoStock === "function") {
+        window.onConfirmarUsoStock({
+            usarProducto,
+            usarInsumos
+        });
+    }
+
+    bootstrap.Modal.getInstance(document.getElementById("modalUsoStockNuevo")).hide();
+}
+
+
+
+
+function agregarFilaProducto(det) {
+    gridProductos.row.add({
+        IdProducto: det.IdProducto,
+        Nombre: det.Producto,
+        Cantidad: det.Cantidad,
+        PorcGanancia: det.PorcGanancia,
+        Ganancia: det.CostoUnitario * (det.PorcGanancia / 100),
+        PorcIva: det.PorcIva,
+        IVA: (det.PrecioVenta * det.PorcIva / 100),
+        PrecioUnitario: det.PrecioUnitario,
+        PrecioTotal: det.PrecioVenta,
+        IdColor: det.IdColor,
+        Color: det.Color,
+        IdCategoria: det.IdCategoria,
+        CantidadUsadaStock: det.CantidadUsadaStock
+    }).draw(false);
+
+    recalcularTotalesPedido();
+}
+
+
+function agregarFilaProceso(proc) {
+    gridInsumos.row.add({
+        Detalle: proc.Descripcion,
+        IdProducto: proc.IdProducto,
+        Producto: proc.Producto ?? "",
+        Cantidad: proc.Cantidad,
+        PrecioUnitario: proc.PrecioUnitario,
+        SubTotal: proc.SubTotal,
+        IdInsumo: proc.IdInsumo,
+        Insumo: proc.Insumo ?? "",
+        IdTipo: proc.IdTipo ?? null,
+        Tipo: proc.Tipo ?? "",
+        IdCategoria: proc.IdCategoria ?? null,
+        Categoria: proc.Categoria ?? "",
+        IdColor: proc.IdColor,
+        Color: proc.Color ?? "",
+        Especificacion: proc.Especificacion,
+        Comentarios: proc.Comentarios,
+        FechaActualizacion: moment().format("DD/MM/YYYY HH:mm"),
+        CantidadUsadaStock: proc.CantidadUsadaStock
+    }).draw(false);
+}
+
+
+function aplicarUsoStockAlProducto(data) {
+
+    const { usarProducto, usarInsumos, idProducto } = data;
+
+    const nombre = document.getElementById("ProductoModalNombre").value;
+    const cant = Number(document.getElementById("ProductoModalCantidad").value);
+    const idColor = Number(document.getElementById("Colores").value || 0);
+    const idCategoria = Number(document.getElementById("ProductoModalIdCategoria").value || 0);
+
+    const porcGan = Number(document.getElementById("ProductoModalPorcGanancia").value || 0);
+    const porcIva = Number(document.getElementById("ProductoModalPorcIva").value || 0);
+    const costo = Number(document.getElementById("ProductoModalCostoUnitario").value || 0);
+    const pvUnit = Number(document.getElementById("ProductoModalPrecioVenta").value || 0);
+
+    // Cuánto falta fabricar
+    const fabricar = Math.max(0, cant - usarProducto);
+
+    // --- 1) Agrego el producto
+    agregarFilaProducto({
+        IdProducto: idProducto,
+        Producto: nombre,
+        Cantidad: cant,
+        CostoUnitario: costo,
+        PrecioVenta: pvUnit * cant,
+        PrecioUnitario: pvUnit,
+        PorcIva: porcIva,
+        PorcGanancia: porcGan,
+        IdColor: idColor,
+        IdCategoria: idCategoria,
+        CantidadUsadaStock: usarProducto
+    });
+
+    // --- 2) Registro INSUMOS usados
+    usarInsumos.forEach(ins => {
+        if (ins.Usar > 0) {
+            agregarFilaProceso({
+                IdProducto: idProducto,
+                IdInsumo: ins.IdInsumo,
+                Descripcion: ins.Nombre,
+                Cantidad: ins.Usar,
+                PrecioUnitario: 0,
+                SubTotal: 0,
+                Especificacion: "Usado desde stock",
+                Comentarios: "",
+                CantidadUsadaStock: ins.Usar
+            });
+        }
+    });
+
+    // --- 3) Agrego PROCESO de fabricación si falta
+    if (fabricar > 0) {
+        agregarFilaProceso({
+            IdProducto: idProducto,
+            IdInsumo: null,
+            Descripcion: "Fabricación",
+            Cantidad: fabricar,
+            PrecioUnitario: 0,
+            SubTotal: 0,
+            IdColor: idColor,
+            IdCategoria: idCategoria,
+            Especificacion: "Producto a fabricar",
+            Comentarios: "",
+            CantidadUsadaStock: 0
+        });
+    }
+
+    // --- 4) Cerrar modal
+    bootstrap.Modal.getInstance(
+        document.getElementById("modalUsoStockNuevo")
+    ).hide();
+
+    recalcularTotalesPedido();
 }

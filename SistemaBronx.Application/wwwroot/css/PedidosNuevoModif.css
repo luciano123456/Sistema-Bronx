@@ -2384,3 +2384,179 @@ table.dataTable tbody tr.selected {
 table.dataTable tbody tr.selected {
     background-color: antiquewhite !important;
 }
+
+
+/* === FULLSCREEN MODAL === */
+#modalUsoStockNuevo .modal-dialog {
+    margin: 0;
+}
+
+.usoStock-modal {
+    height: 100%;
+    background: #1f1f1f;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+}
+
+/* HEADER */
+.usoStock-header {
+    padding: 15px 20px;
+    background: #111;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* BODY */
+.usoStock-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+
+.usoStock-box {
+    background: #2a2a2a;
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.usoStock-title {
+    border-bottom: 1px solid #444;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+}
+
+/* SIMPLE ROW */
+.usoStock-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.lbl {
+    opacity: 0.8;
+}
+
+.val {
+}
+
+/* INSUMO ITEM */
+.insumo-card {
+    background: #333;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+    .insumo-card h6 {
+        margin: 0;
+        margin-bottom: 5px;
+    }
+
+/* FOOTER */
+.usoStock-footer {
+    background: #111;
+    border-top: 1px solid #333;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+
+/* Fondo oscuro elegante */
+.usoStock-modal {
+    background: #1d1f22;
+    color: #e6e6e6;
+    border-radius: 10px;
+    border: 1px solid #444;
+}
+
+.usoStock-header {
+    background: #111;
+    padding: 15px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.usoStock-title {
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.usoStock-body {
+    padding: 20px;
+}
+
+.usoStock-section {
+    margin-bottom: 20px;
+}
+
+.usoStock-box {
+    background: #2a2d31;
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid #333;
+}
+
+.usoStock-label {
+    font-size: 0.85rem;
+    color: #9aa0a6;
+}
+
+.usoStock-value {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.usoStock-footer {
+    background: #111;
+    padding: 15px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    border-top: 1px solid #333;
+}
+
+/* insumos */
+.insumo-card {
+    background: #2a2d31;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.insumo-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.insumo-name {
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.insumo-badge {
+    font-size: 0.85rem;
+    padding: 3px 6px;
+    border-radius: 4px;
+}
+
+.bg-green {
+    background: #1d7f3a;
+    color: white;
+}
+
+.bg-red {
+    background: #a12d2d;
+    color: white;
+}

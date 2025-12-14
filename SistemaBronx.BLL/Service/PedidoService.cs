@@ -1,78 +1,62 @@
 ﻿using SistemaBronx.DAL.Repository;
 using SistemaBronx.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace SistemaBronx.BLL.Service
 {
     public class PedidoService : IPedidoService
     {
+        private readonly IPedidosRepository<Pedido> _repo;
 
-        private readonly IPedidosRepository<Pedido> _contactRepo;
-
-        public PedidoService(IPedidosRepository<Pedido> contactRepo)
+        public PedidoService(IPedidosRepository<Pedido> repo)
         {
-            _contactRepo = contactRepo;
+            _repo = repo;
         }
 
+        public Task<bool> Insertar(Pedido pedido, IQueryable<PedidosDetalle> pedidosDetalle, IQueryable<PedidosDetalleProceso> pedidosDetalleProceso)
+            => _repo.Insertar(pedido, pedidosDetalle, pedidosDetalleProceso);
 
+        public Task<bool> Actualizar(Pedido pedido, IQueryable<PedidosDetalle> pedidosDetalle, IQueryable<PedidosDetalleProceso> pedidosDetalleProceso)
+            => _repo.Actualizar(pedido, pedidosDetalle, pedidosDetalleProceso);
 
-        public async Task<bool> Actualizar(Pedido pedido, IQueryable<PedidosDetalle> pedidosDetalle, IQueryable<PedidosDetalleProceso> pedidosDetalleProceso)
-        {
-            return await _contactRepo.Actualizar(pedido, pedidosDetalle, pedidosDetalleProceso);
-        }
+        public Task<bool> ActualizarDetalleProceso(PedidosDetalleProceso pedidosDetalleProceso)
+            => _repo.ActualizarDetalleProceso(pedidosDetalleProceso);
 
-        public async Task<bool> ActualizarDetalleProceso(PedidosDetalleProceso pedidosDetalleProceso)
-        {
-            return await _contactRepo.ActualizarDetalleProceso(pedidosDetalleProceso);
-        }
+        public Task<List<Pedido>> ObtenerPedidos(DateTime FechaDesde, DateTime FechaHasta, int IdCliente, string Estado, int Finalizado)
+            => _repo.ObtenerPedidos(FechaDesde, FechaHasta, IdCliente, Estado, Finalizado);
 
-        public async Task<bool> EliminarInsumo(int IdPedido, int IdInsumo)
-        {
-            return await _contactRepo.EliminarInsumo(IdPedido, IdInsumo);
-        }
+        public Task<List<PedidosDetalleProceso>> ObtenerDetalleProcesosFiltrado(bool incluirFinalizados)
+            => _repo.ObtenerDetalleProcesosFiltrado(incluirFinalizados);
 
-        public async Task<bool> EliminarPedido(int id)
-        {
-            return await _contactRepo.EliminarPedido(id);
-        }
+        public Task<List<PedidosDetalleProceso>> ObtenerDetalleProcesos()
+            => _repo.ObtenerDetalleProcesos();
 
-        public async Task <bool> EliminarProducto(int IdPedido, int IdProducto)
-        {
-            return await _contactRepo.EliminarProducto(IdPedido, IdProducto);
-        }
+        public Task<PedidosDetalleProceso> ObtenerInsumo(int IdPedido, int IdInsumo)
+            => _repo.ObtenerInsumo(IdPedido, IdInsumo);
 
-        public async Task<bool> Insertar(Pedido pedido, IQueryable<PedidosDetalle> pedidosDetalle, IQueryable<PedidosDetalleProceso> pedidosDetalleProceso)
-        {
-            return await _contactRepo.Insertar(pedido,pedidosDetalle,pedidosDetalleProceso);
-        }
+        public Task<PedidosDetalle> ObtenerProducto(int IdPedido, int IdProducto)
+            => _repo.ObtenerProducto(IdPedido, IdProducto);
 
-        public async Task<PedidosDetalleProceso> ObtenerInsumo(int IdPedido, int IdInsumo)
-        {
-            return await _contactRepo.ObtenerInsumo(IdPedido, IdInsumo);
-        }
+        public Task<Pedido> ObtenerPedido(int pedidoId)
+            => _repo.ObtenerPedido(pedidoId);
 
-        public async Task<List<PedidosDetalleProceso>> ObtenerDetalleProcesos()
-        {
-            return await _contactRepo.ObtenerDetalleProcesos();
-        }
+        public Task<bool> EliminarInsumo(int IdPedido, int IdInsumo)
+            => _repo.EliminarInsumo(IdPedido, IdInsumo);
 
-        public async Task<List<PedidosDetalleProceso>> ObtenerDetalleProcesosFiltrado(bool incluirFinalizados)
-        {
-            return await _contactRepo.ObtenerDetalleProcesosFiltrado(incluirFinalizados);
-        }
+        public Task<bool> EliminarProducto(int IdPedido, int IdProducto)
+            => _repo.EliminarProducto(IdPedido, IdProducto);
 
-        public async Task<Pedido> ObtenerPedido(int pedidoId)
-        {
-            return await _contactRepo.ObtenerPedido(pedidoId);
-        }
+        public Task<bool> EliminarPedido(int id)
+            => _repo.EliminarPedido(id);
 
-        public async Task<List<Pedido>> ObtenerPedidos(DateTime FechaDesde, DateTime FechaHasta, int IdCliente, string Estado, int Finalizado)
-        {
-            return await _contactRepo.ObtenerPedidos(FechaDesde,  FechaHasta, IdCliente, Estado, Finalizado);
-        }
+        // 🔥 NUEVO — Helpers expuestos al Service
+        public Task<bool> RevertirUsoStockPedido(int idPedido)
+            => _repo.RevertirUsoStockPedido(idPedido);
 
-        public async Task<PedidosDetalle> ObtenerProducto(int IdPedido, int IdProducto)
-        {
-            return await _contactRepo.ObtenerProducto(IdPedido, IdProducto);   
-        }
+        public Task<bool> AplicarUsoStockPedido(Pedido pedido, IEnumerable<PedidosDetalle> detalles, IEnumerable<PedidosDetalleProceso> procesos)
+            => _repo.AplicarUsoStockPedido(pedido, detalles, procesos);
     }
 }

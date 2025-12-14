@@ -322,6 +322,116 @@
     </div>
 </div>
 
+<!-- ============================================================
+     MODAL — USO DE STOCK (NUEVO DISEÑO)
+============================================================ -->
+<div class="modal fade" id="modalUsoStockNuevo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xxl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content modal-uso-stock">
+
+            <!-- HEADER -->
+            <div class="modal-header uso-header">
+                <h4 class="modal-title">
+                    <i class="fa fa-archive me-2"></i>
+                    Uso de Stock
+                </h4>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- BODY -->
+            <div class="modal-body uso-body">
+
+                <!-- TÍTULO PRINCIPAL -->
+                <div class="uso-alert">
+                    <i class="fa fa-info-circle"></i>
+                    Seleccioná cuánto stock querés usar del producto y/o insumos.
+                </div>
+
+                <div class="row g-3">
+
+                    <!-- ==================== COLUMNA PRODUCTO ==================== -->
+                    <div class="col-12 col-xl-4">
+                        <div class="uso-card">
+
+                            <div class="uso-card-title">
+                                <i class="fa fa-cube me-1"></i>
+                                Producto Terminado
+                            </div>
+
+                            <div class="uso-row">
+                                <span class="uso-label">Producto:</span>
+                                <span id="usoProdNombre" class="uso-value"></span>
+                            </div>
+
+                            <div class="uso-row">
+                                <span class="uso-label">Stock disponible:</span>
+                                <span id="usoProdStock" class="uso-value text-success fw-bold"></span>
+                            </div>
+
+                            <div class="uso-row">
+                                <span class="uso-label">Cantidad solicitada:</span>
+                                <span id="usoProdSolicitado" class="uso-value"></span>
+                            </div>
+
+                            <div class="progress uso-progress">
+                                <div id="usoProdBarra" class="progress-bar bg-success" style="width:0%"></div>
+                            </div>
+
+                            <label class="uso-label fw-bold">¿Cuánto querés usar?</label>
+                            <input type="range" id="usoProdSlider" class="form-range uso-slider" min="0" max="0" value="0">
+
+                            <div class="uso-bottom">
+                                <span>Usar: <strong id="usoProdUsar">0</strong></span>
+                                <span>Fabricar: <strong id="usoProdFabricar">0</strong></span>
+                            </div>
+
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="chkUsarProd">
+                                <label class="form-check-label" for="chkUsarProd">Usar stock del producto</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ==================== COLUMNA INSUMOS ==================== -->
+                    <div class="col-12 col-xl-8">
+                        <div class="uso-card">
+
+                            <div class="uso-card-title bg-warning text-dark">
+                                <i class="fa fa-cogs me-1"></i>
+                                Insumos del Producto
+                            </div>
+
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="chkUsarInsumos">
+                                <label class="form-check-label" for="chkUsarInsumos">Usar stock de insumos</label>
+                            </div>
+
+                            <div id="usoInsumosContainer" class="uso-insumos-list">
+                                <!-- INSUMOS GENERADOS POR JS -->
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- FOOTER -->
+            <div class="modal-footer uso-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fa fa-times me-1"></i> Cancelar
+                </button>
+
+                <button id="btnConfirmarUsoStock" class="btn btn-success">
+                    <i class="fa fa-check me-1"></i> Confirmar Uso de Stock
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
 <div class="modal fade" id="productoModal" tabindex="-1" aria-labelledby="productoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xxl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content cc-modal">

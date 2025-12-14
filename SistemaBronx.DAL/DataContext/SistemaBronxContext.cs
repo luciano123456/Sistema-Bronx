@@ -52,6 +52,10 @@ public partial class SistemaBronxContext : DbContext
 
     public virtual DbSet<PedidosDetalleProceso> PedidosDetalleProcesos { get; set; }
 
+    public virtual DbSet<PedidosDetalleProcesosStock> PedidosDetalleProcesosStocks { get; set; }
+
+    public virtual DbSet<PedidosDetalleStock> PedidosDetalleStocks { get; set; }
+
     public virtual DbSet<PedidosEstado> PedidosEstados { get; set; }
 
     public virtual DbSet<PedidosTipo> PedidosTipos { get; set; }
@@ -379,6 +383,9 @@ public partial class SistemaBronxContext : DbContext
             entity.ToTable("PedidosDetalle");
 
             entity.Property(e => e.Cantidad).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.CantidadUsadaStock)
+                .HasDefaultValueSql("((0))")
+                .HasColumnType("decimal(20, 2)");
             entity.Property(e => e.CostoUnitario).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.PorcGanancia).HasColumnType("decimal(20, 2)");
             entity.Property(e => e.PorcIva).HasColumnType("decimal(20, 2)");
@@ -409,6 +416,9 @@ public partial class SistemaBronxContext : DbContext
         modelBuilder.Entity<PedidosDetalleProceso>(entity =>
         {
             entity.Property(e => e.Cantidad).HasColumnType("decimal(20, 2)");
+            entity.Property(e => e.CantidadUsadaStock)
+                .HasDefaultValueSql("((0))")
+                .HasColumnType("decimal(20, 2)");
             entity.Property(e => e.Comentarios)
                 .HasMaxLength(500)
                 .IsUnicode(false);
@@ -462,6 +472,36 @@ public partial class SistemaBronxContext : DbContext
             entity.HasOne(d => d.IdUnidadMedidaNavigation).WithMany(p => p.PedidosDetalleProcesos)
                 .HasForeignKey(d => d.IdUnidadMedida)
                 .HasConstraintName("FK_PedidosDetalleProcesos_UnidadesDeMedida");
+        });
+
+        modelBuilder.Entity<PedidosDetalleProcesosStock>(entity =>
+        {
+            entity.ToTable("PedidosDetalleProcesosStock");
+
+            entity.Property(e => e.CantidadUsada).HasColumnType("decimal(20, 2)");
+
+            entity.HasOne(d => d.IdPedidoDetalleProcesoNavigation).WithMany(p => p.PedidosDetalleProcesosStocks)
+                .HasForeignKey(d => d.IdPedidoDetalleProceso)
+                .HasConstraintName("FK_PedidosDetalleProcesosStock_PedidosDetalleProcesos");
+
+            entity.HasOne(d => d.IdStockMovimientoDetalleNavigation).WithMany(p => p.PedidosDetalleProcesosStocks)
+                .HasForeignKey(d => d.IdStockMovimientoDetalle)
+                .HasConstraintName("FK_PedidosDetalleProcesosStock_StockMovimientosDetalle");
+        });
+
+        modelBuilder.Entity<PedidosDetalleStock>(entity =>
+        {
+            entity.ToTable("PedidosDetalleStock");
+
+            entity.Property(e => e.CantidadUsada).HasColumnType("decimal(20, 2)");
+
+            entity.HasOne(d => d.IdPedidoDetalleNavigation).WithMany(p => p.PedidosDetalleStocks)
+                .HasForeignKey(d => d.IdPedidoDetalle)
+                .HasConstraintName("FK_PedidosDetalleStock_PedidosDetalle");
+
+            entity.HasOne(d => d.IdStockMovimientoDetalleNavigation).WithMany(p => p.PedidosDetalleStocks)
+                .HasForeignKey(d => d.IdStockMovimientoDetalle)
+                .HasConstraintName("FK_PedidosDetalleStock_StockMovimientosDetalle");
         });
 
         modelBuilder.Entity<PedidosEstado>(entity =>

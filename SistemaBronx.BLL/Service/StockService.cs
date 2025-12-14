@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using SistemaBronx.DAL.Repository;
+﻿using SistemaBronx.DAL.Repository;
 using SistemaBronx.Models;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace SistemaBronx.BLL.Service
 {
@@ -29,9 +29,6 @@ namespace SistemaBronx.BLL.Service
         public Task<bool> EliminarMovimiento(int idMovimiento)
             => _repo.EliminarMovimiento(idMovimiento);
 
-        public Task<bool> EliminarDetalleMovimiento(int idDetalle)
-       => _repo.EliminarDetalleMovimiento(idDetalle);
-
         public Task<List<StockMovimiento>> ObtenerMovimientos()
             => _repo.ObtenerMovimientos();
 
@@ -46,5 +43,17 @@ namespace SistemaBronx.BLL.Service
 
         public Task<List<StockMovimiento>> ObtenerMovimientosItem(string tipoItem, int? idProducto, int? idInsumo)
             => _repo.ObtenerMovimientosItem(tipoItem, idProducto, idInsumo);
+
+        public Task<bool> EliminarDetalleMovimiento(int idDetalle)
+            => _repo.EliminarDetalleMovimiento(idDetalle);
+
+        // ============================
+        // NUEVO PARA PEDIDOS
+        // ============================
+        public Task<List<StockMovimientosDetalle>> ObtenerDetallesDisponibles(string tipoItem, int? idProducto, int? idInsumo)
+            => _repo.ObtenerDetallesDisponibles(tipoItem, idProducto, idInsumo);
+
+        public Task<decimal> ObtenerCantidadConsumida(int idDetalleStock)
+            => _repo.ObtenerCantidadConsumida(idDetalleStock);
     }
 }

@@ -69,6 +69,50 @@ namespace SistemaBronx.DAL.Repository
             saldo.FechaUltMovimiento = DateTime.Now;
         }
 
+        /// <summary>
+        /// Verifica si ALGÚN detalle del movimiento está usado por un pedido
+        /// (PedidosDetalleStock o PedidosDetalleProcesosStock).
+        /// </summary>
+        private async Task<bool> MovimientoUsadoEnPedidosAsync(int idMovimiento)
+        {
+            // Tomo todos los Id de detalle del movimiento
+            var idsDetalles = await _db.StockMovimientosDetalles
+                .Where(d => d.IdMovimiento == idMovimiento)
+                .Select(d => d.Id)
+                .ToListAsync();
+
+            if (!idsDetalles.Any())
+                return false;
+
+            var usadoProductos = await _db.PedidosDetalleStocks
+                .AnyAsync(x => idsDetalles.Contains(x.IdStockMovimientoDetalle));
+
+            if (usadoProductos)
+                return true;
+
+            var usadoProcesos = await _db.PedidosDetalleProcesosStocks
+                .AnyAsync(x => idsDetalles.Contains(x.IdStockMovimientoDetalle));
+
+            return usadoProcesos;
+        }
+
+        /// <summary>
+        /// Verifica si un detalle puntual está usado por algún pedido.
+        /// </summary>
+        private async Task<bool> DetalleUsadoEnPedidosAsync(int idDetalle)
+        {
+            var usadoProductos = await _db.PedidosDetalleStocks
+                .AnyAsync(x => x.IdStockMovimientoDetalle == idDetalle);
+
+            if (usadoProductos)
+                return true;
+
+            var usadoProcesos = await _db.PedidosDetalleProcesosStocks
+                .AnyAsync(x => x.IdStockMovimientoDetalle == idDetalle);
+
+            return usadoProcesos;
+        }
+
         /* ============================================================
            REGISTRAR
         ============================================================ */
@@ -82,7 +126,7 @@ namespace SistemaBronx.DAL.Repository
                 mov.EsAnulado = false;
                 mov.Fecha = DateTime.Now;
                 mov.FechaAlta = DateTime.Now;
-                mov.StockMovimientosDetalles = null; 
+                mov.StockMovimientosDetalles = null;
 
                 _db.StockMovimientos.Add(mov);
                 await _db.SaveChangesAsync();   // mov.Id listo
@@ -135,6 +179,10 @@ namespace SistemaBronx.DAL.Repository
                     .FirstOrDefaultAsync(m => m.Id == mov.Id);
 
                 if (existente == null)
+                    return false;
+
+                // Si el movimiento está siendo usado por pedidos, NO permitimos modificar
+                if (await MovimientoUsadoEnPedidosAsync(mov.Id))
                     return false;
 
                 // 1) Revertir impacto anterior SOLO si estaba activo
@@ -206,8 +254,13 @@ namespace SistemaBronx.DAL.Repository
                 if (mov == null)
                     return false;
 
+                // si ya está anulado, nada que hacer
                 if (mov.EsAnulado)
-                    return true; // ya estaba anulado
+                    return true;
+
+                // Si el movimiento está usado por pedidos, NO permitimos anular
+                if (await MovimientoUsadoEnPedidosAsync(idMovimiento))
+                    return false;
 
                 var esEntrada = EsEntradaLocal(mov)
                     || await GetEsEntradaAsync(mov.IdTipoMovimiento);
@@ -250,6 +303,8 @@ namespace SistemaBronx.DAL.Repository
                 if (!mov.EsAnulado)
                     return true; // ya estaba activo
 
+                // Si el movimiento está usado por pedidos, igual permitimos restaurar
+                // (no hay conflicto: simplemente vuelve a impactar el stock)
                 var esEntrada = EsEntradaLocal(mov)
                     || await GetEsEntradaAsync(mov.IdTipoMovimiento);
 
@@ -288,6 +343,10 @@ namespace SistemaBronx.DAL.Repository
                 if (mov == null)
                     return false;
 
+                // Si el movimiento está usado por pedidos, NO se puede eliminar
+                if (await MovimientoUsadoEnPedidosAsync(idMovimiento))
+                    return false;
+
                 // Si NO está anulado, primero revertimos el impacto
                 if (!mov.EsAnulado)
                 {
@@ -315,8 +374,8 @@ namespace SistemaBronx.DAL.Repository
         }
 
         /* ============================================================
-   ELIMINAR DETALLE (NO CABECERA)
-============================================================ */
+           ELIMINAR DETALLE (NO CABECERA)
+        ============================================================ */
         public async Task<bool> EliminarDetalleMovimiento(int idDetalle)
         {
             await using var tx = await _db.Database.BeginTransactionAsync();
@@ -330,13 +389,16 @@ namespace SistemaBronx.DAL.Repository
                 if (det == null)
                     return false;
 
-                var mov = det.IdMovimientoNavigation;
-
                 // si el movimiento está anulado, no deberíamos tocar stock
-                if (mov.EsAnulado)
+                if (det.IdMovimientoNavigation.EsAnulado)
                     return false;
 
-                // mismo criterio que usás en Anular / Restaurar
+                // si este detalle tiene vínculos con pedidos, NO se puede eliminar
+                if (await DetalleUsadoEnPedidosAsync(idDetalle))
+                    return false;
+
+                var mov = det.IdMovimientoNavigation;
+
                 var esEntrada = EsEntradaLocal(mov)
                     || await GetEsEntradaAsync(mov.IdTipoMovimiento);
 
@@ -356,7 +418,6 @@ namespace SistemaBronx.DAL.Repository
                 return false;
             }
         }
-
 
         /* ============================================================
            CONSULTAS
@@ -429,7 +490,52 @@ namespace SistemaBronx.DAL.Repository
                 .OrderBy(m => m.Fecha)
                 .ToListAsync();
         }
+
+        /* ============================================================
+           NUEVOS MÉTODOS PARA PEDIDOS
+        ============================================================ */
+
+        /// <summary>
+        /// Devuelve los detalles de stock (entradas, no anuladas) disponibles
+        /// para un ítem (tipoItem + producto/insumo).
+        /// El cálculo de "Disponible = Cantidad - Consumido" lo hace el controller.
+        /// </summary>
+        public async Task<List<StockMovimientosDetalle>> ObtenerDetallesDisponibles(string tipoItem, int? idProducto, int? idInsumo)
+        {
+            tipoItem = (tipoItem ?? "").ToUpper();
+
+            var query = _db.StockMovimientosDetalles
+                .Include(d => d.IdMovimientoNavigation)
+                    .ThenInclude(m => m.IdTipoMovimientoNavigation)
+                .Where(d =>
+                    d.TipoItem == tipoItem &&
+                    d.IdProducto == idProducto &&
+                    d.IdInsumo == idInsumo &&
+                    !d.IdMovimientoNavigation.EsAnulado &&
+                    (d.IdMovimientoNavigation.IdTipoMovimientoNavigation != null &&
+                     d.IdMovimientoNavigation.IdTipoMovimientoNavigation.EsEntrada)
+                )
+                .OrderBy(d => d.IdMovimientoNavigation.Fecha)
+                .ThenBy(d => d.Id);
+
+            return await query.ToListAsync();
+        }
+
+        /// <summary>
+        /// Devuelve cuánta cantidad de un detalle de stock ya fue consumida por pedidos
+        /// (sumando PedidosDetalleStocks y PedidosDetalleProcesosStocks).
+        /// </summary>
+        public async Task<decimal> ObtenerCantidadConsumida(int idDetalleStock)
+        {
+            decimal consumidoProd = await _db.PedidosDetalleStocks
+                .Where(x => x.IdStockMovimientoDetalle == idDetalleStock)
+                .SumAsync(x => (decimal?)x.CantidadUsada ?? 0m);
+
+            decimal consumidoProc = await _db.PedidosDetalleProcesosStocks
+                .Where(x => x.IdStockMovimientoDetalle == idDetalleStock)
+                .SumAsync(x => (decimal?)x.CantidadUsada ?? 0m);
+
+            return consumidoProd + consumidoProc;
+        }
     }
-
-
 }
