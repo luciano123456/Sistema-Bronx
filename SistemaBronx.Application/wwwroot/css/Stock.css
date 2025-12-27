@@ -806,3 +806,178 @@
     font-weight: 700;
     color: #fff;
 }
+
+
+/* ===============================
+   MODAL PRODUCTOS – UI PRO
+================================ */
+
+.stock-modal-producto {
+    background: linear-gradient(180deg, #1f2430, #1b1f2a);
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,.08);
+}
+
+.stock-tabs .nav-link {
+    color: #aeb6d0;
+    font-weight: 600;
+}
+
+    .stock-tabs .nav-link.active {
+        background: rgba(255,255,255,.08);
+        color: #fff;
+        border-radius: 12px;
+    }
+
+.stock-producto-card {
+    background: rgba(255,255,255,.04);
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.08);
+}
+
+/* Select2 FULL WIDTH y ALTURA */
+.select2-container {
+    width: 100% !important;
+}
+
+.select2-selection--single {
+    height: 38px !important;
+    display: flex !important;
+    align-items: center;
+}
+
+.select2-selection__rendered {
+    padding-left: 12px !important;
+    color: #fff !important;
+}
+
+.select2-dropdown {
+    background: #1f2430;
+    border: 1px solid rgba(255,255,255,.15);
+}
+
+
+
+/* =============================
+       MODAL PRODUCTOS - THEME FIX
+       (evita blanco/azul feo)
+    ============================== */
+/* Tabs */
+#modalItems .nav-tabs {
+    border-bottom: 1px solid rgba(255,255,255,.12);
+}
+
+#modalItems .nav-tabs .nav-link {
+    color: rgba(255,255,255,.75);
+    border: 0;
+    border-radius: 12px 12px 0 0;
+    margin-right: 6px;
+}
+
+    #modalItems .nav-tabs .nav-link.active {
+        color: #fff;
+        background: rgba(255,255,255,.06);
+        box-shadow: inset 0 -2px 0 rgba(148,204,120,.9);
+    }
+
+/* Acordeón dark-glass */
+#modalItems .accordion-item {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+#modalItems .accordion-button {
+    background: rgba(255,255,255,.04) !important;
+    color: #fff !important;
+    box-shadow: none !important;
+}
+
+    #modalItems .accordion-button:not(.collapsed) {
+        background: rgba(148,204,120,.10) !important;
+        box-shadow: inset 0 0 0 1px rgba(148,204,120,.25) !important;
+    }
+
+    #modalItems .accordion-button::after {
+        filter: invert(1);
+        opacity: .7;
+    }
+
+#modalItems .accordion-body {
+    background: rgba(0,0,0,.12);
+    color: rgba(255,255,255,.90);
+}
+
+/* Lista de insumos */
+#modalItems .pi-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 8px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+    #modalItems .pi-row:last-child {
+        border-bottom: 0;
+    }
+
+#modalItems .pi-name {
+    flex: 1;
+    color: rgba(255,255,255,.92);
+    font-weight: 600;
+    letter-spacing: .2px;
+}
+
+#modalItems .pi-qty {
+    width: 120px;
+}
+
+    #modalItems .pi-qty input {
+        background: rgba(255,255,255,.06);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,.16);
+        border-radius: 10px;
+        text-align: center;
+        padding: 8px 10px;
+    }
+
+/* Select2 tamaño / altura (evita “chiquito”) */
+#modalItems .select2-container .select2-selection--single {
+    height: 42px !important;
+    background: rgba(255,255,255,.06) !important;
+    border: 1px solid rgba(255,255,255,.16) !important;
+    border-radius: 12px !important;
+}
+
+#modalItems .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 40px !important;
+    color: rgba(255,255,255,.92) !important;
+    padding-left: 14px !important;
+}
+
+#modalItems .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 40px !important;
+    right: 10px !important;
+}
+
+#modalItems .select2-dropdown {
+    background: #1b1f2a !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    border-radius: 12px !important;
+    overflow: hidden;
+}
+
+#modalItems .select2-results__option {
+    color: rgba(255,255,255,.9) !important;
+}
+
+#modalItems .select2-results__option--highlighted {
+    background: rgba(148,204,120,.20) !important;
+}
+
+
+tbody tr:nth-child(odd) {
+     background-color: transparent; 
+}
