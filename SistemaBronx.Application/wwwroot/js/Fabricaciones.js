@@ -126,34 +126,16 @@ async function configurarDataTable(data, incluirFinalizados) {
             dom: 'Bfrtip',
             buttons: [
                 {
-                    extend: 'excelHtml5',
-                    text: 'Exportar Excel',
-                    filename: `Reporte Fabricaciones_${moment().format('YYYY-MM-DD')}`,
-                    title: '',
-                    exportOptions: {
-                        columns: [2, 5, 4, 6, 8]
-                    },
-                    className: 'btn-exportar-excel',
+                    text: 'Excel',
+                    action: () => abrirModalExportacion(gridFabricaciones, 'excel', 'Fabricaciones')
                 },
                 {
-                    extend: 'pdfHtml5',
-                    text: 'Exportar PDF',
-                    filename: `Reporte Fabricaciones_${moment().format('YYYY-MM-DD')}`,
-                    title: '',
-                    exportOptions: {
-                        columns: [2, 5, 4, 6, 8]
-                    },
-                    className: 'btn-exportar-pdf',
+                    text: 'PDF',
+                    action: () => abrirModalExportacion(gridFabricaciones, 'pdf', 'Fabricaciones')
                 },
                 {
-                    extend: 'print',
                     text: 'Imprimir',
-
-                    title: '',
-                    exportOptions: {
-                        columns: [2, 5, 4, 6, 8]
-                    },
-                    className: 'btn-exportar-print'
+                    action: () => abrirModalExportacion(gridFabricaciones, 'print', 'Fabricaciones')
                 },
                 'pageLength'
             ],

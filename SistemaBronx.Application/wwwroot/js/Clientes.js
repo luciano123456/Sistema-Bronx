@@ -265,34 +265,16 @@ async function configurarDataTable(data) {
             dom: 'Bfrtip',
             buttons: [
                 {
-                    extend: 'excelHtml5',
-                    text: 'Exportar Excel',
-                    filename: `Reporte Clientes_${moment().format('YYYY-MM-DD')}`,
-                    title: '',
-                    exportOptions: {
-                        columns: [1, 2, 3, 4, 5]
-                    },
-                    className: 'btn-exportar-excel',
+                    text: 'Excel',
+                    action: () => abrirModalExportacion(gridClientes, 'excel', 'Clientes')
                 },
                 {
-                    extend: 'pdfHtml5',
-                    text: 'Exportar PDF',
-                    filename: `Reporte Clientes_${moment().format('YYYY-MM-DD')}`,
-                    title: '',
-                    exportOptions: {
-                        columns: [1, 2, 3, 4, 5]
-                    },
-                    className: 'btn-exportar-pdf',
+                    text: 'PDF',
+                    action: () => abrirModalExportacion(gridClientes, 'pdf', 'Clientes')
                 },
                 {
-                    extend: 'print',
                     text: 'Imprimir',
-
-                    title: '',
-                    exportOptions: {
-                        columns: [1, 2, 3, 4, 5]
-                    },
-                    className: 'btn-exportar-print'
+                    action: () => abrirModalExportacion(gridClientes, 'print', 'Clientes')
                 },
                 'pageLength'
             ],

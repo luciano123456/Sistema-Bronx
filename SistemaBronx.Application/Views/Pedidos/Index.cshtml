@@ -130,6 +130,7 @@
                                     <th>Importe Abonado</th>
                                     <th>Saldo</th>
                                     <th>Forma de pago</th>
+                                    <th>Costo Financiero</th>
                                     <th>Estado</th>
                                     <th>Comentarios</th>
                                     <th>Finalizado</th>
@@ -154,13 +155,22 @@
 
     <!-- DataTables + extensiones -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
     <script src="https://cdn.datatables.net/fixedheader/3.2.2/js/dataTables.fixedHeader.min.js"></script>
 
-    <!-- Export dependencias -->
+    <!-- Export deps -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+
+    <!-- 3️⃣ DataTables Buttons (DESPUÉS del core) -->
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+
+    <!-- 4️⃣ Dependencias exportación -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+
+    <!-- 5️⃣ Botones HTML5 -->
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
 
     <!-- Select2 -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
@@ -170,5 +180,5 @@
     <script src="~/js/utils/moment.js"></script>
 
     <!-- Lógica de la vista -->
-    <script src="~/js/Pedidos.js?v=3.3"></script>
+    <script src="~/js/Pedidos.js?v=3.4"></script>
 }

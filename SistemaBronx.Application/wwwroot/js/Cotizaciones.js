@@ -205,8 +205,19 @@ async function configurarDataTable(data) {
             ],
             dom: 'Bfrtip',
             buttons: [
-                { extend: 'excelHtml5', text: 'Exportar Excel', filename: `Reporte Cotizaciones_${moment().format('YYYY-MM-DD')}`, title: '', exportOptions: { columns: [1, 2, 3, 4, 5] }, className: 'btn-exportar-excel' },
-                { extend: 'print', text: 'Imprimir', title: '', exportOptions: { columns: [1, 2, 3, 4, 5] }, className: 'btn-exportar-print' },
+                {
+                    text: 'Excel',
+                    action: () => abrirModalExportacion(gridCotizaciones, 'excel', 'Cotizaciones')
+                },
+                {
+                    text: 'PDF',
+                    action: () => abrirModalExportacion(gridCotizaciones, 'pdf', 'Cotizaciones')
+                },
+                {
+                    text: 'Imprimir',
+                    action: () => abrirModalExportacion(gridCotizaciones, 'print', 'Cotizaciones')
+                },
+                'pageLength'
             ],
             orderCellsTop: true,
             fixedHeader: false,

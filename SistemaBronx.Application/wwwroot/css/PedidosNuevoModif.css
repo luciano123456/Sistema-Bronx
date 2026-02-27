@@ -2384,3 +2384,92 @@ table.dataTable tbody tr.selected {
 table.dataTable tbody tr.selected {
     background-color: antiquewhite !important;
 }
+
+
+/* ===============================
+   MODAL EXPORTAR PEDIDO PRO
+================================ */
+
+.export-modal {
+    background: linear-gradient(145deg,#0f172a,#111827);
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,.06);
+    color: #fff;
+    overflow: hidden;
+}
+
+.export-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+    .export-header h5 {
+        margin: 0;
+        font-weight: 600;
+        letter-spacing: .3px;
+    }
+
+.export-body {
+    padding: 30px;
+    text-align: center;
+}
+
+.export-subtitle {
+    opacity: .7;
+    margin-bottom: 25px;
+}
+
+/* GRID */
+.export-options {
+    display: flex;
+    gap: 25px;
+    justify-content: center;
+}
+
+/* CARD */
+.export-card {
+    width: 220px;
+    padding: 28px 20px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all .25s ease;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    position: relative;
+}
+
+    /* hover glow */
+    .export-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 10px 30px rgba(0,0,0,.5), 0 0 0 1px rgba(59,130,246,.6);
+    }
+
+/* icon */
+.export-icon {
+    font-size: 34px;
+    margin-bottom: 12px;
+    color: #60a5fa;
+}
+
+.export-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.export-desc {
+    font-size: 13px;
+    opacity: .65;
+    margin-top: 6px;
+}
+
+/* colores distintos */
+.export-card.minorista:hover {
+    box-shadow: 0 10px 30px rgba(0,0,0,.6), 0 0 0 1px #22c55e;
+}
+
+.export-card.mayorista:hover {
+    box-shadow: 0 10px 30px rgba(0,0,0,.6), 0 0 0 1px #3b82f6;
+}
