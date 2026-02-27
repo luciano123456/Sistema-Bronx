@@ -981,7 +981,7 @@ function calcularGasto() {
         iva = 0;
     } else {
         // Otras formas: usar % ingresado o 21% por defecto
-        if (!Number.isFinite(porcIva) || porcIva <= 0) {
+        if (!Number.isFinite(porcIva) || porcIva < 0) {
             porcIva = 21;
             porcIvaInput.value = 21; // reflejar default
         }

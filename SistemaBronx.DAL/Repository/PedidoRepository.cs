@@ -244,11 +244,11 @@ namespace SistemaBronx.DAL.Repository
 
         }
         public async Task<List<Pedido>> ObtenerPedidos(
-    DateTime FechaDesde,
-    DateTime FechaHasta,
-    int IdCliente,
-    string Estado,
-    int Finalizado)
+     DateTime FechaDesde,
+     DateTime FechaHasta,
+     int IdCliente,
+     string Estado,
+     int Finalizado)
         {
             try
             {
@@ -264,18 +264,26 @@ namespace SistemaBronx.DAL.Repository
                         .ThenInclude(x => x.IdEstadoNavigation)
                     .AsQueryable();
 
-                if (FechaDesde != DateTime.MinValue && IdCliente == -1)
-                    query = query.Where(x => x.Fecha >= FechaDesde);
-
-                if (FechaHasta != DateTime.MinValue && IdCliente == -1)
-                    query = query.Where(x => x.Fecha <= FechaHasta);
-
+                // 1) Si viene cliente específico, ignoro fechas
                 if (IdCliente != -1)
+                {
                     query = query.Where(x => x.IdCliente == IdCliente);
+                }
+                else
+                {
+                    // 2) Si no hay cliente, filtro por fechas
+                    if (FechaDesde != DateTime.MinValue)
+                        query = query.Where(x => x.Fecha >= FechaDesde);
 
+                    if (FechaHasta != DateTime.MinValue)
+                        query = query.Where(x => x.Fecha <= FechaHasta);
+                }
+
+                // 3) Filtro por finalizado
                 if (Finalizado != -1)
                     query = query.Where(x => x.Finalizado == Finalizado);
 
+                // 4) Filtro por estado
                 if (!string.Equals(Estado, "TODOS", StringComparison.OrdinalIgnoreCase))
                 {
                     if (Estado == "ENTREGAR")
@@ -284,7 +292,7 @@ namespace SistemaBronx.DAL.Repository
                         query = query.Where(x => x.Saldo >= 0);
                 }
 
-                // 👇 Orden final: fecha desc + (desempate por Id desc)
+                // Orden final
                 return await query
                     .OrderByDescending(x => x.Fecha)
                     .ThenByDescending(x => x.Id)
