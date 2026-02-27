@@ -2334,8 +2334,32 @@ function exportarPedidoTipo(tipo) {
 
 function generarDatosPedidoPDF() {
 
-    // abrimos modal en vez de exportar directo
-    $("#modalTipoExportacionPDF").modal("show");
+    // Validaciones mínimas como tu flujo (para no abrir modal al pedo)
+    const idCliente = $("#Clientes").val();
+    const cantidadFilasTotales = gridProductos?.data()?.length ?? 0;
+
+    if (!idCliente || idCliente == '-1') {
+        errorModal("Para imprimir un pedido debes seleccionar un cliente.");
+        return;
+    }
+
+    if (cantidadFilasTotales < 1) {
+        errorModal("No puedes imprimir un pedido sin al menos un producto.");
+        return;
+    }
+
+    // Detectar forma de pago
+    const formaPago = ($("#Formasdepago").select2("data")[0]?.text || "").toLowerCase();
+
+    // ✅ SOLO si es transferencia → modal
+    if (formaPago.includes("transfer")) {
+        abrirModalExportarPedido();
+        return;
+    }
+
+    // ✅ Si NO es transferencia → exporta directo
+    // Elegí tu default: "minorista" (o el que quieras)
+    generarPedidoPDFSeleccionado("minorista");
 }
 
 function generarPedidoPDFSeleccionado(tipoCliente) {

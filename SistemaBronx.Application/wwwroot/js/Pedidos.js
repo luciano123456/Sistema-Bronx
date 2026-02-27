@@ -260,6 +260,49 @@ async function configurarDataTable(data) {
                 // Sin filtro en col 0 (acciones)
                 $('.filters th').eq(0).empty();
 
+
+                function addTriChipsServer(colIndex, etiqueta, defaultVal) {
+
+                    const $cell = $('.filters th').eq(colIndex);
+                    if (!$cell.length) return;
+
+                    $cell.empty().addClass('tri-filter');
+
+                    const html = `
+            <div class="tri-chips" role="group" aria-label="${etiqueta}">
+              <button type="button" class="chip active" data-val="-1" title="Mostrar todos">Todos</button>
+              <button type="button" class="chip" data-val="1" title="Solo Sí">Sí</button>
+              <button type="button" class="chip" data-val="0" title="Solo No">No</button>
+            </div>`;
+
+                    const $wrap = $(html).appendTo($cell);
+
+                    const activar = (val) => {
+                        $wrap.find('.chip').removeClass('active');
+                        $wrap.find(`.chip[data-val="${val}"]`).addClass('active');
+                    };
+
+                    $wrap.on('click', '.chip', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        const valor = $(this).data('val');
+
+                        activar(valor);
+
+                        // 🔥 sincroniza filtro superior
+                        $('#FinalizadosFiltro').val(valor);
+
+                        // 🔥 IR A LA BASE
+                        aplicarFiltros();
+
+                        listaPedidos(-1, "TODOS", valor, -1, -1);
+
+                    });
+
+                    activar(defaultVal);
+                }
+
                 // ===== Chips (Todos / Sí / No) Finalizado/Facturado =====
                 function addTriChips(api, colIndex, etiqueta, metodo) {
                     const $cell = $('.filters th').eq(colIndex);
@@ -268,7 +311,7 @@ async function configurarDataTable(data) {
                     $cell.empty().addClass('tri-filter');
                     const html = `
             <div class="tri-chips" role="group" aria-label="${etiqueta}">
-              <button type="button" class="chip active" data-val="all" title="Mostrar todos">Todos</button>
+              <button type="button" class="chip active" data-val="-1" title="Mostrar todos">Todos</button>
               <button type="button" class="chip" data-val="1" title="Solo Sí">Sí</button>
               <button type="button" class="chip" data-val="0" title="Solo No">No</button>
             </div>`;
@@ -293,8 +336,8 @@ async function configurarDataTable(data) {
 
                     apply(metodo); // default
                 }
-                addTriChips(api, 13, 'Finalizado', '0');
-                addTriChips(api, 14, 'Facturado', 'all');
+                addTriChipsServer(13, 'Finalizado','0');
+                addTriChips(api, 14, 'Facturado', '-1');
 
                 // ===== Totales en cada draw =====
                 $('#grd_Pedidos').off('draw.dt.calc').on('draw.dt.calc', calcularTotalesPedidos);
