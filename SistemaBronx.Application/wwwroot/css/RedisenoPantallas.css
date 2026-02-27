@@ -1470,3 +1470,79 @@ table.dataTable.display tbody tr.selected td {
 #grd_Fabricaciones tbody tr.seleccionada td {
     background: var(--dt-row-hover) !important;
 }
+
+
+
+/* =========================
+   EXPORT MODAL MODERNO
+========================= */
+
+.export-body {
+    padding: 20px 24px;
+}
+
+/* topbar */
+.export-topbar {
+    margin-bottom: 14px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    padding-bottom: 10px;
+}
+
+/* select all */
+.export-select-all {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #cfd8ff;
+}
+
+/* GRID */
+.export-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(190px,1fr));
+    gap: 10px;
+}
+
+/* ITEM */
+.export-item {
+    position: relative;
+    cursor: pointer;
+}
+
+    /* ocultar checkbox real */
+    .export-item input {
+        position: absolute;
+        opacity: 0;
+    }
+
+/* PILL */
+.export-pill {
+    display: block;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    transition: .18s ease;
+    font-size: 14px;
+    color: #e6ebff;
+}
+
+/* hover */
+.export-item:hover .export-pill {
+    background: rgba(255,255,255,.08);
+}
+
+/* seleccionado */
+.export-item input:checked + .export-pill {
+    background: linear-gradient(135deg,#2b6cff,#4ea1ff);
+    border-color: #4ea1ff;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(78,161,255,.35);
+}
+
+/* footer botones */
+.export-modal .modal-footer {
+    background: rgba(255,255,255,.03);
+    border-top: 1px solid rgba(255,255,255,.08);
+}

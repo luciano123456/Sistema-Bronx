@@ -513,36 +513,20 @@ async function configurarDataTable(data) {
             dom: 'Bfrtip',
             buttons: [
                 {
-                    extend: 'excelHtml5',
-                    text: 'Exportar Excel',
-                    filename: 'Reporte Insumos',
-                    title: '',
-                    exportOptions: {
-                        columns: [1, 2, 3, 4, 5, 6,7,8,9]
-                    },
-                    className: 'btn-exportar-excel',
+                    text: 'Excel',
+                    action: () => abrirModalExportacion(gridInsumos, 'excel', 'Insumos')
                 },
                 {
-                    extend: 'pdfHtml5',
-                    text: 'Exportar PDF',
-                    filename: 'Reporte Insumos',
-                    title: '',
-                    exportOptions: {
-                        columns: [1, 2, 3, 4, 5, 6, 7, 8, 9]
-                    },
-                    className: 'btn-exportar-pdf',
+                    text: 'PDF',
+                    action: () => abrirModalExportacion(gridInsumos, 'pdf', 'Insumos')
                 },
                 {
-                    extend: 'print',
                     text: 'Imprimir',
-                    title: '',
-                    exportOptions: {
-                        columns: [1, 2, 3, 4, 5, 6, 7, 8, 9]
-                    },
-                    className: 'btn-exportar-print'
+                    action: () => abrirModalExportacion(gridInsumos, 'print', 'Insumos')
                 },
                 'pageLength'
             ],
+        
             "columnDefs": [
                 {
                     "render": function (data, type, row) {

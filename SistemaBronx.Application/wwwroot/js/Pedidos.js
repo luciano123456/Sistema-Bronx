@@ -12,8 +12,9 @@ const columnConfig = [
     { index: 7, name: 'Importe Abonado', filterType: 'text' },
     { index: 8, name: 'Saldo', filterType: 'text' },
     { index: 9, name: 'Forma de pago', filterType: 'text' },
-    { index: 10, name: 'Estado', filterType: 'text' },
-    { index: 11, name: 'Comentarios', filterType: 'text' }
+    { index: 10, name: 'Costo Financiero', filterType: 'text' },
+    { index: 11, name: 'Estado', filterType: 'text' },
+    { index: 12, name: 'Comentarios', filterType: 'text' }
 ];
 
 /* ============================
@@ -174,6 +175,7 @@ async function configurarDataTable(data) {
                 { data: 'ImporteAbonado' },
                 { data: 'Saldo' },
                 { data: 'FormaPago' },
+                { data: 'CostoFinancieroPorc' },
                 { data: 'Estado' },
                 { data: 'Comentarios' },
                 {
@@ -205,8 +207,19 @@ async function configurarDataTable(data) {
             ],
             dom: 'Bfrtip',
             buttons: [
-                { extend: 'excelHtml5', text: 'Exportar Excel', filename: `Reporte Pedidos_${moment().format('YYYY-MM-DD')}`, title: '', exportOptions: { columns: [1, 2, 3, 4, 5] }, className: 'btn-exportar-excel' },
-                { extend: 'print', text: 'Imprimir', title: '', exportOptions: { columns: [1, 2, 3, 4, 5] }, className: 'btn-exportar-print' },
+                {
+                    text: 'Excel',
+                    action: () => abrirModalExportacion(gridPedidos, 'excel', 'Pedidos')
+                },
+                {
+                    text: 'PDF',
+                    action: () => abrirModalExportacion(gridPedidos, 'pdf', 'Pedidos')
+                },
+                {
+                    text: 'Imprimir',
+                    action: () => abrirModalExportacion(gridPedidos, 'print', 'Pedidos')
+                },
+                'pageLength'
             ],
             orderCellsTop: true,
             fixedHeader: false,
@@ -280,8 +293,8 @@ async function configurarDataTable(data) {
 
                     apply(metodo); // default
                 }
-                addTriChips(api, 12, 'Finalizado', '0');
-                addTriChips(api, 13, 'Facturado', 'all');
+                addTriChips(api, 13, 'Finalizado', '0');
+                addTriChips(api, 14, 'Facturado', 'all');
 
                 // ===== Totales en cada draw =====
                 $('#grd_Pedidos').off('draw.dt.calc').on('draw.dt.calc', calcularTotalesPedidos);

@@ -2305,7 +2305,40 @@ function validarCamposCliente() {
     return camposValidos;
 }
 
+let tipoExportacionPDF = "minorista";
+
+$(document).on("change", "input[name='tipoExportacion']", function () {
+    tipoExportacionPDF = this.value;
+});
+
+function abrirModalExportarPedido() {
+    const modal = new bootstrap.Modal(
+        document.getElementById('modalExportarPedido')
+    );
+    modal.show();
+}
+
+function exportarPedidoTipo(tipo) {
+
+    const modalEl = document.getElementById('modalExportarPedido');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+
+    modal.hide();
+
+    // llama EXACTAMENTE tu flujo existente
+    generarPedidoPDFSeleccionado(tipo);
+}
+
+
+
+
 function generarDatosPedidoPDF() {
+
+    // abrimos modal en vez de exportar directo
+    $("#modalTipoExportacionPDF").modal("show");
+}
+
+function generarPedidoPDFSeleccionado(tipoCliente) {
 
     let cliente = $("#Clientes").select2("data")[0].text
     let formaPago = $("#Formasdepago").select2("data")[0].text
@@ -2318,19 +2351,15 @@ function generarDatosPedidoPDF() {
         return;
     }
 
-
-    // Verificar si al eliminar las filas seleccionadas se quedaría con menos de una fila
     if (cantidadFilasTotales < 1) {
         errorModal("No puedes imprimir un remito sin al menos un producto.");
         return;
     }
 
-
-
     var datosPedidoJson =
     {
         IdPedido: document.getElementById("IdPedido").value,
-        Cliente: cliente,// Obtener el texto seleccionado de la lista de categorías
+        Cliente: cliente,
         Fecha: document.getElementById("Fecha").value,
         ImporteTotal: document.getElementById("ImporteTotal").value,
         PorcDesc: document.getElementById("PorcDesc").value,
@@ -2342,93 +2371,139 @@ function generarDatosPedidoPDF() {
         FormaPago: formaPago
     };
 
-
     var productos = [];
     gridProductos.rows().every(function () {
-        let producto = this.data();
-        productos.push(producto)
+        productos.push(this.data());
     });
-
 
     var datos = {
         Pedido: datosPedidoJson,
-        Productos: productos
-    }
+        Productos: productos,
+        TipoCliente: tipoCliente   // ✅ SOLO AGREGAMOS ESTO
+    };
 
     factura = generarPedidoPDF(datos);
     facturaCliente = cliente;
     descargarPedidoPDF(datos, factura);
 }
-
 async function generarPedidoPDF(datos) {
 
-    // fuerza tamaño/units estándar
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', putOnlyUsedFonts: true, compress: true });
+    const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        putOnlyUsedFonts: true,
+        compress: true
+    });
 
-    // 1) normalizar imágenes a dataURL
+    /* =====================================================
+       CONFIG CLIENTE / IVA
+    ===================================================== */
+
+    const tipoCliente = (datos.TipoCliente || "minorista").toLowerCase();
+    const formaPago = (datos.Pedido.FormaPago || "").toLowerCase();
+
+    let ivaPorcentaje = 0;
+
+    if (formaPago.includes("transfer")) {
+        ivaPorcentaje = (tipoCliente === "mayorista") ? 21 : 72;
+    }
+
+    const esMayorista = tipoCliente === "mayorista" && ivaPorcentaje > 0;
+    const esEfectivo = formaPago.includes("efectivo");
+
+    /* =====================================================
+       LOGOS
+    ===================================================== */
+
     const logo1El = document.getElementById('logoImpresion1');
     const logo2El = document.getElementById('logoImpresion2');
+
     const [logo1, logo2] = await Promise.all([
-        imgToDataURL(logo1El, 'image/jpeg'), // JPEG sólido = menos problemas
+        imgToDataURL(logo1El, 'image/jpeg'),
         imgToDataURL(logo2El, 'image/jpeg')
     ]);
 
-    // 2) insertar
     doc.addImage(logo1, 'JPEG', 14, 8, 50, 20);
     doc.addImage(logo2, 'JPEG', 155, 2, 65, 35);
 
-    // tipografías base de PDF (siempre soportadas)
     doc.setFont('Helvetica', 'normal');
 
-    // Bloque izquierdo
+    /* =====================================================
+       HEADER IZQUIERDA
+    ===================================================== */
+
     doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
     doc.text("SANTA ROSA 3755, VICENTE LÓPEZ,", 14, 37);
     doc.text("BUENOS AIRES, ARGENTINA.", 14, 41);
     doc.text("+541165075229", 14, 45);
     doc.text("HOLA@BRONXCONCEPT.COM.AR", 14, 49);
 
-    // Bloque centro
+    /* =====================================================
+       HEADER CENTRO
+    ===================================================== */
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.text("NINCHICH SRL", 90, 37);
+
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text("CUIT: 30-71743646-2", 90, 41);
     doc.text("IIBB: 30-71743646-2", 90, 45);
     doc.text("Inicio Act: 09/03/2022", 90, 49);
 
-    // Encabezado derecho
+    /* =====================================================
+       HEADER DERECHA
+    ===================================================== */
+
     doc.setFont("helvetica", "italic");
     doc.setFontSize(8);
     doc.text("DOCUMENTO NO VÁLIDO COMO FACTURA", 120, 13);
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
     doc.text("PEDIDO", 155, 23);
+
     doc.setFont("helvetica", "normal");
     doc.setFontSize(13);
     doc.text("N", 160, 27);
     doc.text(`${datos.Pedido.IdPedido}`, 165, 27);
 
-    // Datos cliente
+    /* =====================================================
+       DATOS CLIENTE
+    ===================================================== */
+
     doc.setFontSize(8);
     doc.text(`Nombre: ${datos.Pedido.Cliente}`, 150, 37);
     doc.text(`Teléfono: ${datos.Pedido.Telefono}`, 150, 41);
-    doc.text(`Fecha: ${moment(datos.Pedido.Fecha, "YYYY-MM-DD").format("DD/MM/YYYY")}`, 150, 45);
+    doc.text(`Fecha: ${moment(datos.Pedido.Fecha).format("DD/MM/YYYY")}`, 150, 45);
 
-    //// Línea horizontal
-    //doc.setDrawColor(0);
-    //doc.setLineWidth(0.5);
-    //doc.line(14, 50, 194, 50);
+    /* =====================================================
+       TABLA PRODUCTOS
+    ===================================================== */
 
     const columns = ["C", "Producto", "Color", "Precio", "Subtotal"];
-    const rows = datos.Productos.map((item, i) => [
-        item.Cantidad,
-        item.Nombre,
-        item.Color,
-        formatNumber(item.PrecioVenta / item.Cantidad),
-        formatNumber(item.PrecioVenta)
-    ]);
+
+    const rows = datos.Productos.map(item => {
+
+        let precioUnitario = item.PrecioVenta / item.Cantidad;
+        let subtotal = item.PrecioVenta;
+
+        // 🔥 MAYORISTA → quitar IVA visualmente
+        if (esMayorista) {
+            precioUnitario = precioUnitario / (1 + ivaPorcentaje / 100);
+            subtotal = subtotal / (1 + ivaPorcentaje / 100);
+        }
+
+        return [
+            item.Cantidad,
+            item.Nombre,
+            item.Color,
+            formatNumber(precioUnitario),
+            formatNumber(subtotal)
+        ];
+    });
 
     doc.autoTable({
         startY: 55,
@@ -2450,67 +2525,131 @@ async function generarPedidoPDF(datos) {
         }
     });
 
+    /* =====================================================
+       BLOQUE TOTALES
+    ===================================================== */
+
     let y = doc.lastAutoTable.finalY + 10;
-    const pageHeight = doc.internal.pageSize.height;
-    const boxHeight = 45;
-    const marginBottom = 30;
-
-    // Si no entra el bloque de totales + pie, crear nueva página
-    if (y + boxHeight + marginBottom > pageHeight) {
-        doc.addPage();
-        y = 20; // posición inicial en nueva página
-    }
-
     const boxX = 14;
     const boxY = y - 5;
     const boxWidth = 180;
+    const lineHeight = 7;
 
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.5);
+    // cantidad de filas que vas a imprimir
+    let totalLineas = esMayorista ? 6 : 4;
+
+    const boxHeight = (totalLineas * lineHeight) + 10;
+
     doc.rect(boxX, boxY, boxWidth, boxHeight);
 
-    const total = datos.Pedido.ImporteTotal || 0;
-    const descuento = datos.Pedido.PorcDesc || 0;
-    const totalDescuento = datos.Pedido.Descuento || 0;
-    const importeTotal = datos.Pedido.SubTotal || 0;
-    const abonado = datos.Pedido.ImporteAbonado || 0;
-    const saldo = datos.Pedido.Saldo ?? importeTotal - abonado;
+    /* ===== CALCULOS ===== */
 
-    doc.setFontSize(10);
-    const labels = [
-        "Importe total con IVA:",
-        "Descuento %:",
-        "Total descuento:",
-        "Importe total:",
-        "Importe abonado :",
-        "Saldo:"
-    ];
-    const valores = [
-        total,
-        `${descuento}%`,
-        totalDescuento,
-        importeTotal,
-        datos.Pedido.ImporteAbonado,
-        datos.Pedido.Saldo
-    ];
+    let subtotalSinIVA = 0;
 
-    labels.forEach((label, i) => {
-        const yPos = y + i * 7;
-        doc.text(label, boxX + 100, yPos);
-        doc.text(valores[i], boxX + 145, yPos, { align: "right" });
+    datos.Productos.forEach(p => {
+
+        let valor = Number(p.PrecioVenta) || 0;
+
+        if (esMayorista) {
+            valor = valor / (1 + ivaPorcentaje / 100);
+        }
+
+        subtotalSinIVA += valor;
     });
 
-    // Pie dinámico: debajo del recuadro de totales
-    const pieY = boxY + boxHeight + 10;
+    const ivaTotal = subtotalSinIVA * (ivaPorcentaje / 100);
+    const totalConIVA = subtotalSinIVA + ivaTotal;
+
+    doc.setFontSize(10);
+
+    /* =====================================================
+       MAYORISTA → NUEVO DESGLOSE
+    ===================================================== */
+
+    doc.setFontSize(10);
+
+    if (esMayorista) {
+
+        /* ===============================
+           DESGLOSE MAYORISTA (SIN BOLD)
+        =============================== */
+
+        doc.text("Importe total (sin IVA):", boxX + 100, y);
+        doc.text(formatNumber(subtotalSinIVA), boxX + 145, y, { align: "right" });
+
+        doc.text(`IVA`, boxX + 100, y + 7);
+        doc.text(formatNumber(ivaTotal), boxX + 145, y + 7, { align: "right" });
+
+        doc.text("TOTAL (con IVA):", boxX + 100, y + 14);
+        doc.text(formatNumber(totalConIVA), boxX + 145, y + 14, { align: "right" });
+
+        /* ===============================
+           BLOQUE ORIGINAL (DESDE ABAJO)
+        =============================== */
+
+        const labels = [
+            "Descuento %:",
+            "Importe total:",
+            "Importe abonado :",
+            "Saldo:"
+        ];
+
+        const valores = [
+            `${datos.Pedido.PorcDesc}%`,
+            datos.Pedido.SubTotal,
+            datos.Pedido.ImporteAbonado,
+            datos.Pedido.Saldo
+        ];
+
+        labels.forEach((label, i) => {
+            const yPos = y + 21 + (i * 7);
+            doc.text(label, boxX + 100, yPos);
+            doc.text(valores[i], boxX + 145, yPos, { align: "right" });
+        });
+
+    }
+    else {
+
+        const labels = [
+            esEfectivo ? "Importe total:" : "Importe total:",
+            "Descuento %:",
+            "Importe total:",
+            "Importe abonado :",
+            "Saldo:"
+        ];
+
+        const valores = [
+            datos.Pedido.ImporteTotal,
+            `${datos.Pedido.PorcDesc}%`,
+            datos.Pedido.SubTotal,
+            datos.Pedido.ImporteAbonado,
+            datos.Pedido.Saldo
+        ];
+
+        labels.forEach((label, i) => {
+            const yPos = y + i * 7;
+            doc.text(label, boxX + 100, yPos);
+            doc.text(valores[i], boxX + 145, yPos, { align: "right" });
+        });
+    }
+
+    /* =====================================================
+       PIE
+    ===================================================== */
+
+    const pxsmayormenor = esMayorista ? 15 : 10;
+
+    const pieY = boxY + boxHeight + pxsmayormenor;
 
     doc.setFontSize(9);
     doc.text(`WWW.BRONXCONCEPT.COM.AR`, 15, pieY);
+
     doc.setFontSize(11);
     doc.text(`BRONXCONCEPT®`, 160, pieY);
     doc.text(`2024`, 186, pieY + 5);
+
     return doc;
 }
-
 async function descargarPedidoPDF(datos) {
     const doc = await generarPedidoPDF(datos);
 

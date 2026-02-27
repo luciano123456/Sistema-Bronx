@@ -401,3 +401,130 @@ function initSelect2Simple(selector, dropdownParentSelector, placeholderText, to
         return this.nodeType === 3 && this.nodeValue.trim() !== '';
     }).remove();
 }
+
+
+
+
+/* =========================
+   ABRIR MODAL
+========================= */
+
+window.abrirModalExportacion = function (grid, tipo, nombreListado) {
+
+    if (!grid) return;
+
+    ExportadorDT.grid = grid;
+    ExportadorDT.tipo = tipo;
+    ExportadorDT.nombreListado = nombreListado || "Datos";
+
+    const container = $("#exportColumnsContainer");
+    container.empty();
+
+    const columns = grid.settings()[0].aoColumns;
+
+    columns.forEach((col, index) => {
+
+        if (index === 0) return;
+        if (!grid.column(index).visible()) return;
+
+        const nombre = col.sTitle || `Columna ${index}`;
+
+        container.append(`
+<label class="export-item">
+    <input type="checkbox"
+           class="export-col"
+           value="${index}"
+           checked>
+    <span class="export-pill">${nombre}</span>
+</label>
+`);
+    });
+
+    $("#modalExportar").modal("show");
+};
+
+/* =========================
+   CONFIRMAR EXPORT
+========================= */
+
+$(document).off("click.exportador")
+    .on("click.exportador", "#btnConfirmarExport", function () {
+
+        const columnas = [];
+
+        $(".export-col:checked").each(function () {
+            columnas.push(parseInt($(this).val()));
+        });
+
+        if (!columnas.length) {
+            alert("Seleccione al menos una columna");
+            return;
+        }
+
+        $("#modalExportar").modal("hide");
+
+        ejecutarExportacionGlobal(columnas);
+    });
+
+
+/* =========================
+   EXPORT REAL
+========================= */
+
+window.ejecutarExportacionGlobal = function (columnas) {
+
+    const grid = ExportadorDT.grid;
+    const tipo = ExportadorDT.tipo;
+
+    if (!grid) return;
+
+    const tituloExport = `Listado de ${ExportadorDT.nombreListado}`;
+
+    const configBase = {
+        title: tituloExport || "Exportación",
+        exportOptions: {
+            columns: columnas
+        }
+    };
+
+    let buttonConfig;
+
+    switch (tipo) {
+        case "excel":
+            buttonConfig = { extend: 'excelHtml5', ...configBase };
+            break;
+
+        case "pdf":
+            buttonConfig = {
+                extend: 'pdfHtml5',
+                orientation: 'landscape',
+                pageSize: 'A4',
+                ...configBase
+            };
+            break;
+
+        case "print":
+            buttonConfig = { extend: 'print', ...configBase };
+            break;
+
+        default:
+            return;
+    }
+
+    const temp = new $.fn.dataTable.Buttons(grid, {
+        buttons: [buttonConfig]
+    });
+
+    // ✅ EJECUCIÓN REAL
+    temp.container().find('button').trigger('click');
+};
+
+$(document).on("change", "#chkExportAll", function () {
+    $(".export-col").prop("checked", this.checked);
+});
+
+window.ExportadorDT = {
+    grid: null,
+    tipo: null,
+    nombreListado: null   // 👈 NUEVO
+};
