@@ -157,7 +157,14 @@ async function configurarDataTable(data, incluirFinalizados) {
                 },
                 'pageLength'
             ],
+            order: [
+                [1, 'desc'], // IdPedido
+                [2, 'desc']  // IdDetalle
+            ],
+
             orderCellsTop: true,
+            fixedHeader: false,
+
             fixedHeader: false,
 
             initComplete: async function () {

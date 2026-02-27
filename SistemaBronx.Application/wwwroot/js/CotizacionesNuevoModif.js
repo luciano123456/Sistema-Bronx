@@ -2441,9 +2441,11 @@ async function generarCotizacionPDF(datos) {
     const abonado = datos.Cotizacion.ImporteAbonado || 0;
     const saldo = datos.Cotizacion.Saldo ?? importeTotal - abonado;
 
+    let textoImporte = datos.Cotizacion.FormaPago == "Tarjeta" ? "Importe total con IVA:" : "Importe total:";
+
     doc.setFontSize(10);
     const labels = [
-        "Importe total con IVA:",
+        textoImporte,
         "Descuento %:",
         "Total descuento:",
         "Importe total:",
@@ -2483,7 +2485,7 @@ async function descargarCotizacionPDF(datos) {
 
     const nro = datos.Cotizacion.IdCotizacion ? `Nº ${datos.Cotizacion.IdCotizacion} ` : '';
 
-    if (datos.Cotizacion.FormaPago == "Tarjeta") {
+    if (datos.Cotizacion.FormaPago.includes("Tarjeta")) {
         file = sanitizeFileName(`TJ - Cotizacion ${nro}Cliente ${datos.Cotizacion.Cliente} ${fmtMoneda(datos.Cotizacion.SubTotal)}.pdf`);
     } else {
         file = sanitizeFileName(`Cotizacion ${nro}Cliente ${datos.Cotizacion.Cliente} ${fmtMoneda(datos.Cotizacion.SubTotal)}.pdf`);
@@ -2630,9 +2632,11 @@ function generarRemitoPDF(datos) {
     const abonado = datos.Cotizacion.ImporteAbonado || 0;
     const saldo = datos.Cotizacion.Saldo ?? importeTotal - abonado;
 
+    let textoImporte = datos.Cotizacion.FormaPago == "Tarjeta" ? "Importe total con IVA:" : "Importe total:";
+
     doc.setFontSize(10);
     const labels = [
-        "Importe total con IVA:",
+        textoImporte,
         "Descuento %:",
         "Total descuento:",
         "Importe total:",
@@ -2669,7 +2673,7 @@ function descargarRemitoPDF(datos, facturaPDF) {
 
     let titulo = "";
 
-    if (datos.Cotizacion.FormaPago == "Tarjeta") {
+    if (datos.Cotizacion.FormaPago.includes("Tarjeta")) {
         titulo = `TJ - Remito ${msjCotizacion}Cliente ${facturaCliente} ${datos.Cotizacion.SubTotal}`
     } else {
         titulo = `Remito ${msjCotizacion}Cliente ${facturaCliente} ${datos.Cotizacion.SubTotal}`

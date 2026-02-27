@@ -1985,7 +1985,7 @@ document.getElementById("ImporteAbonado").addEventListener("blur", function () {
         // Solo nos aseguramos de que sea un número válido para la operación
         rawValue = rawValue.replace(/[^\d,\.]/g, ''); // Eliminar caracteres no numéricos, excepto coma y punto
         let parsedValue = parseFloat(rawValue.replace('.', '').replace(',', '.')) || 0;
-        this.value = formatNumber(parsedValue);
+        this.value = formatNumber(formatearSinMiles(rawValue));
     }
     calcularDatosPedido(); // Recalcular los datos
 });
@@ -2518,7 +2518,7 @@ async function descargarPedidoPDF(datos) {
 
     const nro = datos.Pedido.IdPedido ? `Nº ${datos.Pedido.IdPedido} ` : '';
 
-    if (datos.Pedido.FormaPago == "Tarjeta") {
+    if (datos.Pedido.FormaPago.includes("Tarjeta")) {
         file = sanitizeFileName(`TJ - Pedido ${nro}Cliente ${datos.Pedido.Cliente} ${fmtMoneda(datos.Pedido.SubTotal)}.pdf`);
     } else {
         file = sanitizeFileName(`Pedido ${nro}Cliente ${datos.Pedido.Cliente} ${fmtMoneda(datos.Pedido.SubTotal)}.pdf`);
@@ -2704,7 +2704,7 @@ function descargarRemitoPDF(datos, facturaPDF) {
 
     let titulo = "";
 
-    if (datos.Pedido.FormaPago == "Tarjeta") {
+    if (datos.Pedido.FormaPago.includes("Tarjeta")) {
         titulo = `TJ - Remito ${msjpedido}Cliente ${facturaCliente} ${datos.Pedido.SubTotal}`
     } else {
         titulo = `Remito ${msjpedido}Cliente ${facturaCliente} ${datos.Pedido.SubTotal}`
