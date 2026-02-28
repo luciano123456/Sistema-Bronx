@@ -317,7 +317,7 @@ namespace SistemaBronx.DAL.Repository
                     .Include(x => x.IdProveedorNavigation)
                     .Include(x => x.IdInsumoNavigation).ThenInclude(p => p.IdCategoriaNavigation)
                     .Include(x => x.IdColorNavigation)
-                    
+
                     .AsQueryable();
 
                 if (!incluirFinalizados)

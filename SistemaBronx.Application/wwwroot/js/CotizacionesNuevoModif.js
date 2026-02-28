@@ -8,7 +8,7 @@ let filaSeleccionadaInsumos = []; // Array para almacenar las filas seleccionada
 let filaSeleccionadaProductos = null; // Variable para almacenar la fila seleccionada
 let facturaCliente = null;
 const IdCotizacion = document.getElementById('IdCotizacion').value;
-
+let tipoExportacionActual = null;
 
 
 
@@ -2278,9 +2278,13 @@ $(document).on("change", "input[name='tipoExportacion']", function () {
 });
 
 function abrirModalExportarCotizacion() {
+
+    tipoExportacionActual = "cotizacion";
+
     const modal = new bootstrap.Modal(
         document.getElementById('modalExportarCotizacion')
     );
+
     modal.show();
 }
 
@@ -2291,12 +2295,32 @@ function exportarCotizacionTipo(tipo) {
 
     modal.hide();
 
-    // llama EXACTAMENTE tu flujo existente
     generarCotizacionPDFSeleccionado(tipo);
 }
 
+function exportarCotizacionTipo(tipo) {
 
+    const modalEl = document.getElementById('modalExportarCotizacion');
+    const modal = bootstrap.Modal.getInstance(modalEl);
 
+    modal.hide();
+
+    switch (tipoExportacionActual) {
+
+        case "cotizacion":
+            generarCotizacionPDFSeleccionado(tipo);
+            break;
+
+        case "remito":
+            generarRemitoPDFSeleccionado(tipo);
+            break;
+
+        default:
+            console.warn("Tipo de exportación no definido");
+            generarCotizacionPDFSeleccionado(tipo);
+            break;
+    }
+}
 
 function generarDatosCotizacionPDF() {
 
@@ -2312,20 +2336,16 @@ function generarDatosCotizacionPDF() {
     if (cantidadFilasTotales < 1) {
         errorModal("No puedes imprimir un Cotizacion sin al menos un producto.");
         return;
+
+        const formaPago = ($("#Formasdepago").select2("data")[0]?.text || "").toLowerCase();
+
+        if (formaPago.includes("transfer")) {
+            abrirModalExportarCotizacion();
+            return;
+        }
+
+        generarCotizacionPDFSeleccionado("minorista");
     }
-
-    // Detectar forma de pago
-    const formaPago = ($("#Formasdepago").select2("data")[0]?.text || "").toLowerCase();
-
-    // ✅ SOLO si es transferencia → modal
-    if (formaPago.includes("transfer")) {
-        abrirModalExportarCotizacion();
-        return;
-    }
-
-    // ✅ Si NO es transferencia → exporta directo
-    // Elegí tu default: "minorista" (o el que quieras)
-    generarCotizacionPDFSeleccionado("minorista");
 }
 
 function generarCotizacionPDFSeleccionado(tipoCliente) {
@@ -2470,9 +2490,6 @@ async function generarCotizacionPDF(datos) {
     doc.text(`Teléfono: ${datos.Cotizacion.Telefono}`, 150, 41);
     doc.text(`Fecha: ${moment(datos.Cotizacion.Fecha).format("DD/MM/YYYY")}`, 150, 45);
 
-    /* =====================================================
-       TABLA PRODUCTOS
-    ===================================================== */
 
     const columns = ["C", "Producto", "Color", "Precio", "Subtotal"];
 
@@ -2481,7 +2498,6 @@ async function generarCotizacionPDF(datos) {
         let precioUnitario = item.PrecioVenta / item.Cantidad;
         let subtotal = item.PrecioVenta;
 
-        // 🔥 MAYORISTA → quitar IVA visualmente
         if (esMayorista) {
             precioUnitario = precioUnitario / (1 + ivaPorcentaje / 100);
             subtotal = subtotal / (1 + ivaPorcentaje / 100);
@@ -2516,24 +2532,17 @@ async function generarCotizacionPDF(datos) {
         }
     });
 
-    /* =====================================================
-       BLOQUE TOTALES
-    ===================================================== */
-
     let y = doc.lastAutoTable.finalY + 10;
     const boxX = 14;
     const boxY = y - 5;
     const boxWidth = 180;
     const lineHeight = 7;
 
-    // cantidad de filas que vas a imprimir
-    let totalLineas = esMayorista ? 6 : 4;
+    let totalLineas = esMayorista ? 4 : 4;
 
     const boxHeight = (totalLineas * lineHeight) + 10;
 
     doc.rect(boxX, boxY, boxWidth, boxHeight);
-
-    /* ===== CALCULOS ===== */
 
     let subtotalSinIVA = 0;
 
@@ -2552,10 +2561,6 @@ async function generarCotizacionPDF(datos) {
     const totalConIVA = subtotalSinIVA + ivaTotal;
 
     doc.setFontSize(10);
-
-    /* =====================================================
-       MAYORISTA → NUEVO DESGLOSE
-    ===================================================== */
 
     doc.setFontSize(10);
 
@@ -2579,15 +2584,11 @@ async function generarCotizacionPDF(datos) {
         =============================== */
 
         const labels = [
-            "Descuento %:",
-            "Importe total:",
             "Importe abonado :",
             "Saldo:"
         ];
 
         const valores = [
-            `${datos.Cotizacion.PorcDesc}%`,
-            datos.Cotizacion.SubTotal,
             datos.Cotizacion.ImporteAbonado,
             datos.Cotizacion.Saldo
         ];
@@ -2602,9 +2603,9 @@ async function generarCotizacionPDF(datos) {
     else {
 
         const labels = [
-            esEfectivo ? "Importe total:" : "Importe total:",
+            esEfectivo ? "Importe total:" : "Importe total  (Incluye IVA 21%):",
             "Descuento %:",
-            "Importe total:",
+            "Importe total",
             "Importe abonado :",
             "Saldo:"
         ];
@@ -2620,15 +2621,11 @@ async function generarCotizacionPDF(datos) {
         labels.forEach((label, i) => {
             const yPos = y + i * 7;
             doc.text(label, boxX + 100, yPos);
-            doc.text(valores[i], boxX + 145, yPos, { align: "right" });
+            doc.text(valores[i], boxX + 153, yPos, { align: "right" });
         });
     }
 
-    /* =====================================================
-       PIE
-    ===================================================== */
-
-    const pxsmayormenor = esMayorista ? 15 : 10;
+    const pxsmayormenor = esMayorista ? 10 : 10;
 
     const pieY = boxY + boxHeight + pxsmayormenor;
 
@@ -2659,35 +2656,114 @@ async function descargarCotizacionPDF(datos) {
     doc.save(file);
 }
 
-function generarDatosRemitoPDF() {
+function generarDatosCotizacionPDF() {
 
-    let cliente = $("#Clientes").select2("data")[0].text
-    let idCliente = $("#Clientes").val();
-    let formaPago = $("#Formasdepago").select2("data")[0].text
+    // Validaciones mínimas como tu flujo (para no abrir modal al pedo)
+    const idCliente = $("#Clientes").val();
+    const cantidadFilasTotales = gridProductos?.data()?.length ?? 0;
 
-    var cantidadFilasTotales = gridProductos.data().length;
-
-
-    // Verificar si al eliminar las filas seleccionadas se quedaría con menos de una fila
-    if (cantidadFilasTotales < 1) {
-        errorModal("No puedes imprimir un remito sin al menos un producto.");
+    if (!idCliente || idCliente == '-1') {
+        errorModal("Para imprimir un Cotizacion debes seleccionar un cliente.");
         return;
     }
+
 
     if (cantidadFilasTotales > 18) {
         errorModal("No puedes exportar el remito: supera el límite de 18 productos.");
         return;
     }
 
+
+    if (cantidadFilasTotales < 1) {
+        errorModal("No puedes imprimir un Cotizacion sin al menos un producto.");
+        return;
+    }
+
+    // Detectar forma de pago
+    const formaPago = ($("#Formasdepago").select2("data")[0]?.text || "").toLowerCase();
+
+    // ✅ SOLO si es transferencia → modal
+    if (formaPago.includes("transfer")) {
+        abrirModalExportarCotizacion();
+        return;
+    }
+
+    // ✅ Si NO es transferencia → exporta directo
+    // Elegí tu default: "minorista" (o el que quieras)
+    generarCotizacionPDFSeleccionado("minorista");
+}
+
+function generarDatosRemitoPDF() {
+
+    const idCliente = $("#Clientes").val();
+    const cantidadFilasTotales = gridProductos?.data()?.length ?? 0;
+
     if (!idCliente || idCliente == '-1') {
         errorModal("Para imprimir un remito debes seleccionar un cliente.");
         return;
     }
 
-    var datosCotizacionJson =
-    {
+    if (cantidadFilasTotales < 1) {
+        errorModal("No puedes imprimir un remito sin al menos un producto.");
+        return;
+    }
+
+    const formaPago = ($("#Formasdepago").select2("data")[0]?.text || "").toLowerCase();
+
+    /* =====================================
+       IGUAL QUE COTIZACION PDF
+    ===================================== */
+
+    if (formaPago.includes("transfer")) {
+        abrirModalExportarRemito();
+        return;
+    }
+
+    generarRemitoPDFSeleccionado("minorista");
+}
+
+function abrirModalExportarRemito() {
+
+    tipoExportacionActual = "remito";
+
+    const modal = new bootstrap.Modal(
+        document.getElementById('modalExportarCotizacion')
+    );
+
+    modal.show();
+}
+
+function exportarRemitoTipo(tipo) {
+
+    const modalEl = document.getElementById('modalExportarCotizacion');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+
+    modal.hide();
+
+    generarRemitoPDFSeleccionado(tipo);
+}
+
+function generarRemitoPDFSeleccionado(tipoCliente) {
+
+    let cliente = $("#Clientes").select2("data")[0].text;
+    let formaPago = $("#Formasdepago").select2("data")[0].text;
+    let idCliente = $("#Clientes").val();
+
+    const cantidadFilasTotales = gridProductos.data().length;
+
+    if (!idCliente || idCliente == '-1') {
+        errorModal("Para imprimir un remito debes seleccionar un cliente.");
+        return;
+    }
+
+    if (cantidadFilasTotales < 1) {
+        errorModal("No puedes imprimir un remito sin al menos un producto.");
+        return;
+    }
+
+    const datosCotizacionJson = {
         IdCotizacion: document.getElementById("IdCotizacion").value,
-        Cliente: cliente,// Obtener el texto seleccionado de la lista de categorías
+        Cliente: cliente,
         Fecha: document.getElementById("Fecha").value,
         ImporteTotal: document.getElementById("ImporteTotal").value,
         PorcDesc: document.getElementById("PorcDesc").value,
@@ -2699,20 +2775,18 @@ function generarDatosRemitoPDF() {
         FormaPago: formaPago
     };
 
-
-    var productos = [];
+    let productos = [];
     gridProductos.rows().every(function () {
-        let producto = this.data();
-        productos.push(producto)
+        productos.push(this.data());
     });
 
-
-    var datos = {
+    const datos = {
         Cotizacion: datosCotizacionJson,
-        Productos: productos
-    }
+        Productos: productos,
+        TipoCliente: tipoCliente
+    };
 
-    factura = generarRemitoPDF(datos);
+    const factura = generarRemitoPDF(datos);
     facturaCliente = cliente;
     descargarRemitoPDF(datos, factura);
 }
@@ -2721,49 +2795,73 @@ function generarRemitoPDF(datos) {
 
     const doc = new jsPDF();
 
+    /* =====================================================
+       CONFIG FISCAL (MISMO PDF)
+    ===================================================== */
 
-    // Datos cliente
+    const tipoCliente = (datos.TipoCliente || "minorista").toLowerCase();
+    const formaPago = (datos.Cotizacion.FormaPago || "").toLowerCase();
+
+    let ivaPorcentaje = 0;
+
+    if (formaPago.includes("transfer")) {
+        ivaPorcentaje = (tipoCliente === "mayorista") ? 21 : 72;
+    }
+
+    const esMayorista = tipoCliente === "mayorista" && ivaPorcentaje > 0;
+
+    /* =====================================================
+       HEADER
+    ===================================================== */
+
     doc.setFontSize(8);
     doc.text(`${datos.Cotizacion.Cliente}`, 150, 37);
     doc.text(`${datos.Cotizacion.Telefono}`, 150, 41);
     doc.text(`${moment(datos.Cotizacion.Fecha, "YYYY-MM-DD").format("DD/MM/YYYY")}`, 150, 45);
+
     doc.setFontSize(13);
     doc.text(`${datos.Cotizacion.IdCotizacion}`, 165, 27);
+
+    /* =====================================================
+       TABLA PRODUCTOS
+    ===================================================== */
+
     const columns = ["C", "Producto", "Color", "Precio", "Subtotal"];
 
-    let rows = datos.Productos.map((item) => [
-        item.Cantidad,
-        item.Nombre,
-        item.Color,
-        formatNumber(item.PrecioVenta / item.Cantidad),
-        formatNumber(item.PrecioVenta)
-    ]);
+    let rows = datos.Productos.map(item => {
 
-    // Completa hasta 15 filas vacías
+        let precioUnitario = item.PrecioVenta / item.Cantidad;
+        let subtotal = item.PrecioVenta;
+
+        if (esMayorista) {
+            precioUnitario /= (1 + ivaPorcentaje / 100);
+            subtotal /= (1 + ivaPorcentaje / 100);
+        }
+
+        return [
+            item.Cantidad,
+            item.Nombre,
+            item.Color,
+            formatNumber(precioUnitario),
+            formatNumber(subtotal)
+        ];
+    });
+
     while (rows.length < 18) {
         rows.push(["", "", "", "", ""]);
     }
 
-
     doc.autoTable({
         startY: 55,
         body: rows,
-        styles: {
-            fontSize: 10,
-            lineWidth: 0 // elimina líneas de borde generales
-        },
+        styles: { fontSize: 10, lineWidth: 0 },
         headStyles: {
             fillColor: [0, 0, 0],
             textColor: 255,
             halign: 'center'
         },
-        bodyStyles: {
-            fillColor: [255, 255, 255],
-            lineWidth: 0 // elimina bordes de celdas en el cuerpo
-        },
-        alternateRowStyles: {
-            fillColor: false // evita el gris alternado
-        },
+        bodyStyles: { fillColor: [255, 255, 255], lineWidth: 0 },
+        alternateRowStyles: { fillColor: false },
         columnStyles: {
             0: { halign: 'center', cellWidth: 10 },
             1: { cellWidth: 55 },
@@ -2773,48 +2871,84 @@ function generarRemitoPDF(datos) {
         }
     });
 
+    /* =====================================================
+       CALCULOS (MISMO PDF)
+    ===================================================== */
+
+    let subtotalSinIVA = 0;
+
+    datos.Productos.forEach(p => {
+        let valor = Number(p.PrecioVenta) || 0;
+        if (esMayorista)
+            valor /= (1 + ivaPorcentaje / 100);
+
+        subtotalSinIVA += valor;
+    });
+
+    const ivaTotal = subtotalSinIVA * (ivaPorcentaje / 100);
+    const totalConIVA = subtotalSinIVA + ivaTotal;
+
+    const abonado = Number(datos.Cotizacion.ImporteAbonado) || 0;
+    const saldoMayorista = totalConIVA - abonado;
+
+    /* =====================================================
+       POSICION
+    ===================================================== */
 
     let y = doc.lastAutoTable.finalY + 10;
-    const pageHeight = doc.internal.pageSize.height;
-    const boxHeight = 45;
-    const marginBottom = 30;
 
-    // Si no entra el bloque de totales + pie, crear nueva página
-    if (y + boxHeight + marginBottom > pageHeight) {
+    if (y + 60 > doc.internal.pageSize.height) {
         doc.addPage();
-        y = 20; // posición inicial en nueva página
+        y = 20;
     }
 
     const boxX = 14;
-    const boxY = y - 5;
-    const boxWidth = 180;
 
-    const total = datos.Cotizacion.ImporteTotal || 0;
-    const descuento = datos.Cotizacion.PorcDesc || 0;
-    const totalDescuento = datos.Cotizacion.Descuento || 0;
-    const importeTotal = datos.Cotizacion.SubTotal || 0;
-    const abonado = datos.Cotizacion.ImporteAbonado || 0;
-    const saldo = datos.Cotizacion.Saldo ?? importeTotal - abonado;
+    /* =====================================================
+       BLOQUE FINAL (COLUMNAS CORRECTAS)
+    ===================================================== */
 
-    let textoImporte = datos.Cotizacion.FormaPago == "Tarjeta" ? "Importe total con IVA:" : "Importe total:";
+    let labels;
+    let valores;
+
+    if (esMayorista) {
+
+        labels = [
+            "Importe total (sin IVA):",
+            "IVA:",
+            "TOTAL (con IVA):",
+            "Importe abonado:",
+            "Saldo:"
+        ];
+
+        valores = [
+            formatNumber(subtotalSinIVA),
+            formatNumber(ivaTotal),
+            formatNumber(totalConIVA),
+            formatNumber(abonado),
+            formatNumber(saldoMayorista)
+        ];
+
+    } else {
+
+        labels = [
+            "Importe total (incluye IVA):",
+            "Descuento %:",
+            "Importe total:",
+            "Importe abonado:",
+            "Saldo:"
+        ];
+
+        valores = [
+            datos.Cotizacion.ImporteTotal,
+            `${datos.Cotizacion.PorcDesc}%`,
+            datos.Cotizacion.SubTotal,
+            datos.Cotizacion.ImporteAbonado,
+            datos.Cotizacion.Saldo
+        ];
+    }
 
     doc.setFontSize(10);
-    const labels = [
-        textoImporte,
-        "Descuento %:",
-        "Total descuento:",
-        "Importe total:",
-        "Importe abonado :",
-        "Saldo:"
-    ];
-    const valores = [
-        total,
-        `${descuento}%`,
-        totalDescuento,
-        importeTotal,
-        datos.Cotizacion.ImporteAbonado,
-        datos.Cotizacion.Saldo
-    ];
 
     labels.forEach((label, i) => {
         const yPos = y + i * 7;
@@ -2846,6 +2980,9 @@ function descargarRemitoPDF(datos, facturaPDF) {
 
     facturaPDF.save(`${titulo}.pdf`);
 }
+
+
+
 
 
 function obtenerUrlCompleta(rutaRelativa) {
