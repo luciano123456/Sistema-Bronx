@@ -2305,6 +2305,8 @@ function validarCamposCliente() {
     return camposValidos;
 }
 
+
+
 let tipoExportacionPDF = "minorista";
 
 $(document).on("change", "input[name='tipoExportacion']", function () {
@@ -2312,9 +2314,13 @@ $(document).on("change", "input[name='tipoExportacion']", function () {
 });
 
 function abrirModalExportarPedido() {
+
+    tipoExportacionActual = "Pedido";
+
     const modal = new bootstrap.Modal(
         document.getElementById('modalExportarPedido')
     );
+
     modal.show();
 }
 
@@ -2325,12 +2331,32 @@ function exportarPedidoTipo(tipo) {
 
     modal.hide();
 
-    // llama EXACTAMENTE tu flujo existente
     generarPedidoPDFSeleccionado(tipo);
 }
 
+function exportarPedidoTipo(tipo) {
 
+    const modalEl = document.getElementById('modalExportarPedido');
+    const modal = bootstrap.Modal.getInstance(modalEl);
 
+    modal.hide();
+
+    switch (tipoExportacionActual) {
+
+        case "Pedido":
+            generarPedidoPDFSeleccionado(tipo);
+            break;
+
+        case "remito":
+            generarRemitoPDFSeleccionado(tipo);
+            break;
+
+        default:
+            console.warn("Tipo de exportación no definido");
+            generarPedidoPDFSeleccionado(tipo);
+            break;
+    }
+}
 
 function generarDatosPedidoPDF() {
 
@@ -2339,27 +2365,23 @@ function generarDatosPedidoPDF() {
     const cantidadFilasTotales = gridProductos?.data()?.length ?? 0;
 
     if (!idCliente || idCliente == '-1') {
-        errorModal("Para imprimir un pedido debes seleccionar un cliente.");
+        errorModal("Para imprimir un Pedido debes seleccionar un cliente.");
         return;
     }
 
     if (cantidadFilasTotales < 1) {
-        errorModal("No puedes imprimir un pedido sin al menos un producto.");
+        errorModal("No puedes imprimir un Pedido sin al menos un producto.");
         return;
+
+        const formaPago = ($("#Formasdepago").select2("data")[0]?.text || "").toLowerCase();
+
+        if (formaPago.includes("transfer")) {
+            abrirModalExportarPedido();
+            return;
+        }
+
+        generarPedidoPDFSeleccionado("minorista");
     }
-
-    // Detectar forma de pago
-    const formaPago = ($("#Formasdepago").select2("data")[0]?.text || "").toLowerCase();
-
-    // ✅ SOLO si es transferencia → modal
-    if (formaPago.includes("transfer")) {
-        abrirModalExportarPedido();
-        return;
-    }
-
-    // ✅ Si NO es transferencia → exporta directo
-    // Elegí tu default: "minorista" (o el que quieras)
-    generarPedidoPDFSeleccionado("minorista");
 }
 
 function generarPedidoPDFSeleccionado(tipoCliente) {
@@ -2371,7 +2393,7 @@ function generarPedidoPDFSeleccionado(tipoCliente) {
     var cantidadFilasTotales = gridProductos.data().length;
 
     if (!idCliente || idCliente == '-1') {
-        errorModal("Para imprimir un pedido debes seleccionar un cliente.");
+        errorModal("Para imprimir un Pedido debes seleccionar un cliente.");
         return;
     }
 
@@ -2410,6 +2432,7 @@ function generarPedidoPDFSeleccionado(tipoCliente) {
     facturaCliente = cliente;
     descargarPedidoPDF(datos, factura);
 }
+
 async function generarPedidoPDF(datos) {
 
     const doc = new jsPDF({
@@ -2487,7 +2510,7 @@ async function generarPedidoPDF(datos) {
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
-    doc.text("PEDIDO", 155, 23);
+    doc.text("Pedido", 155, 23);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(13);
@@ -2503,9 +2526,6 @@ async function generarPedidoPDF(datos) {
     doc.text(`Teléfono: ${datos.Pedido.Telefono}`, 150, 41);
     doc.text(`Fecha: ${moment(datos.Pedido.Fecha).format("DD/MM/YYYY")}`, 150, 45);
 
-    /* =====================================================
-       TABLA PRODUCTOS
-    ===================================================== */
 
     const columns = ["C", "Producto", "Color", "Precio", "Subtotal"];
 
@@ -2514,7 +2534,6 @@ async function generarPedidoPDF(datos) {
         let precioUnitario = item.PrecioVenta / item.Cantidad;
         let subtotal = item.PrecioVenta;
 
-        // 🔥 MAYORISTA → quitar IVA visualmente
         if (esMayorista) {
             precioUnitario = precioUnitario / (1 + ivaPorcentaje / 100);
             subtotal = subtotal / (1 + ivaPorcentaje / 100);
@@ -2549,24 +2568,17 @@ async function generarPedidoPDF(datos) {
         }
     });
 
-    /* =====================================================
-       BLOQUE TOTALES
-    ===================================================== */
-
     let y = doc.lastAutoTable.finalY + 10;
     const boxX = 14;
     const boxY = y - 5;
     const boxWidth = 180;
     const lineHeight = 7;
 
-    // cantidad de filas que vas a imprimir
-    let totalLineas = esMayorista ? 6 : 4;
+    let totalLineas = esMayorista ? 4 : 4;
 
     const boxHeight = (totalLineas * lineHeight) + 10;
 
     doc.rect(boxX, boxY, boxWidth, boxHeight);
-
-    /* ===== CALCULOS ===== */
 
     let subtotalSinIVA = 0;
 
@@ -2585,10 +2597,6 @@ async function generarPedidoPDF(datos) {
     const totalConIVA = subtotalSinIVA + ivaTotal;
 
     doc.setFontSize(10);
-
-    /* =====================================================
-       MAYORISTA → NUEVO DESGLOSE
-    ===================================================== */
 
     doc.setFontSize(10);
 
@@ -2612,15 +2620,11 @@ async function generarPedidoPDF(datos) {
         =============================== */
 
         const labels = [
-            "Descuento %:",
-            "Importe total:",
             "Importe abonado :",
             "Saldo:"
         ];
 
         const valores = [
-            `${datos.Pedido.PorcDesc}%`,
-            datos.Pedido.SubTotal,
             datos.Pedido.ImporteAbonado,
             datos.Pedido.Saldo
         ];
@@ -2635,9 +2639,9 @@ async function generarPedidoPDF(datos) {
     else {
 
         const labels = [
-            esEfectivo ? "Importe total:" : "Importe total:",
+            esEfectivo ? "Importe total:" : "Importe total  (Incluye IVA 21%):",
             "Descuento %:",
-            "Importe total:",
+            "Importe total",
             "Importe abonado :",
             "Saldo:"
         ];
@@ -2653,15 +2657,11 @@ async function generarPedidoPDF(datos) {
         labels.forEach((label, i) => {
             const yPos = y + i * 7;
             doc.text(label, boxX + 100, yPos);
-            doc.text(valores[i], boxX + 145, yPos, { align: "right" });
+            doc.text(valores[i], boxX + 153, yPos, { align: "right" });
         });
     }
 
-    /* =====================================================
-       PIE
-    ===================================================== */
-
-    const pxsmayormenor = esMayorista ? 15 : 10;
+    const pxsmayormenor = esMayorista ? 10 : 10;
 
     const pieY = boxY + boxHeight + pxsmayormenor;
 
@@ -2674,6 +2674,7 @@ async function generarPedidoPDF(datos) {
 
     return doc;
 }
+
 async function descargarPedidoPDF(datos) {
     const doc = await generarPedidoPDF(datos);
 
@@ -2686,40 +2687,119 @@ async function descargarPedidoPDF(datos) {
     } else {
         file = sanitizeFileName(`Pedido ${nro}Cliente ${datos.Pedido.Cliente} ${fmtMoneda(datos.Pedido.SubTotal)}.pdf`);
     }
-   
-    
+
+
     doc.save(file);
 }
 
-function generarDatosRemitoPDF() {
+function generarDatosPedidoPDF() {
 
-    let cliente = $("#Clientes").select2("data")[0].text
-    let idCliente = $("#Clientes").val();
-    let formaPago = $("#Formasdepago").select2("data")[0].text
+    // Validaciones mínimas como tu flujo (para no abrir modal al pedo)
+    const idCliente = $("#Clientes").val();
+    const cantidadFilasTotales = gridProductos?.data()?.length ?? 0;
 
-    var cantidadFilasTotales = gridProductos.data().length;
-
-
-    // Verificar si al eliminar las filas seleccionadas se quedaría con menos de una fila
-    if (cantidadFilasTotales < 1) {
-        errorModal("No puedes imprimir un remito sin al menos un producto.");
+    if (!idCliente || idCliente == '-1') {
+        errorModal("Para imprimir un Pedido debes seleccionar un cliente.");
         return;
     }
+
 
     if (cantidadFilasTotales > 18) {
         errorModal("No puedes exportar el remito: supera el límite de 18 productos.");
         return;
     }
 
+
+    if (cantidadFilasTotales < 1) {
+        errorModal("No puedes imprimir un Pedido sin al menos un producto.");
+        return;
+    }
+
+    // Detectar forma de pago
+    const formaPago = ($("#Formasdepago").select2("data")[0]?.text || "").toLowerCase();
+
+    // ✅ SOLO si es transferencia → modal
+    if (formaPago.includes("transfer")) {
+        abrirModalExportarPedido();
+        return;
+    }
+
+    // ✅ Si NO es transferencia → exporta directo
+    // Elegí tu default: "minorista" (o el que quieras)
+    generarPedidoPDFSeleccionado("minorista");
+}
+
+function generarDatosRemitoPDF() {
+
+    const idCliente = $("#Clientes").val();
+    const cantidadFilasTotales = gridProductos?.data()?.length ?? 0;
+
     if (!idCliente || idCliente == '-1') {
         errorModal("Para imprimir un remito debes seleccionar un cliente.");
         return;
     }
 
-    var datosPedidoJson =
-    {
+    if (cantidadFilasTotales < 1) {
+        errorModal("No puedes imprimir un remito sin al menos un producto.");
+        return;
+    }
+
+    const formaPago = ($("#Formasdepago").select2("data")[0]?.text || "").toLowerCase();
+
+    /* =====================================
+       IGUAL QUE Pedido PDF
+    ===================================== */
+
+    if (formaPago.includes("transfer")) {
+        abrirModalExportarRemito();
+        return;
+    }
+
+    generarRemitoPDFSeleccionado("minorista");
+}
+
+function abrirModalExportarRemito() {
+
+    tipoExportacionActual = "remito";
+
+    const modal = new bootstrap.Modal(
+        document.getElementById('modalExportarPedido')
+    );
+
+    modal.show();
+}
+
+function exportarRemitoTipo(tipo) {
+
+    const modalEl = document.getElementById('modalExportarPedido');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+
+    modal.hide();
+
+    generarRemitoPDFSeleccionado(tipo);
+}
+
+function generarRemitoPDFSeleccionado(tipoCliente) {
+
+    let cliente = $("#Clientes").select2("data")[0].text;
+    let formaPago = $("#Formasdepago").select2("data")[0].text;
+    let idCliente = $("#Clientes").val();
+
+    const cantidadFilasTotales = gridProductos.data().length;
+
+    if (!idCliente || idCliente == '-1') {
+        errorModal("Para imprimir un remito debes seleccionar un cliente.");
+        return;
+    }
+
+    if (cantidadFilasTotales < 1) {
+        errorModal("No puedes imprimir un remito sin al menos un producto.");
+        return;
+    }
+
+    const datosPedidoJson = {
         IdPedido: document.getElementById("IdPedido").value,
-        Cliente: cliente,// Obtener el texto seleccionado de la lista de categorías
+        Cliente: cliente,
         Fecha: document.getElementById("Fecha").value,
         ImporteTotal: document.getElementById("ImporteTotal").value,
         PorcDesc: document.getElementById("PorcDesc").value,
@@ -2731,20 +2811,18 @@ function generarDatosRemitoPDF() {
         FormaPago: formaPago
     };
 
-
-    var productos = [];
+    let productos = [];
     gridProductos.rows().every(function () {
-        let producto = this.data();
-        productos.push(producto)
+        productos.push(this.data());
     });
 
-
-    var datos = {
+    const datos = {
         Pedido: datosPedidoJson,
-        Productos: productos
-    }
+        Productos: productos,
+        TipoCliente: tipoCliente
+    };
 
-    factura = generarRemitoPDF(datos);
+    const factura = generarRemitoPDF(datos);
     facturaCliente = cliente;
     descargarRemitoPDF(datos, factura);
 }
@@ -2753,49 +2831,73 @@ function generarRemitoPDF(datos) {
 
     const doc = new jsPDF();
 
+    /* =====================================================
+       CONFIG FISCAL (MISMO PDF)
+    ===================================================== */
 
-    // Datos cliente
+    const tipoCliente = (datos.TipoCliente || "minorista").toLowerCase();
+    const formaPago = (datos.Pedido.FormaPago || "").toLowerCase();
+
+    let ivaPorcentaje = 0;
+
+    if (formaPago.includes("transfer")) {
+        ivaPorcentaje = (tipoCliente === "mayorista") ? 21 : 72;
+    }
+
+    const esMayorista = tipoCliente === "mayorista" && ivaPorcentaje > 0;
+
+    /* =====================================================
+       HEADER
+    ===================================================== */
+
     doc.setFontSize(8);
     doc.text(`${datos.Pedido.Cliente}`, 150, 37);
     doc.text(`${datos.Pedido.Telefono}`, 150, 41);
     doc.text(`${moment(datos.Pedido.Fecha, "YYYY-MM-DD").format("DD/MM/YYYY")}`, 150, 45);
+
     doc.setFontSize(13);
     doc.text(`${datos.Pedido.IdPedido}`, 165, 27);
+
+    /* =====================================================
+       TABLA PRODUCTOS
+    ===================================================== */
+
     const columns = ["C", "Producto", "Color", "Precio", "Subtotal"];
 
-    let rows = datos.Productos.map((item) => [
-        item.Cantidad,
-        item.Nombre,
-        item.Color,
-        formatNumber(item.PrecioVenta / item.Cantidad),
-        formatNumber(item.PrecioVenta)
-    ]);
+    let rows = datos.Productos.map(item => {
 
-    // Completa hasta 15 filas vacías
+        let precioUnitario = item.PrecioVenta / item.Cantidad;
+        let subtotal = item.PrecioVenta;
+
+        if (esMayorista) {
+            precioUnitario /= (1 + ivaPorcentaje / 100);
+            subtotal /= (1 + ivaPorcentaje / 100);
+        }
+
+        return [
+            item.Cantidad,
+            item.Nombre,
+            item.Color,
+            formatNumber(precioUnitario),
+            formatNumber(subtotal)
+        ];
+    });
+
     while (rows.length < 18) {
         rows.push(["", "", "", "", ""]);
     }
 
-
     doc.autoTable({
         startY: 55,
         body: rows,
-        styles: {
-            fontSize: 10,
-            lineWidth: 0 // elimina líneas de borde generales
-        },
+        styles: { fontSize: 10, lineWidth: 0 },
         headStyles: {
             fillColor: [0, 0, 0],
             textColor: 255,
             halign: 'center'
         },
-        bodyStyles: {
-            fillColor: [255, 255, 255],
-            lineWidth: 0 // elimina bordes de celdas en el cuerpo
-        },
-        alternateRowStyles: {
-            fillColor: false // evita el gris alternado
-        },
+        bodyStyles: { fillColor: [255, 255, 255], lineWidth: 0 },
+        alternateRowStyles: { fillColor: false },
         columnStyles: {
             0: { halign: 'center', cellWidth: 10 },
             1: { cellWidth: 55 },
@@ -2805,46 +2907,84 @@ function generarRemitoPDF(datos) {
         }
     });
 
+    /* =====================================================
+       CALCULOS (MISMO PDF)
+    ===================================================== */
+
+    let subtotalSinIVA = 0;
+
+    datos.Productos.forEach(p => {
+        let valor = Number(p.PrecioVenta) || 0;
+        if (esMayorista)
+            valor /= (1 + ivaPorcentaje / 100);
+
+        subtotalSinIVA += valor;
+    });
+
+    const ivaTotal = subtotalSinIVA * (ivaPorcentaje / 100);
+    const totalConIVA = subtotalSinIVA + ivaTotal;
+
+    const abonado = Number(datos.Pedido.ImporteAbonado) || 0;
+    const saldoMayorista = totalConIVA - abonado;
+
+    /* =====================================================
+       POSICION
+    ===================================================== */
 
     let y = doc.lastAutoTable.finalY + 10;
-    const pageHeight = doc.internal.pageSize.height;
-    const boxHeight = 45;
-    const marginBottom = 30;
 
-    // Si no entra el bloque de totales + pie, crear nueva página
-    if (y + boxHeight + marginBottom > pageHeight) {
+    if (y + 60 > doc.internal.pageSize.height) {
         doc.addPage();
-        y = 20; // posición inicial en nueva página
+        y = 20;
     }
 
     const boxX = 14;
-    const boxY = y - 5;
-    const boxWidth = 180;
 
-    const total = datos.Pedido.ImporteTotal || 0;
-    const descuento = datos.Pedido.PorcDesc || 0;
-    const totalDescuento = datos.Pedido.Descuento || 0;
-    const importeTotal = datos.Pedido.SubTotal || 0;
-    const abonado = datos.Pedido.ImporteAbonado || 0;
-    const saldo = datos.Pedido.Saldo ?? importeTotal - abonado;
+    /* =====================================================
+       BLOQUE FINAL (COLUMNAS CORRECTAS)
+    ===================================================== */
+
+    let labels;
+    let valores;
+
+    if (esMayorista) {
+
+        labels = [
+            "Importe total (sin IVA):",
+            "IVA:",
+            "TOTAL (con IVA):",
+            "Importe abonado:",
+            "Saldo:"
+        ];
+
+        valores = [
+            formatNumber(subtotalSinIVA),
+            formatNumber(ivaTotal),
+            formatNumber(totalConIVA),
+            formatNumber(abonado),
+            formatNumber(saldoMayorista)
+        ];
+
+    } else {
+
+        labels = [
+            "Importe total (incluye IVA):",
+            "Descuento %:",
+            "Importe total:",
+            "Importe abonado:",
+            "Saldo:"
+        ];
+
+        valores = [
+            datos.Pedido.ImporteTotal,
+            `${datos.Pedido.PorcDesc}%`,
+            datos.Pedido.SubTotal,
+            datos.Pedido.ImporteAbonado,
+            datos.Pedido.Saldo
+        ];
+    }
 
     doc.setFontSize(10);
-    const labels = [
-        "Importe total con IVA:",
-        "Descuento %:",
-        "Total descuento:",
-        "Importe total:",
-        "Importe abonado :",
-        "Saldo:"
-    ];
-    const valores = [
-        total,
-        `${descuento}%`,
-        totalDescuento,
-        importeTotal,
-        datos.Pedido.ImporteAbonado,
-        datos.Pedido.Saldo
-    ];
 
     labels.forEach((label, i) => {
         const yPos = y + i * 7;
@@ -2856,26 +2996,27 @@ function generarRemitoPDF(datos) {
 
 function descargarRemitoPDF(datos, facturaPDF) {
 
-    let msjpedido = "";
+    let msjPedido = "";
 
     if (datos.Pedido.IdPedido == "") {
-        msjpedido = ""
+        msjPedido = ""
     } else {
-        msjpedido = `Nº ${datos.Pedido.IdPedido} `
+        msjPedido = `Nº ${datos.Pedido.IdPedido} `
     }
 
 
     let titulo = "";
 
     if (datos.Pedido.FormaPago.includes("Tarjeta")) {
-        titulo = `TJ - Remito ${msjpedido}Cliente ${facturaCliente} ${datos.Pedido.SubTotal}`
+        titulo = `TJ - Remito ${msjPedido}Cliente ${facturaCliente} ${datos.Pedido.SubTotal}`
     } else {
-        titulo = `Remito ${msjpedido}Cliente ${facturaCliente} ${datos.Pedido.SubTotal}`
+        titulo = `Remito ${msjPedido}Cliente ${facturaCliente} ${datos.Pedido.SubTotal}`
     }
 
 
     facturaPDF.save(`${titulo}.pdf`);
 }
+
 
 
 function obtenerUrlCompleta(rutaRelativa) {
