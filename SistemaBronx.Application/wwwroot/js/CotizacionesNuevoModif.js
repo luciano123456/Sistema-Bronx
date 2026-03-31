@@ -3113,11 +3113,11 @@ $(document).ready(function () {
 });
 
 
-$('#btnRegistrarCotizacion').on('click', registrarComoCotizacion);
+$('#btnRegistrarPedido').on('click', registrarComoPedido);
 
-async function registrarComoCotizacion() {
+async function registrarComoPedido() {
     try {
-        const $btn = $('#btnRegistrarCotizacion');
+        const $btn = $('#btnRegistrarPedido');
         const idCot = $('#IdCotizacion').val()?.toString().trim();
         const cantProductos = $('#grd_Productos').DataTable().rows().count();
         const idCliente = $('#Clientes').val();
@@ -3140,7 +3140,7 @@ async function registrarComoCotizacion() {
             return;
         }
 
-        if (!confirm("¿Registrar esta Cotización como Cotizacion? Se eliminará de Cotizaciones.")) {
+        if (!confirm("¿Registrar esta Cotización como Pedido? Se eliminará de Cotizaciones.")) {
             return;
         }
 
@@ -3151,7 +3151,7 @@ async function registrarComoCotizacion() {
 
         // Llamada al endpoint que te pasé en el controller:
         // [HttpPost] Cotizaciones/RegistrarComoCotizacion?id=##
-        const resp = await fetch(`/Cotizaciones/RegistrarComoCotizacion?id=${encodeURIComponent(idCot)}`, {
+        const resp = await fetch(`/Cotizaciones/RegistrarComoPedido?id=${encodeURIComponent(idCot)}`, {
             method: 'POST',
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         });
@@ -3166,7 +3166,7 @@ async function registrarComoCotizacion() {
             exitoModal('Cotización registrada exitosamente como Cotizacion.');
             // Redirigir al Cotizacion creado (tu patrón actual de edición)
             setTimeout(() => {
-                window.location.href = `/Cotizacions/NuevoModif/${data.idCotizacion}`;
+                window.location.href = `/Cotizaciones/NuevoModif/${data.idCotizacion}`;
             }, 900);
         } else {
             throw new Error(data?.message || 'No se pudo registrar la Cotización.');
@@ -3176,6 +3176,6 @@ async function registrarComoCotizacion() {
         errorModal(err.message || 'Error inesperado al convertir en Cotizacion.');
     } finally {
         // Rehabilitar el botón
-        $('#btnRegistrarCotizacion').prop('disabled', false).html('<i class="fa fa-shopping-cart me-1"></i> Registrar como Cotizacion');
+        $('#btnRegistrarPedido').prop('disabled', false).html('<i class="fa fa-shopping-cart me-1"></i> Registrar como Cotizacion');
     }
 }
