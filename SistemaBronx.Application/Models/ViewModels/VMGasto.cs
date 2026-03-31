@@ -13,6 +13,8 @@ namespace SistemaBronx.Application.Models.ViewModels
         public int IdFormadePago { get; set; }
         public string FormaPago { get; set; }
         public string Categoria { get; set; }
+        public string Tipo { get; set; }
+
 
         public decimal? PorcIva { get; set; }
 

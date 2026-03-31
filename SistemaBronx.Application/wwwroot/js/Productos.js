@@ -43,7 +43,7 @@ function duplicarProducto(id) {
 async function eliminarProducto(id) {
     if (!window.confirm("¿Desea eliminar el Producto?")) return;
     try {
-        const response = await fetch("Productos/Eliminar?id=" + id, { method: "DELETE" });
+        const response = await fetch("/Productos/Eliminar?id=" + id, { method: "DELETE" });
         if (!response.ok) throw new Error("Error al eliminar el Producto.");
         const ok = await response.json();
         if (ok?.valor ?? ok) {

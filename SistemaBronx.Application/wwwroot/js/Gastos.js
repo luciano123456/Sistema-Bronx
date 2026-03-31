@@ -10,13 +10,14 @@ const IvaInput = document.getElementById('txtIva');
 const columnConfig = [
     { index: 1, filterType: 'text' },
     { index: 2, filterType: 'select', fetchDataFunc: listaCategoriasFilter },
-    { index: 3, filterType: 'select', fetchDataFunc: listaFormasdepagoFilter },
-    { index: 4, filterType: 'text', },
-    { index: 5, filterType: 'text' },
+    { index: 3, filterType: 'text', },
+    { index: 4, filterType: 'select', fetchDataFunc: listaFormasdepagoFilter },
+    { index: 5, filterType: 'text', },
     { index: 6, filterType: 'text' },
     { index: 7, filterType: 'text' },
     { index: 8, filterType: 'text' },
     { index: 9, filterType: 'text' },
+    { index: 10, filterType: 'text' },
 ];
 
 $(document).ready(() => {
@@ -251,6 +252,7 @@ async function configurarDataTable(data) {
                 },
                 { data: 'Fecha' },
                 { data: 'Categoria' },
+                { data: 'Tipo' },
                 { data: 'FormaPago' },
                 { data: 'ImporteTotal' },
                 { data: 'PorcIva' },
@@ -285,7 +287,7 @@ async function configurarDataTable(data) {
                         let color = data > 0 ? 'red' : 'green'; // Color según si es negativo o positivo
                         return `<span style="color: ${color}; font-weight: bold;">${formattedNumber}</span>`;
                     },
-                    "targets": [8] // Índice de la columna 'Saldo'
+                    "targets": [9] // Índice de la columna 'Saldo'
                 },
                 {
                     "render": function (data, type, row) {
@@ -301,7 +303,7 @@ async function configurarDataTable(data) {
                     "render": function (data, type, row) {
                         return formatNumber(data); // Formatear número en la columna
                     },
-                    "targets": [4, 6, 7, 8] // Columna Precio
+                    "targets": [5, 7, 8, 9] // Columna Precio
                 }
 
                
@@ -400,7 +402,7 @@ async function configurarDataTable(data) {
             var colIndex = cell.index().column;
             var rowData = gridGastos.row($(this).closest('tr')).data();
 
-            if (colIndex == 0 || colIndex == 6 || colIndex == 8) {
+            if (colIndex == 0 || colIndex == 7 || colIndex == 9) {
                 return false;
             }
 
@@ -513,7 +515,7 @@ async function configurarDataTable(data) {
                     inputFecha.focus();
                 
 
-            } else if (colIndex === 4 || colIndex === 6) {
+            } else if (colIndex === 5 || colIndex === 7) {
                 var valueToDisplay = originalData ? originalData.toString().replace(/[^\d.-]/g, '') : '';
 
 
@@ -622,7 +624,7 @@ async function configurarDataTable(data) {
 
 
                 // Verificar si el texto realmente ha cambiado
-                if (colIndex === 4 || colIndex === 6) { // Si es la columna PrecioCosto o PrecioVenta
+                if (colIndex === 5 || colIndex === 7) { // Si es la columna PrecioCosto o PrecioVenta
                     // Convertir ambos valores a números flotantes
                     var originalValue = parseFloat(originalText).toFixed(2);
                     var newValueFloat = parseFloat(convertirMonedaAFloat(newText)).toFixed(2);
@@ -645,10 +647,10 @@ async function configurarDataTable(data) {
                 if (colIndex === 2) { // Si es la columna de la dirección
                     rowData.IdCategoria = newValue;
                     rowData.Categoria = newText;
-                } else if (colIndex === 3) { // Si es la columna de forma de pago
+                } else if (colIndex === 4) { // Si es la columna de forma de pago
                     rowData.IdFormadePago = newValue;
                     rowData.FormaPago = newText;
-                } else if (colIndex === 7) { // Si es la columna de importe abonado
+                } else if (colIndex === 8) { // Si es la columna de importe abonado
                     rowData.ImporteAbonado = parseFloat(convertirMonedaAFloat(newText));
                     rowData.Saldo = rowData.SubtotalNeto - rowData.ImporteAbonado;
 

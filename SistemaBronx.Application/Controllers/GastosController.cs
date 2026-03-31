@@ -45,7 +45,8 @@ namespace SistemaBronx.Application.Controllers
                 Saldo = c.Saldo,
                 SubtotalNeto = c.SubtotalNeto,
                 FormaPago = c.IdFormadePagoNavigation.Nombre,
-                Categoria = c.IdCategoriaNavigation.Nombre
+                Categoria = c.IdCategoriaNavigation.Nombre,
+                Tipo = c.IdCategoriaNavigation.IdTipoNavigation.Nombre
 
             }).ToList();
 
