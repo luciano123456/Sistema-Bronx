@@ -355,8 +355,9 @@
                                     <tr>
                                         <th>Descripción</th>
                                         <th>Categoría</th>
+                                        <th>Stock</th>
                                         <th>Precio venta</th>
-                                        <th hidden>Acciones</th>
+                                        <th hidden>Id</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -391,6 +392,54 @@
                             <div class="cc-field full field-nombre">
                                 <label class="form-label">Nombre</label>
                                 <input type="text" class="form-control" id="ProductoModalNombre">
+                            </div>
+
+                            <div id="panelStockProducto" class="cc-stock-panel mt-3 d-none">
+                                <div class="cc-titlebar mb-2">
+                                    <h6 class="m-0">
+                                        <i class="fa fa-cubes me-2"></i> Stock de producto terminado
+                                    </h6>
+                                </div>
+
+                                <div class="cc-stock-summary mb-3">
+                                    <div class="cc-stock-summary-item">
+                                        <span class="cc-stock-label">Disponible</span>
+                                        <strong id="stockProductoDisponible">0</strong>
+                                    </div>
+                                    <div class="cc-stock-summary-item">
+                                        <span class="cc-stock-label">Cantidad pedida</span>
+                                        <strong id="stockProductoCantidadPedida">0</strong>
+                                    </div>
+                                    <div class="cc-stock-summary-item">
+                                        <span class="cc-stock-label">Descontar del stock</span>
+                                        <strong id="stockProductoCantidadADescontar">0</strong>
+                                    </div>
+                                </div>
+
+                                <div class="cc-stock-options">
+                                    <label class="cc-stock-option">
+                                        <input type="radio" name="modoStockProducto" value="no" checked>
+                                        <span>No descontar stock del producto</span>
+                                    </label>
+
+                                    <label class="cc-stock-option">
+                                        <input type="radio" name="modoStockProducto" value="total">
+                                        <span>Descontar todo automáticamente</span>
+                                    </label>
+
+                                    <label class="cc-stock-option">
+                                        <input type="radio" name="modoStockProducto" value="parcial">
+                                        <span>Descontar cantidad manual</span>
+                                    </label>
+                                </div>
+
+                                <div id="bloqueStockProductoManual" class="mt-3 d-none">
+                                    <label for="stockProductoManual" class="form-label">Cantidad a descontar</label>
+                                    <input type="number" min="0" step="0.01" class="form-control" id="stockProductoManual" value="0">
+                                    <small class="text-muted">
+                                        Podés vender el producto sin tocar stock, descontar todo, o descontar solo una parte.
+                                    </small>
+                                </div>
                             </div>
 
                             <div class="cc-field field-categoria">
@@ -448,12 +497,49 @@
                         <h6 class="m-0">Insumos del producto</h6>
                     </div>
 
+                    <div id="panelStockInsumos" class="cc-stock-panel mb-3">
+                        <div class="cc-stock-summary mb-3">
+                            <div class="cc-stock-summary-item">
+                                <span class="cc-stock-label">Insumos con stock</span>
+                                <strong id="stockInsumosConStock">0</strong>
+                            </div>
+                            <div class="cc-stock-summary-item">
+                                <span class="cc-stock-label">Insumos sin stock</span>
+                                <strong id="stockInsumosSinStock">0</strong>
+                            </div>
+                            <div class="cc-stock-summary-item">
+                                <span class="cc-stock-label">Modo actual</span>
+                                <strong id="stockInsumosModoActual">No descontar</strong>
+                            </div>
+                        </div>
+
+                        <div class="cc-stock-options">
+                            <label class="cc-stock-option">
+                                <input type="radio" name="modoStockInsumos" value="no" checked>
+                                <span>No descontar stock de insumos</span>
+                            </label>
+
+                            <label class="cc-stock-option">
+                                <input type="radio" name="modoStockInsumos" value="total">
+                                <span>Descontar stock de todos los insumos</span>
+                            </label>
+
+                            <label class="cc-stock-option">
+                                <input type="radio" name="modoStockInsumos" value="manual">
+                                <span>Elegir manualmente por insumo</span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="cc-tablewrap lista-insumos-height">
                         <table class="table table-hover w-100 mb-0" id="grd_Insumos_Modal">
                             <thead>
                                 <tr>
                                     <th>Descripción</th>
                                     <th>Cantidad</th>
+                                    <th>Stock</th>
+                                    <th>Usar stock</th>
+                                    <th>Cant. stock</th>
                                     <th>PrecioUnitario</th>
                                     <th>SubTotal</th>
                                     <th hidden>IdCategoria</th>

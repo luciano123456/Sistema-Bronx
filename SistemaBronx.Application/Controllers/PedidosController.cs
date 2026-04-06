@@ -1,20 +1,16 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SistemaBronx.Application.Models;
 using SistemaBronx.Application.Models.ViewModels;
 using SistemaBronx.BLL.Service;
 using SistemaBronx.Models;
-using Microsoft.AspNetCore.Authorization;
 using System.Diagnostics;
-using System.Linq.Expressions;
-using System.Text.Json.Serialization;
 using System.Text.Json;
-using AspNetCoreGeneratedDocument;
+using System.Text.Json.Serialization;
 
 namespace SistemaBronx.Application.Controllers
 {
-
     [Authorize]
-
     public class PedidosController : Controller
     {
         private readonly IPedidoService _PedidosService;
@@ -25,7 +21,6 @@ namespace SistemaBronx.Application.Controllers
             _PedidosService = PedidosService;
             _ProductosService = ProductosService;
         }
-
 
         [HttpPost]
         public async Task<IActionResult> Insertar([FromBody] VMPedido model)
@@ -48,17 +43,16 @@ namespace SistemaBronx.Application.Controllers
                     NroFactura = model.NroFactura,
                     CostoFinanciero = model.CostoFinanciero,
                     CostoFinancieroPorc = model.CostoFinancieroPorc
-
                 };
 
-                List<PedidosDetalle> pedidoDetalle = new List<PedidosDetalle>();
-                List<PedidosDetalleProceso> pedidoDetalleProceso = new List<PedidosDetalleProceso>();
+                List<PedidosDetalle> pedidoDetalle = new();
+                List<PedidosDetalleProceso> pedidoDetalleProceso = new();
 
                 if (model.PedidosDetalles != null && model.PedidosDetalles.Any())
                 {
                     pedidoDetalle = model.PedidosDetalles.Select(detalle => new PedidosDetalle
                     {
-                        Id = detalle.Id, // Si el ID existe, actualizarlo; si no, insertarlo
+                        Id = detalle.Id,
                         Cantidad = detalle.Cantidad,
                         CostoUnitario = detalle.CostoUnitario ?? 0,
                         PrecioVenta = detalle.PrecioVenta ?? 0,
@@ -71,20 +65,19 @@ namespace SistemaBronx.Application.Controllers
                     }).ToList();
                 }
 
-                // Actualizar Detalles de Insumos
                 if (model.PedidosDetalleProcesos != null && model.PedidosDetalleProcesos.Any())
                 {
                     pedidoDetalleProceso = model.PedidosDetalleProcesos.Select(detalleProceso => new PedidosDetalleProceso
                     {
-                        Id = detalleProceso.Id, // Si el ID existe, actualizarlo; si no, insertarlo
-                        IdDetalle = detalleProceso.IdDetalle, // Si el ID existe, actualizarlo; si no, insertarlo
+                        Id = detalleProceso.Id,
+                        IdDetalle = detalleProceso.IdDetalle,
                         Cantidad = detalleProceso.Cantidad,
                         IdCategoria = detalleProceso.IdCategoria,
                         Comentarios = detalleProceso.Comentarios,
                         Descripcion = detalleProceso.Descripcion,
                         Especificacion = detalleProceso.Especificacion,
                         IdColor = detalleProceso.IdColor,
-                        FechaActualizacion = DateTime.Now, // Se actualiza la fecha de modificación
+                        FechaActualizacion = DateTime.Now,
                         SubTotal = detalleProceso.SubTotal ?? 0,
                         IdEstado = detalleProceso.IdEstado,
                         IdTipo = detalleProceso.IdTipo,
@@ -96,18 +89,35 @@ namespace SistemaBronx.Application.Controllers
                     }).ToList();
                 }
 
-                // Llamar al servicio con la transacción
-                var resultado = await _PedidosService.Insertar(pedido, pedidoDetalle.AsQueryable(), pedidoDetalleProceso.AsQueryable());
+                var validacion = await _PedidosService.ValidarStockPedido(
+                    pedidoDetalle.AsQueryable(),
+                    pedidoDetalleProceso.AsQueryable()
+                );
 
+                if (!validacion.ok)
+                {
+                    return BadRequest(new
+                    {
+                        valor = false,
+                        stock = false,
+                        errores = validacion.errores
+                    });
+                }
+
+                var resultado = await _PedidosService.Insertar(
+                    pedido,
+                    pedidoDetalle.AsQueryable(),
+                    pedidoDetalleProceso.AsQueryable()
+                );
 
                 if (!resultado)
-                    return BadRequest("Error al insertar el pedido y sus detalles");
+                    return BadRequest(new { valor = false, msg = "Error al insertar el pedido y sus detalles." });
 
                 return Ok(new { valor = true });
             }
             catch (Exception ex)
             {
-                return BadRequest("Error al insertar el pedido: " + ex.Message);
+                return BadRequest(new { valor = false, msg = "Error al insertar el pedido: " + ex.Message });
             }
         }
 
@@ -116,14 +126,10 @@ namespace SistemaBronx.Application.Controllers
         {
             try
             {
-                // Buscar el pedido existente
                 var pedido = await _PedidosService.ObtenerPedido(model.Id);
                 if (pedido == null)
-                {
-                    return NotFound("El pedido no existe.");
-                }
+                    return NotFound(new { valor = false, msg = "El pedido no existe." });
 
-                // Actualizar los datos del pedido
                 pedido.IdCliente = model.IdCliente;
                 pedido.IdFormaPago = model.IdFormaPago;
                 pedido.ImporteTotal = model.ImporteTotal ?? 0;
@@ -132,21 +138,20 @@ namespace SistemaBronx.Application.Controllers
                 pedido.PorcDescuento = model.PorcDescuento ?? 0;
                 pedido.Saldo = model.Saldo ?? 0;
                 pedido.Comentarios = model.Comentarios;
-                pedido.Finalizado = (int)model.Finalizado;
-                pedido.Facturado = (int)model.Facturado;
+                pedido.Finalizado = model.Finalizado ?? 0;
+                pedido.Facturado = model.Facturado ?? 0;
                 pedido.NroFactura = model.NroFactura;
                 pedido.CostoFinanciero = model.CostoFinanciero;
                 pedido.CostoFinancieroPorc = model.CostoFinancieroPorc;
 
-                // Actualizar Detalles de Productos
-                List<PedidosDetalle> pedidoDetalle = new List<PedidosDetalle>();
-                List<PedidosDetalleProceso> pedidoDetalleProceso = new List<PedidosDetalleProceso>();
+                List<PedidosDetalle> pedidoDetalle = new();
+                List<PedidosDetalleProceso> pedidoDetalleProceso = new();
 
                 if (model.PedidosDetalles != null && model.PedidosDetalles.Any())
                 {
                     pedidoDetalle = model.PedidosDetalles.Select(detalle => new PedidosDetalle
                     {
-                        Id = detalle.Id, // Si el ID existe, actualizarlo; si no, insertarlo
+                        Id = detalle.Id,
                         Cantidad = detalle.Cantidad,
                         CostoUnitario = detalle.CostoUnitario ?? 0,
                         PrecioVenta = detalle.PrecioVenta ?? 0,
@@ -159,20 +164,19 @@ namespace SistemaBronx.Application.Controllers
                     }).ToList();
                 }
 
-                // Actualizar Detalles de Insumos
                 if (model.PedidosDetalleProcesos != null && model.PedidosDetalleProcesos.Any())
                 {
                     pedidoDetalleProceso = model.PedidosDetalleProcesos.Select(detalleProceso => new PedidosDetalleProceso
                     {
-                        Id = detalleProceso.Id, // Si el ID existe, actualizarlo; si no, insertarlo
-                        IdDetalle = detalleProceso.IdDetalle, // Si el ID existe, actualizarlo; si no, insertarlo
+                        Id = detalleProceso.Id,
+                        IdDetalle = detalleProceso.IdDetalle,
                         Cantidad = detalleProceso.Cantidad,
                         IdCategoria = detalleProceso.IdCategoria,
                         Comentarios = detalleProceso.Comentarios,
                         Descripcion = detalleProceso.Descripcion,
                         Especificacion = detalleProceso.Especificacion,
                         IdColor = detalleProceso.IdColor,
-                        FechaActualizacion = DateTime.Now, // Se actualiza la fecha de modificación
+                        FechaActualizacion = DateTime.Now,
                         SubTotal = detalleProceso.SubTotal ?? 0,
                         IdEstado = detalleProceso.IdEstado,
                         IdTipo = detalleProceso.IdTipo,
@@ -184,63 +188,170 @@ namespace SistemaBronx.Application.Controllers
                     }).ToList();
                 }
 
-                // Llamar al servicio para actualizar los datos en la base de datos
-                var resultado = await _PedidosService.Actualizar(pedido, pedidoDetalle.AsQueryable(), pedidoDetalleProceso.AsQueryable());
+                var validacion = await _PedidosService.ValidarStockPedido(
+                    pedidoDetalle.AsQueryable(),
+                    pedidoDetalleProceso.AsQueryable()
+                );
+
+                if (!validacion.ok)
+                {
+                    return BadRequest(new
+                    {
+                        valor = false,
+                        stock = false,
+                        errores = validacion.errores
+                    });
+                }
+
+                var resultado = await _PedidosService.Actualizar(
+                    pedido,
+                    pedidoDetalle.AsQueryable(),
+                    pedidoDetalleProceso.AsQueryable()
+                );
 
                 if (!resultado)
-                {
-                    return BadRequest("Error al actualizar el pedido y sus detalles");
-                }
+                    return BadRequest(new { valor = false, msg = "Error al actualizar el pedido y sus detalles." });
 
                 return Ok(new { valor = true });
             }
             catch (Exception ex)
             {
-                return BadRequest("Error al actualizar el pedido: " + ex.Message);
+                return BadRequest(new { valor = false, msg = "Error al actualizar el pedido: " + ex.Message });
             }
         }
-
 
         [HttpPut]
         public async Task<IActionResult> ActualizarDetalleProceso([FromBody] VMPedidoDetalleProceso model)
         {
             try
             {
-
-                PedidosDetalleProceso pedidoDetalleProceso = new PedidosDetalleProceso();
+                var pedidoDetalleProceso = new PedidosDetalleProceso();
 
                 if (model != null)
                 {
-                        
-                    
-                        pedidoDetalleProceso.Cantidad = model.Cantidad;
-                        pedidoDetalleProceso.Id = model.Id;
-                        pedidoDetalleProceso.Comentarios = model.Comentarios;
-                        pedidoDetalleProceso.Descripcion = model.Descripcion;
-                        pedidoDetalleProceso.Especificacion = model.Especificacion;
-                        pedidoDetalleProceso.IdColor = model.IdColor;
-                        pedidoDetalleProceso.FechaActualizacion = DateTime.Now; // Se actualiza la fecha de modificación
-                        pedidoDetalleProceso.IdEstado = model.IdEstado;
+                    pedidoDetalleProceso.Cantidad = model.Cantidad;
+                    pedidoDetalleProceso.Id = model.Id;
+                    pedidoDetalleProceso.Comentarios = model.Comentarios;
+                    pedidoDetalleProceso.Descripcion = model.Descripcion;
+                    pedidoDetalleProceso.Especificacion = model.Especificacion;
+                    pedidoDetalleProceso.IdColor = model.IdColor;
+                    pedidoDetalleProceso.FechaActualizacion = DateTime.Now;
+                    pedidoDetalleProceso.IdEstado = model.IdEstado;
                 }
 
-                // Llamar al servicio para actualizar los datos en la base de datos
                 var resultado = await _PedidosService.ActualizarDetalleProceso(pedidoDetalleProceso);
 
                 if (!resultado)
-                {
-                    return BadRequest("Error al actualizar el pedido y sus detalles");
-                }
+                    return BadRequest(new { valor = false, msg = "Error al actualizar el detalle del pedido." });
 
                 return Ok(new { valor = true });
             }
             catch (Exception ex)
             {
-                return BadRequest("Error al actualizar el pedido: " + ex.Message);
+                return BadRequest(new { valor = false, msg = "Error al actualizar el pedido: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ValidarStock([FromBody] VMPedido model)
+        {
+            try
+            {
+                List<PedidosDetalle> pedidoDetalle = new();
+                List<PedidosDetalleProceso> pedidoDetalleProceso = new();
+
+                if (model.PedidosDetalles != null && model.PedidosDetalles.Any())
+                {
+                    pedidoDetalle = model.PedidosDetalles.Select(detalle => new PedidosDetalle
+                    {
+                        Id = detalle.Id,
+                        Cantidad = detalle.Cantidad,
+                        CostoUnitario = detalle.CostoUnitario ?? 0,
+                        PrecioVenta = detalle.PrecioVenta ?? 0,
+                        PorcIva = detalle.PorcIva ?? 0,
+                        IdCategoria = detalle.IdCategoria,
+                        IdColor = detalle.IdColor,
+                        IdProducto = detalle.IdProducto,
+                        PorcGanancia = detalle.PorcGanancia ?? 0,
+                        Producto = detalle.Producto
+                    }).ToList();
+                }
+
+                if (model.PedidosDetalleProcesos != null && model.PedidosDetalleProcesos.Any())
+                {
+                    pedidoDetalleProceso = model.PedidosDetalleProcesos.Select(detalleProceso => new PedidosDetalleProceso
+                    {
+                        Id = detalleProceso.Id,
+                        IdDetalle = detalleProceso.IdDetalle,
+                        Cantidad = detalleProceso.Cantidad,
+                        IdCategoria = detalleProceso.IdCategoria,
+                        Comentarios = detalleProceso.Comentarios,
+                        Descripcion = detalleProceso.Descripcion,
+                        Especificacion = detalleProceso.Especificacion,
+                        IdColor = detalleProceso.IdColor,
+                        FechaActualizacion = DateTime.Now,
+                        SubTotal = detalleProceso.SubTotal ?? 0,
+                        IdEstado = detalleProceso.IdEstado,
+                        IdTipo = detalleProceso.IdTipo,
+                        PrecioUnitario = detalleProceso.PrecioUnitario ?? 0,
+                        IdUnidadMedida = detalleProceso.IdUnidadMedida,
+                        IdProveedor = detalleProceso.IdProveedor,
+                        IdProducto = detalleProceso.IdProducto,
+                        IdInsumo = detalleProceso.IdInsumo
+                    }).ToList();
+                }
+
+                var validacion = await _PedidosService.ValidarStockPedido(
+                    pedidoDetalle.AsQueryable(),
+                    pedidoDetalleProceso.AsQueryable()
+                );
+
+                return Ok(new
+                {
+                    ok = validacion.ok,
+                    errores = validacion.errores
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    ok = false,
+                    errores = new List<string> { "Error al validar stock: " + ex.Message }
+                });
             }
         }
 
         [HttpGet]
-        public async Task<IActionResult> Lista(DateTime FechaDesde, DateTime FechaHasta,int IdCliente, string Estado, int Finalizado)
+        public async Task<IActionResult> DisponibilidadStock(string tipoItem, int? idProducto, int? idInsumo, decimal cantidad)
+        {
+            try
+            {
+                var resp = await _PedidosService.ObtenerDisponibilidadStock(tipoItem, idProducto, idInsumo, cantidad);
+
+                return Ok(new
+                {
+                    ok = resp.ok,
+                    disponible = resp.disponible,
+                    faltante = resp.faltante,
+                    nombre = resp.nombre
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    ok = false,
+                    disponible = 0,
+                    faltante = cantidad,
+                    nombre = "",
+                    msg = ex.Message
+                });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Lista(DateTime FechaDesde, DateTime FechaHasta, int IdCliente, string Estado, int Finalizado)
         {
             try
             {
@@ -263,24 +374,22 @@ namespace SistemaBronx.Application.Controllers
                     CostoFinanciero = c.CostoFinanciero,
                     CostoFinancieroPorc = c.CostoFinancieroPorc,
                     Estado =
-                            c.PedidosDetalleProcesos.Any() &&
-                            c.PedidosDetalleProcesos.All(p => (p.IdEstadoNavigation?.Nombre?.Trim().ToUpper() ?? "") == "FINALIZADO") &&
-                            (c.Saldo ?? 0) == 0
-                                ? "FINALIZADO"
+                        c.PedidosDetalleProcesos.Any() &&
+                        c.PedidosDetalleProcesos.All(p => (p.IdEstadoNavigation?.Nombre?.Trim().ToUpper() ?? "") == "FINALIZADO") &&
+                        (c.Saldo ?? 0) == 0
+                            ? "FINALIZADO"
                             : c.PedidosDetalleProcesos.Any() &&
                               c.PedidosDetalleProcesos.All(p => (p.IdEstadoNavigation?.Nombre?.Trim().ToUpper() ?? "") == "ENTREGADO")
                                 ? "ENTREGADO"
-                            : c.PedidosDetalleProcesos.Any() &&
-                              c.PedidosDetalleProcesos.All(p => (p.IdEstadoNavigation?.Nombre?.Trim().ToUpper() ?? "") == "ENTREGAR")
-                                ? "ENTREGAR"
-                            : "EN PROCESO"
-
+                                : c.PedidosDetalleProcesos.Any() &&
+                                  c.PedidosDetalleProcesos.All(p => (p.IdEstadoNavigation?.Nombre?.Trim().ToUpper() ?? "") == "ENTREGAR")
+                                    ? "ENTREGAR"
+                                    : "EN PROCESO"
                 }).ToList();
-
 
                 return Ok(lista);
             }
-            catch (Exception ex)
+            catch
             {
                 return BadRequest("Ha ocurrido un error al mostrar la lista de pedidos");
             }
@@ -316,10 +425,9 @@ namespace SistemaBronx.Application.Controllers
                 Comentarios = pedido.Comentarios,
                 CostoFinanciero = pedido.CostoFinanciero,
                 CostoFinancieroPorc = pedido.CostoFinancieroPorc,
-                Estado = "Pendiente",
+                Estado = "Pendiente"
             };
 
-            // ---------------- Detalle ----------------
             List<VMPedidoDetalle> pedidoDetalle = new();
             if (pedido.PedidosDetalles != null && pedido.PedidosDetalles.Any())
             {
@@ -344,12 +452,10 @@ namespace SistemaBronx.Application.Controllers
                 }).ToList();
             }
 
-            // ---------------- Procesos ----------------
             List<VMPedidoDetalleProceso> pedidoDetalleProceso = new();
 
             if (pedido.PedidosDetalleProcesos != null && pedido.PedidosDetalleProcesos.Any())
             {
-                // 1) Pre-cargar insumos por producto (evita N+1)
                 var productoIds = pedido.PedidosDetalleProcesos
                     .Where(x => x.IdProducto.HasValue)
                     .Select(x => x.IdProducto!.Value)
@@ -364,7 +470,6 @@ namespace SistemaBronx.Application.Controllers
                         cantidadesBase[(i.IdProducto, i.IdInsumo)] = i.Cantidad;
                 }
 
-                // 2) Map a VM
                 pedidoDetalleProceso = pedido.PedidosDetalleProcesos.Select(detalleProceso =>
                 {
                     decimal cantInicial = 0m;
@@ -408,31 +513,26 @@ namespace SistemaBronx.Application.Controllers
                 }).ToList();
             }
 
-          result.Add("pedido", pedidoJSON);
-                result.Add("PedidoDetalle", pedidoDetalle);
-                result.Add("PedidoDetalleProceso", pedidoDetalleProceso);
+            result.Add("pedido", pedidoJSON);
+            result.Add("PedidoDetalle", pedidoDetalle);
+            result.Add("PedidoDetalleProceso", pedidoDetalleProceso);
 
-                var jsonOptions = new JsonSerializerOptions
-                {
-                    ReferenceHandler = ReferenceHandler.Preserve
-                };
+            var jsonOptions = new JsonSerializerOptions
+            {
+                ReferenceHandler = ReferenceHandler.Preserve
+            };
 
-                return Ok(System.Text.Json.JsonSerializer.Serialize(result, jsonOptions));
-            }
-
-            
-
+            return Ok(System.Text.Json.JsonSerializer.Serialize(result, jsonOptions));
+        }
 
         [HttpDelete]
         public async Task<bool> Eliminar(int id)
         {
             try
             {
-                var resp = await _PedidosService.EliminarPedido(id);
-
-                return true;
+                return await _PedidosService.EliminarPedido(id);
             }
-            catch (Exception ex)
+            catch
             {
                 return false;
             }
@@ -451,20 +551,11 @@ namespace SistemaBronx.Application.Controllers
             }
             else
             {
-                // Maneja el caso en el que no se encuentra el pedido
                 ViewBag.Error = "No se encontró el pedido.";
             }
 
-            // Retorna la vista
             return View();
         }
-
-
-        //public IActionResult NuevoModif()
-        //{
-        //    return View();
-        //}
-
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()

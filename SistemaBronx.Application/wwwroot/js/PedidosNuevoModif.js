@@ -274,87 +274,83 @@ async function configurarDataTableProductosModal(data) {
                 lengthMenu: "Anzeigen von _MENU_ Einträgen",
                 url: "//cdn.datatables.net/plug-ins/2.0.7/i18n/es-MX.json"
             },
-            paging: false,  // Desactiva la paginación
-            scrollX: true,  // Asegura que se pueda hacer scroll horizontal
-            scrollY: "400px",  // Ajusta la altura para el scroll vertical
-            scrollCollapse: true,  // Habilita el colapso del scroll si hay pocas filas
-            searching: false, // 🔹 Esto oculta el campo de búsqueda
+            paging: false,
+            scrollX: true,
+            scrollY: "400px",
+            scrollCollapse: true,
+            searching: false,
+
             columns: [
                 { data: 'Nombre' },
                 { data: 'Categoria' },
+
+                // 🔥 NUEVA COLUMNA STOCK
+                {
+                    data: 'Stock',
+                    render: function (data) {
+                        const stock = parseFloat(data) || 0;
+
+                        if (stock <= 0) {
+                            return `<span style="color:#dc3545;font-weight:bold">SIN STOCK</span>`;
+                        }
+                        if (stock < 5) {
+                            return `<span style="color:#ffc107;font-weight:bold">${stock}</span>`;
+                        }
+
+                        return `<span style="color:#28a745">${stock}</span>`;
+                    }
+                },
+
                 { data: 'CostoUnitario' },
                 { data: 'Id', visible: false },
-
             ],
-            orderCellsTop: true,
-            fixedHeader: false,
+
             columnDefs: [
                 {
-                    targets: [2],
-                    render: function (data, type, row) {
+                    targets: [3],
+                    render: function (data) {
                         const v = Math.ceil((Number(data) || 0) / 100) * 100;
                         return formatNumber(v);
                     }
                 }
             ],
 
-            initComplete: async function () {
-
-                var api = this.api();
-
-                setTimeout(function () {
+            initComplete: function () {
+                setTimeout(() => {
                     gridProductosModal.columns.adjust();
                 }, 250);
 
-
-
                 $('#grd_Productos_Modal tbody').on('click', 'tr', async function () {
-                    // Remover la clase de la fila anteriormente seleccionada
+
                     if (filaSeleccionadaProductos) {
                         isEditing = false;
                         filasSeleccionadas = [];
                         $(filaSeleccionadaProductos).removeClass('selected');
                         $('td', filaSeleccionadaProductos).removeClass('selected');
-
                     }
 
-                    var data = gridProductosModal.row(this).data();
+                    const data = gridProductosModal.row(this).data();
 
-                    if (data != null) {
-                        
-                        cargarInformacionProducto(data.Id);
+                    // 🔥 VALIDACIÓN STOCK
+                    if (!data || data.Stock <= 0) {
+                        errorModal("Este producto no tiene stock disponible.");
+                        return;
                     }
 
+                    cargarInformacionProducto(data.Id);
 
-                    // Obtener la fila actual
                     filaSeleccionadaProductos = $(this);
-
-                    // Agregar la clase a la fila actual
                     $(filaSeleccionadaProductos).addClass('selected');
                     $('td', filaSeleccionadaProductos).addClass('selected');
-
                 });
-
-                $('body').on('mouseenter', '#grd_Productos_Modal', function () {
-                    $(this).css('cursor', 'pointer');
-                });
-
-
-            },
+            }
         });
 
     } else {
-
-
-
         gridProductosModal.clear().rows.add(data).draw();
-
-        setTimeout(function () {
-            gridProductosModal.columns.adjust();
-        }, 250);
+        setTimeout(() => gridProductosModal.columns.adjust(), 250);
     }
 }
-
 async function configurarDataTableInsumosModal(data, editando) {
     if (gridInsumosModal == null) {
         gridInsumosModal = $('#grd_Insumos_Modal').DataTable({
@@ -685,65 +681,37 @@ async function configurarDataTableInsumosModal(data, editando) {
 }
 
 $('#ProductoModalCantidad').on('keyup', function () {
-    // Obtener el valor de la cantidad
-    var cantidad = $(this).val();
 
-    // Verificar si hay filas en gridInsumosModal
+    let cantidad = parseFloat($(this).val()) || 1;
+
+    if (!filaSeleccionadaProductos) return;
+
+    const producto = gridProductosModal.row(filaSeleccionadaProductos).data();
+
+    if (!producto) return;
+
+    if (cantidad > producto.Stock) {
+        $(this).css('border', '2px solid red');
+        errorModal(`Stock máximo disponible: ${producto.Stock}`);
+        return;
+    } else {
+        $(this).css('border', '');
+    }
+
     var filasEnGrid = gridInsumosModal.rows().data().length;
 
-    // Si no hay filas en el grid, no hacer nada
-    if (filasEnGrid === 0) {
-        return; // Detener la ejecución si no hay filas
-    }
+    if (filasEnGrid === 0) return;
 
-    // Verificar si hay filas seleccionadas
-    if (filasSeleccionadas.length > 0) {
-        // Si hay filas seleccionadas, actualizar solo esas
-        filasSeleccionadas.forEach(function (fila) {
-            var tr = $(fila); // Referencia al <tr> actual
-            var rowData = gridInsumosModal.row(tr).data(); // Obtener los datos de la fila
+    gridInsumosModal.rows().every(function () {
+        var rowData = this.data();
 
-            if (cantidad == '') {
-                cantidad = 1;
-            }
+        rowData.Cantidad = Math.round(rowData.CantidadInicial * cantidad * 100) / 100;
 
-            // Actualizar el objeto rowData
-           /* rowData.Cantidad = parseInt(cantidad);  // Actualizar la cantidad en rowData*/
-            rowData.Cantidad = Math.round(rowData.CantidadInicial * parseInt(cantidad, 10) * 100) / 100;
-            //rowData.SubTotal = parseFloat(rowData.CostoUnitario) * parseInt(cantidad);  // Actualizar la cantidad en rowData
+        gridInsumosModal.row(this).data(rowData).draw();
+    });
 
-            calcularIVAyGanancia();
-
-            // Actualizar la tabla con el nuevo rowData
-            gridInsumosModal.row(tr).data(rowData).draw();
-        });
-    } else {
-        // Si no hay filas seleccionadas, actualizar todas las filas
-        $('#grd_Insumos_Modal tbody tr').each(function () {
-            var tr = $(this); // Referencia al <tr> actual
-            var rowData = gridInsumosModal.row(tr).data(); // Obtener los datos de la fila
-
-            if (cantidad == '') {
-                cantidad = 1;
-            }
-
-            const idPedido = $("#IdPedido").val();
-
-            rowData.Cantidad = Math.round(rowData.CantidadInicial * parseInt(cantidad, 10) * 100) / 100;
-
-
-            // Actualizar el objeto rowData
-           
-            //rowData.SubTotal = parseFloat(rowData.CostoUnitario) * parseInt(cantidad);  // Actualizar la cantidad en rowData
-
-            calcularIVAyGanancia();
-
-            // Actualizar la tabla con el nuevo rowData
-            gridInsumosModal.row(tr).data(rowData).draw();
-        });
-    }
+    calcularIVAyGanancia();
 });
-
 $('#Clientes').on('change', async function () {
     var IdCliente = document.getElementById("Clientes").value;
     await cargarDatosCliente(IdCliente);
@@ -1314,6 +1282,19 @@ async function guardarProducto() {
     const editando = IdProductoEditando != "" ? true : false;
 
     if (!editando) {
+
+        const dataProducto = gridProductosModal.row(filaSeleccionadaProductos).data();
+
+        if (!dataProducto || dataProducto.Stock <= 0) {
+            errorModal("No hay stock disponible para este producto.");
+            return false;
+        }
+
+        if (parseFloat(Cantidad) > parseFloat(dataProducto.Stock)) {
+            errorModal(`Stock insuficiente. Disponible: ${dataProducto.Stock}`);
+            return false;
+        }
+
         if (NombreProducto == "") {
             errorModal("Debes seleccionar un producto");
             return false;
@@ -2180,7 +2161,7 @@ async function guardarCambios(redirecciona = true) {
 
 
 function isValidPedido() {
-    // Assuming grd_productos is a table with an id 'grd_productos'
+
     var cantidadFilas = $('#grd_Productos').DataTable().rows().count();
     var saldo = parseFloat(convertirMonedaAFloat($("#Saldo").val()));
     const IdPedido = document.getElementById('IdPedido').value;
@@ -2191,26 +2172,34 @@ function isValidPedido() {
         return false;
     }
 
-
-
     if (cantidadFilas <= 0) {
-        if (IdPedido == "") {
-            errorModal('No puedes crear un pedido sin productos.')
-        } else {
-            errorModal('No puedes modificar un pedido sin productos.')
-        }
+        errorModal('No puedes guardar un pedido sin productos.');
         return false;
     }
 
     if (saldo < 0) {
-        errorModal('No puedes tener un saldo de pago negativo')
+        errorModal('No puedes tener un saldo negativo');
         return false;
     }
 
+    // 🔥 VALIDACIÓN STOCK GLOBAL
+    let errorStock = false;
+
+    gridProductos.rows().every(function () {
+        const p = this.data();
+
+        if (p.Stock !== undefined && p.Cantidad > p.Stock) {
+            errorStock = true;
+        }
+    });
+
+    if (errorStock) {
+        errorModal("Uno o más productos superan el stock disponible.");
+        return false;
+    }
 
     return true;
 }
-
 function nuevoCliente() {
     limpiarModalCliente();
     listaProvincias();
