@@ -53,40 +53,20 @@
             </small>
         </div>
 
-        <!-- FILTRO TIPO -->
-        <div class="stock-toolbar-pro">
-
-            <!-- SEGMENT FILTER -->
-            <div class="stock-segment">
-
-                <button class="seg-btn active" data-tipo="ALL">
-                    Todos
-                </button>
-
-                <button class="seg-btn" data-tipo="P">
-                    <i class="fa fa-cube me-1"></i> Productos
-                </button>
-
-                <button class="seg-btn" data-tipo="I">
-                    <i class="fa fa-wrench me-1"></i> Insumos
-                </button>
-
-            </div>
-
-            <!-- SEARCH -->
-            <div class="stock-search-wrap">
-                <i class="fa fa-search"></i>
-                <input id="txtBuscarStock"
-                       placeholder="Buscar producto o insumo...">
-            </div>
-
+        <div class="dt-dark-wrap">
+            <table id="grd_Stock" class="display nowrap compact dt-dark stock-grid" style="width:100%">
+                <thead>
+                    <tr>
+                        <th style="width:10%">Tipo</th>
+                        <th>Ítem</th>
+                        <th style="width:14%">Stock</th>
+                        <th style="width:18%">Último movimiento</th>
+                        <th style="width:8%"></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
-
-        <!-- CONTENEDOR CARDS -->
-        <div id="stockCardsContainer" class="stock-cards-grid"></div>
-
-        <!-- PAGINADO -->
-        <div id="stockPaginador" class="stock-paginador"></div>
     </div>
 </div>
 
@@ -203,11 +183,10 @@
 
     <!-- Bootstrap (modals) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <!-- Utilidades base -->
     <script src="~/js/site.js"></script>
 
     <!-- Script de Stock -->
-    <script src="~/js/Stock.js?v=5.1"></script>
+    <script src="~/js/Stock.js?v=5.2"></script>
 }

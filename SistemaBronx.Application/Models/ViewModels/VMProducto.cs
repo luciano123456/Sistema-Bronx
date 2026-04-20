@@ -14,6 +14,7 @@ namespace SistemaBronx.Application.Models.ViewModels
         public decimal PorcGanancia { get; set; }
 
         public decimal? PorcIva { get; set; }
+        public decimal Stock { get; set; }
 
         public decimal CostoUnitario { get; set; }
 

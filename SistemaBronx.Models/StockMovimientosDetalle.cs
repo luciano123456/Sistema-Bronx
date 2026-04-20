@@ -28,4 +28,8 @@ public partial class StockMovimientosDetalle
     public virtual StockMovimiento IdMovimientoNavigation { get; set; } = null!;
 
     public virtual Producto? IdProductoNavigation { get; set; }
+
+    public virtual ICollection<PedidosDetalleProcesosStock> PedidosDetalleProcesosStocks { get; set; } = new List<PedidosDetalleProcesosStock>();
+
+    public virtual ICollection<PedidosDetalleStock> PedidosDetalleStocks { get; set; } = new List<PedidosDetalleStock>();
 }

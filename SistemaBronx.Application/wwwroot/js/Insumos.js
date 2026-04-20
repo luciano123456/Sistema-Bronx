@@ -17,7 +17,10 @@ const columnConfig = [
     { index: 6, filterType: 'select', fetchDataFunc: listaCategoriasFilter }, // Columna con un filtro de selección
     { index: 7, filterType: 'select', fetchDataFunc: listaUnidadesDeMedidasFilter }, // Columna con un filtro de selección
     { index: 8, filterType: 'select', fetchDataFunc: listaProveedoresFilter },
-    { index: 9, filterType: 'text' },
+    { index: 9, name: 'Stock', filterType: 'text' },
+    { index: 10, name: 'Estado', filterType: 'selectEstado' },
+    { index: 11, filterType: 'text' },
+
 
 ];
 
@@ -507,8 +510,32 @@ async function configurarDataTable(data) {
                 { data: 'Categoria' },
                 { data: 'UnidaddeMedida' },
                 { data: 'Proveedor' },
-                { data: 'Especificacion' },
-               
+
+                {
+                    data: 'Stock',
+                    title: 'Stock',
+                    render: function (data) {
+                        return `<span class="stock-num">${data}</span>`;
+                    }
+                },
+                {
+                    data: null,
+                    title: 'Estado',
+                    render: function (row) {
+                        const stock = Number(row.Stock || 0);
+
+                        if (stock <= 0) {
+                            return `<span class="badge bg-danger">SIN STOCK</span>`;
+                        }
+                        if (stock <= 5) {
+                            return `<span class="badge bg-warning text-dark">BAJO</span>`;
+                        }
+                        return `<span class="badge bg-success">OK</span>`;
+                    }
+                },
+
+                { data: 'Especificacion' }
+
             ],
             dom: 'Bfrtip',
             buttons: [
@@ -575,7 +602,40 @@ async function configurarDataTable(data) {
                         });
 
 
-                    } else if (config.filterType === 'text') {
+                    }  else if (config.filterType === 'selectEstado') {
+
+                        var select = $('<select multiple="multiple"></select>')
+                            .appendTo(cell.empty())
+                            .on('change', async function () {
+                                var selectedValues = $(this).val();
+
+                                if (selectedValues && selectedValues.length > 0) {
+                                    var regex = selectedValues.join('|');
+                                    await api.column(config.index).search(regex, true, false).draw();
+                                } else {
+                                    await api.column(config.index).search('').draw();
+                                }
+                            });
+
+                        select.append('<option value="SIN STOCK">🔴 Sin Stock</option>');
+                        select.append('<option value="BAJO">🟡 Bajo</option>');
+                        select.append('<option value="OK">🟢 OK</option>');
+
+                        select.select2({
+                            placeholder: 'Estado...',
+                            width: '100%',
+                            dropdownParent: $(document.body),
+                            minimumResultsForSearch: -1,
+                            closeOnSelect: false
+                        });
+
+                        // 🔥 FIX DEFINITIVO DEL BUG
+                        select.next('.select2-container').on('click mousedown mouseup', function (e) {
+                            e.stopPropagation();
+                        });
+
+                   
+                    }  else if (config.filterType === 'text') {
                         var input = $('<input type="text" placeholder="Buscar..." />')
                             .appendTo(cell.empty())
                             .off('keyup change') // Desactivar manejadores anteriores
@@ -1152,3 +1212,17 @@ function calcularTotalesInsumos() {
     if ($cat.length) $cat.text(categorias.size.toLocaleString('es-AR'));
     if ($sum.length) $sum.text(formatNumber(sumaCostos));
 }
+
+
+$(document).on('click', '.btn-stock', function () {
+    $('.btn-stock').removeClass('active');
+    $(this).addClass('active');
+
+    const val = $(this).data('filter');
+
+    if (!val) {
+        gridInsumos.column(10).search('').draw();
+    } else {
+        gridInsumos.column(10).search(val, true, false).draw();
+    }
+});

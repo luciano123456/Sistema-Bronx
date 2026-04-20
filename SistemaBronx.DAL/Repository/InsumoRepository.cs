@@ -64,17 +64,28 @@ namespace SistemaBronx.DAL.Repository
                 return false;
             }
         }
+
         public async Task<Insumo> Obtener(int id)
         {
             try
             {
-                // Usamos FirstOrDefaultAsync para realizar una consulta con los Includes
-                Insumo model = await _dbcontext.Insumos
+                var model = await _dbcontext.Insumos
                     .Include(c => c.IdUnidadMedidaNavigation)
                     .Include(c => c.IdTipoNavigation)
                     .Include(c => c.IdProveedorNavigation)
                     .Include(c => c.IdCategoriaNavigation)
-                    .FirstOrDefaultAsync(c => c.Id == id); // Realizamos la búsqueda por ID
+                    .FirstOrDefaultAsync(c => c.Id == id);
+
+                if (model == null)
+                    return null;
+
+                // 🔥 TRAER STOCK
+                var stock = await _dbcontext.StockSaldos
+                    .Where(s => s.TipoItem == "I" && s.IdInsumo == id)
+                    .Select(s => s.CantidadActual)
+                    .FirstOrDefaultAsync();
+
+                model.Stock = stock;
 
                 return model;
             }
@@ -90,12 +101,27 @@ namespace SistemaBronx.DAL.Repository
         {
             try
             {
-                IQueryable<Insumo> query = _dbcontext.Insumos
+                var insumos = await _dbcontext.Insumos
                     .Include(c => c.IdUnidadMedidaNavigation)
                     .Include(c => c.IdTipoNavigation)
                     .Include(c => c.IdProveedorNavigation)
-                    .Include(c => c.IdCategoriaNavigation);
-                return await Task.FromResult(query);
+                    .Include(c => c.IdCategoriaNavigation)
+                    .ToListAsync();
+
+                // 🔥 TRAER STOCK DE UNA
+                var stocks = await _dbcontext.StockSaldos
+                    .Where(s => s.TipoItem == "I")
+                    .ToDictionaryAsync(s => s.IdInsumo, s => s.CantidadActual);
+
+                foreach (var insumo in insumos)
+                {
+                    if (insumo.Id != 0 && stocks.TryGetValue(insumo.Id, out var stock))
+                        insumo.Stock = stock;
+                    else
+                        insumo.Stock = 0;
+                }
+
+                return insumos.AsQueryable();
             }
             catch (Exception ex)
             {
@@ -104,6 +130,6 @@ namespace SistemaBronx.DAL.Repository
             }
         }
 
-       
+
     }
 }

@@ -106,12 +106,15 @@
                                 <th hidden>Id Categoria</th>
                                 <th>Categoria</th>
                                 <th>Cantidad</th>
+                                <th>Usa stock</th>
+                                <th>Cant. stock</th>
                                 <th>Porc. Ganancia</th>
                                 <th>Ganancia</th>
                                 <th>Porc. IVA</th>
                                 <th>IVA</th>
                                 <th>Precio Venta U.</th>
                                 <th>Precio Venta</th>
+                               
                                 <th hidden>Id Color</th>
                                 <th>Color</th>
                                 <th>Acciones</th>
@@ -147,6 +150,8 @@
                                 <th hidden>Id Producto</th>
                                 <th>Producto</th>
                                 <th>Cantidad</th>
+                                <th>Usa stock</th>
+                                <th>Cant. stock</th>
                                 <th>PrecioUnitario</th>
                                 <th>SubTotal</th>
                                 <th hidden>IdInsumo</th>
@@ -158,6 +163,7 @@
                                 <th hidden>IdColor</th>
                                 <th>Color</th>
                                 <th>Especificacion</th>
+                               
                                 <th>Comentarios</th>
                                 <th hidden>IdEstado</th>
                                 <th>Estado</th>
@@ -331,10 +337,10 @@
             </div>
 
             <div class="modal-body">
-                <!-- === TOP: DOS COLUMNAS === -->
                 <div class="cc-modal-top">
-                    <!-- IZQUIERDA: búsqueda + listado -->
-                    <div class="cc-left">
+
+                    <!-- IZQUIERDA -->
+                    <div class="cc-left" id="listaProductos">
                         <div class="cc-titlebar mb-3">
                             <h6 class="m-0">Búsqueda de productos</h6>
                         </div>
@@ -348,7 +354,6 @@
                             </div>
                         </div>
 
-                        <!-- Listado de productos (más bajo) -->
                         <div class="cc-tablewrap lista-productos-height">
                             <table class="table table-hover table-sm mb-0" id="grd_Productos_Modal" style="width:100%">
                                 <thead>
@@ -356,6 +361,8 @@
                                         <th>Descripción</th>
                                         <th>Categoría</th>
                                         <th>Stock</th>
+                                        <th>Usar stock</th>
+                                        <th>Cant. stock</th>
                                         <th>Precio venta</th>
                                         <th hidden>Id</th>
                                     </tr>
@@ -364,7 +371,6 @@
                             </table>
                         </div>
 
-                        <!-- Botonera debajo del listado -->
                         <div class="cc-actions-below-list">
                             <div class="d-flex justify-content-end gap-2 flex-wrap">
                                 <button class="btn btn-success" id="btnGuardarProducto" onclick="guardarProducto()">
@@ -377,75 +383,25 @@
                         </div>
                     </div>
 
-                    <!-- DERECHA: datos del producto (form compacto) -->
-                    <div class="cc-right">
+                    <!-- DERECHA -->
+                    <div class="cc-right" id="columnaProductoSeleccionado">
                         <div class="cc-titlebar mb-3">
                             <h6 class="m-0">Producto seleccionado</h6>
                         </div>
 
-                        <!-- ids ocultos -->
                         <input type="text" class="form-control" id="ProductoModalId" hidden>
                         <input type="text" class="form-control" id="ProductoEditandoModalId" hidden>
+                        <input type="text" class="form-control" id="ProductoModalIdCategoria" hidden>
 
-                        <!-- Form en grid (ver CSS de grid-areas) -->
                         <div class="cc-form-grid cc-form-producto">
                             <div class="cc-field full field-nombre">
                                 <label class="form-label">Nombre</label>
                                 <input type="text" class="form-control" id="ProductoModalNombre">
                             </div>
 
-                            <div id="panelStockProducto" class="cc-stock-panel mt-3 d-none">
-                                <div class="cc-titlebar mb-2">
-                                    <h6 class="m-0">
-                                        <i class="fa fa-cubes me-2"></i> Stock de producto terminado
-                                    </h6>
-                                </div>
-
-                                <div class="cc-stock-summary mb-3">
-                                    <div class="cc-stock-summary-item">
-                                        <span class="cc-stock-label">Disponible</span>
-                                        <strong id="stockProductoDisponible">0</strong>
-                                    </div>
-                                    <div class="cc-stock-summary-item">
-                                        <span class="cc-stock-label">Cantidad pedida</span>
-                                        <strong id="stockProductoCantidadPedida">0</strong>
-                                    </div>
-                                    <div class="cc-stock-summary-item">
-                                        <span class="cc-stock-label">Descontar del stock</span>
-                                        <strong id="stockProductoCantidadADescontar">0</strong>
-                                    </div>
-                                </div>
-
-                                <div class="cc-stock-options">
-                                    <label class="cc-stock-option">
-                                        <input type="radio" name="modoStockProducto" value="no" checked>
-                                        <span>No descontar stock del producto</span>
-                                    </label>
-
-                                    <label class="cc-stock-option">
-                                        <input type="radio" name="modoStockProducto" value="total">
-                                        <span>Descontar todo automáticamente</span>
-                                    </label>
-
-                                    <label class="cc-stock-option">
-                                        <input type="radio" name="modoStockProducto" value="parcial">
-                                        <span>Descontar cantidad manual</span>
-                                    </label>
-                                </div>
-
-                                <div id="bloqueStockProductoManual" class="mt-3 d-none">
-                                    <label for="stockProductoManual" class="form-label">Cantidad a descontar</label>
-                                    <input type="number" min="0" step="0.01" class="form-control" id="stockProductoManual" value="0">
-                                    <small class="text-muted">
-                                        Podés vender el producto sin tocar stock, descontar todo, o descontar solo una parte.
-                                    </small>
-                                </div>
-                            </div>
-
                             <div class="cc-field field-categoria">
                                 <label class="form-label">Categoría</label>
                                 <input type="text" class="form-control" id="ProductoModalCategoria" disabled>
-                                <input type="text" class="form-control" id="ProductoModalIdCategoria" hidden>
                             </div>
 
                             <div class="cc-field field-costo">
@@ -491,44 +447,10 @@
                     </div>
                 </div>
 
-                <!-- === BOTTOM: INSUMOS DEL PRODUCTO (más alto) === -->
+                <!-- INSUMOS -->
                 <div class="cc-insumos mt-3">
                     <div class="cc-titlebar mb-2">
                         <h6 class="m-0">Insumos del producto</h6>
-                    </div>
-
-                    <div id="panelStockInsumos" class="cc-stock-panel mb-3">
-                        <div class="cc-stock-summary mb-3">
-                            <div class="cc-stock-summary-item">
-                                <span class="cc-stock-label">Insumos con stock</span>
-                                <strong id="stockInsumosConStock">0</strong>
-                            </div>
-                            <div class="cc-stock-summary-item">
-                                <span class="cc-stock-label">Insumos sin stock</span>
-                                <strong id="stockInsumosSinStock">0</strong>
-                            </div>
-                            <div class="cc-stock-summary-item">
-                                <span class="cc-stock-label">Modo actual</span>
-                                <strong id="stockInsumosModoActual">No descontar</strong>
-                            </div>
-                        </div>
-
-                        <div class="cc-stock-options">
-                            <label class="cc-stock-option">
-                                <input type="radio" name="modoStockInsumos" value="no" checked>
-                                <span>No descontar stock de insumos</span>
-                            </label>
-
-                            <label class="cc-stock-option">
-                                <input type="radio" name="modoStockInsumos" value="total">
-                                <span>Descontar stock de todos los insumos</span>
-                            </label>
-
-                            <label class="cc-stock-option">
-                                <input type="radio" name="modoStockInsumos" value="manual">
-                                <span>Elegir manualmente por insumo</span>
-                            </label>
-                        </div>
                     </div>
 
                     <div class="cc-tablewrap lista-insumos-height">
@@ -548,7 +470,7 @@
                                     <th>Color</th>
                                     <th hidden>IdEstado</th>
                                     <th>Estado</th>
-                                    <th hidden>Tipo</th>
+                                    <th hidden>IdTipo</th>
                                     <th>Tipo</th>
                                     <th>Especificacion</th>
                                     <th>Proveedor</th>
@@ -557,8 +479,8 @@
                                     <th hidden>IdProveedor</th>
                                     <th hidden>IdProducto</th>
                                     <th hidden>IdInsumo</th>
-                                    <th hidden></th>
-                                    <th hidden>Cantidad Inicial</th>
+                                    <th hidden>Id</th>
+                                    <th hidden>CantidadInicial</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -577,7 +499,6 @@
         </div>
     </div>
 </div>
-
 <div class="modal fade" id="modalExportarPedido" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content export-modal">
@@ -637,7 +558,7 @@
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
     <script src="~/js/utils/moment.js"></script>
-    <script src="~/js/pedidosnuevomodif.js?v=4.7"></script>
+    <script src="~/js/pedidosnuevomodif.js?v=4.8"></script>
     <script src="~/js/site.js"></script>
 }
 

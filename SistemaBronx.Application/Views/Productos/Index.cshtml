@@ -13,6 +13,7 @@
 
     <!-- Estilos base del proyecto (mismos que Pedidos) -->
     <link rel="stylesheet" href="~/css/usuarios.css" />
+    <link rel="stylesheet" href="~/css/productos.css" />
     <link rel="stylesheet" href="~/css/redisenopantallas.css" />
 
     <!-- Select2 -->
@@ -62,7 +63,12 @@
                     </div>
 
                     <!-- Panel de filtros (misma “filter-bar”) -->
-                   
+                    <div class="filtros-stock">
+                        <button class="btn-stock active" data-filter="">Todos</button>
+                        <button class="btn-stock sin" data-filter="SIN STOCK">Sin Stock</button>
+                        <button class="btn-stock bajo" data-filter="BAJO">Bajo</button>
+                        <button class="btn-stock ok" data-filter="OK">OK</button>
+                    </div>
 
                     <!-- Tabla -->
                     <div class="dt-dark-wrap">
@@ -75,6 +81,8 @@
                                     <th>Porc. IVA</th>
                                     <th>Porc. Ganancia</th>
                                     <th>Costo Unitario</th>
+                                    <th>Stock</th>
+                                    <th>Estado</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -122,6 +130,6 @@
     <script src="~/js/utils/moment.js"></script>
 
     <!-- Lógica de Productos (ajusta a tus endpoints) -->
-    <script src="~/js/Productos.js?v=2.5"></script>
+    <script src="~/js/Productos.js?v=2.6"></script>
 
 }

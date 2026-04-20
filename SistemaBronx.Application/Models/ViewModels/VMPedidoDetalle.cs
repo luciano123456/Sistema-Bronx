@@ -29,6 +29,14 @@ namespace SistemaBronx.Application.Models.ViewModels
         public string Categoria { get; set; }
         public string Color { get; set; }
 
+        public bool UsaStock { get; set; }
+        public decimal? CantidadStock { get; set; }
+        public decimal? Stock { get; set; }
+        public decimal? StockDisponible { get; set; }
+
+        public bool UsaStockProducto { get; set; }
+        public decimal? CantidadStockProducto { get; set; }
+        public string Producto { get; set; }
 
         public virtual PedidosCategoria? IdCategoriaNavigation { get; set; }
 

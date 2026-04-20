@@ -1,12 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SistemaBronx.Application.Models;
 using SistemaBronx.Application.Models.ViewModels;
 using SistemaBronx.BLL.Service;
 using SistemaBronx.Models;
 using System.Diagnostics;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace SistemaBronx.Application.Controllers
 {
@@ -22,6 +21,121 @@ namespace SistemaBronx.Application.Controllers
             _ProductosService = ProductosService;
         }
 
+        /* ============================================================
+           HELPERS PRIVADOS
+        ============================================================ */
+
+        private static decimal ObtenerCantidadUsadaStockProducto(VMPedidoDetalle detalle)
+        {
+            if (detalle == null)
+                return 0;
+
+            var usaStock = detalle.UsaStockProducto;
+            var cantidadStock = detalle.CantidadStockProducto ?? 0;
+
+            if (!usaStock || cantidadStock <= 0)
+                return 0;
+
+            return cantidadStock;
+        }
+
+        private static decimal ObtenerCantidadUsadaStockInsumo(VMPedidoDetalleProceso detalle)
+        {
+            if (detalle == null)
+                return 0;
+
+            var usaStock = detalle.UsaStock;
+            var cantidadStock = detalle.CantidadStock ?? 0;
+
+            if (!usaStock || cantidadStock <= 0)
+                return 0;
+
+            return cantidadStock;
+        }
+
+        private static decimal ObtenerCantidadUsadaStockProductoEntity(PedidosDetalle detalle)
+        {
+            if (detalle == null)
+                return 0;
+
+            return detalle.CantidadUsadaStock ?? 0;
+        }
+
+        private static List<PedidosDetalle> MapearDetallesProductoDesdeVm(VMPedido model)
+        {
+            var pedidoDetalle = new List<PedidosDetalle>();
+
+            if (model?.PedidosDetalles != null && model.PedidosDetalles.Any())
+            {
+                pedidoDetalle = model.PedidosDetalles.Select(detalle => new PedidosDetalle
+                {
+                    Id = detalle.Id,
+                    IdPedido = detalle.IdPedido,
+                    Cantidad = detalle.Cantidad,
+                    CostoUnitario = detalle.CostoUnitario ?? 0,
+                    PrecioVenta = detalle.PrecioVenta ?? 0,
+                    PorcIva = detalle.PorcIva ?? 0,
+                    IdCategoria = detalle.IdCategoria,
+                    IdColor = detalle.IdColor,
+                    IdProducto = detalle.IdProducto,
+                    PorcGanancia = detalle.PorcGanancia ?? 0,
+                    Producto = !string.IsNullOrWhiteSpace(detalle.Producto)
+    ? detalle.Producto
+    : (detalle.IdProductoNavigation != null
+        ? detalle.IdProductoNavigation.Nombre
+        : ""),
+                    CantidadUsadaStock = ObtenerCantidadUsadaStockProductoEntity(detalle)
+                }).ToList();
+            }
+
+            return pedidoDetalle;
+        }
+
+        private static decimal ObtenerCantidadUsadaStockInsumoEntity(PedidosDetalleProceso detalle)
+        {
+            if (detalle == null)
+                return 0;
+
+            return detalle.CantidadUsadaStock ?? 0;
+        }
+
+        private static List<PedidosDetalleProceso> MapearDetallesProcesoDesdeVm(VMPedido model)
+        {
+            var pedidoDetalleProceso = new List<PedidosDetalleProceso>();
+
+            if (model?.PedidosDetalleProcesos != null && model.PedidosDetalleProcesos.Any())
+            {
+                pedidoDetalleProceso = model.PedidosDetalleProcesos.Select(detalleProceso => new PedidosDetalleProceso
+                {
+                    Id = detalleProceso.Id,
+                    IdDetalle = detalleProceso.IdDetalle,
+                    IdPedido = detalleProceso.IdPedido,
+                    Cantidad = detalleProceso.Cantidad,
+                    IdCategoria = detalleProceso.IdCategoria,
+                    Comentarios = detalleProceso.Comentarios,
+                    Descripcion = detalleProceso.Descripcion,
+                    Especificacion = detalleProceso.Especificacion,
+                    IdColor = detalleProceso.IdColor,
+                    FechaActualizacion = DateTime.Now,
+                    SubTotal = detalleProceso.SubTotal ?? 0,
+                    IdEstado = detalleProceso.IdEstado,
+                    IdTipo = detalleProceso.IdTipo,
+                    PrecioUnitario = detalleProceso.PrecioUnitario ?? 0,
+                    IdUnidadMedida = detalleProceso.IdUnidadMedida,
+                    IdProveedor = detalleProceso.IdProveedor,
+                    IdProducto = detalleProceso.IdProducto,
+                    IdInsumo = detalleProceso.IdInsumo,
+                    CantidadUsadaStock = ObtenerCantidadUsadaStockInsumoEntity(detalleProceso)
+                }).ToList();
+            }
+
+            return pedidoDetalleProceso;
+        }
+
+        /* ============================================================
+           INSERTAR
+        ============================================================ */
+
         [HttpPost]
         public async Task<IActionResult> Insertar([FromBody] VMPedido model)
         {
@@ -29,7 +143,7 @@ namespace SistemaBronx.Application.Controllers
             {
                 var pedido = new Pedido
                 {
-                    Fecha = DateTime.Now,
+                    Fecha = model.Fecha != DateTime.MinValue ? model.Fecha : DateTime.Now,
                     IdCliente = model.IdCliente,
                     IdFormaPago = model.IdFormaPago,
                     ImporteTotal = model.ImporteTotal ?? 0,
@@ -45,49 +159,8 @@ namespace SistemaBronx.Application.Controllers
                     CostoFinancieroPorc = model.CostoFinancieroPorc
                 };
 
-                List<PedidosDetalle> pedidoDetalle = new();
-                List<PedidosDetalleProceso> pedidoDetalleProceso = new();
-
-                if (model.PedidosDetalles != null && model.PedidosDetalles.Any())
-                {
-                    pedidoDetalle = model.PedidosDetalles.Select(detalle => new PedidosDetalle
-                    {
-                        Id = detalle.Id,
-                        Cantidad = detalle.Cantidad,
-                        CostoUnitario = detalle.CostoUnitario ?? 0,
-                        PrecioVenta = detalle.PrecioVenta ?? 0,
-                        PorcIva = detalle.PorcIva ?? 0,
-                        IdCategoria = detalle.IdCategoria,
-                        IdColor = detalle.IdColor,
-                        IdProducto = detalle.IdProducto,
-                        PorcGanancia = detalle.PorcGanancia ?? 0,
-                        Producto = detalle.Producto
-                    }).ToList();
-                }
-
-                if (model.PedidosDetalleProcesos != null && model.PedidosDetalleProcesos.Any())
-                {
-                    pedidoDetalleProceso = model.PedidosDetalleProcesos.Select(detalleProceso => new PedidosDetalleProceso
-                    {
-                        Id = detalleProceso.Id,
-                        IdDetalle = detalleProceso.IdDetalle,
-                        Cantidad = detalleProceso.Cantidad,
-                        IdCategoria = detalleProceso.IdCategoria,
-                        Comentarios = detalleProceso.Comentarios,
-                        Descripcion = detalleProceso.Descripcion,
-                        Especificacion = detalleProceso.Especificacion,
-                        IdColor = detalleProceso.IdColor,
-                        FechaActualizacion = DateTime.Now,
-                        SubTotal = detalleProceso.SubTotal ?? 0,
-                        IdEstado = detalleProceso.IdEstado,
-                        IdTipo = detalleProceso.IdTipo,
-                        PrecioUnitario = detalleProceso.PrecioUnitario ?? 0,
-                        IdUnidadMedida = detalleProceso.IdUnidadMedida,
-                        IdProveedor = detalleProceso.IdProveedor,
-                        IdProducto = detalleProceso.IdProducto,
-                        IdInsumo = detalleProceso.IdInsumo
-                    }).ToList();
-                }
+                var pedidoDetalle = MapearDetallesProductoDesdeVm(model);
+                var pedidoDetalleProceso = MapearDetallesProcesoDesdeVm(model);
 
                 var validacion = await _PedidosService.ValidarStockPedido(
                     pedidoDetalle.AsQueryable(),
@@ -100,7 +173,8 @@ namespace SistemaBronx.Application.Controllers
                     {
                         valor = false,
                         stock = false,
-                        errores = validacion.errores
+                        errores = validacion.errores,
+                        msg = "Stock insuficiente para registrar el pedido."
                     });
                 }
 
@@ -113,13 +187,17 @@ namespace SistemaBronx.Application.Controllers
                 if (!resultado)
                     return BadRequest(new { valor = false, msg = "Error al insertar el pedido y sus detalles." });
 
-                return Ok(new { valor = true });
+                return Ok(new { valor = true, msg = "Pedido registrado correctamente." });
             }
             catch (Exception ex)
             {
                 return BadRequest(new { valor = false, msg = "Error al insertar el pedido: " + ex.Message });
             }
         }
+
+        /* ============================================================
+           ACTUALIZAR
+        ============================================================ */
 
         [HttpPut]
         public async Task<IActionResult> Actualizar([FromBody] VMPedido model)
@@ -144,49 +222,8 @@ namespace SistemaBronx.Application.Controllers
                 pedido.CostoFinanciero = model.CostoFinanciero;
                 pedido.CostoFinancieroPorc = model.CostoFinancieroPorc;
 
-                List<PedidosDetalle> pedidoDetalle = new();
-                List<PedidosDetalleProceso> pedidoDetalleProceso = new();
-
-                if (model.PedidosDetalles != null && model.PedidosDetalles.Any())
-                {
-                    pedidoDetalle = model.PedidosDetalles.Select(detalle => new PedidosDetalle
-                    {
-                        Id = detalle.Id,
-                        Cantidad = detalle.Cantidad,
-                        CostoUnitario = detalle.CostoUnitario ?? 0,
-                        PrecioVenta = detalle.PrecioVenta ?? 0,
-                        PorcIva = detalle.PorcIva ?? 0,
-                        IdCategoria = detalle.IdCategoria,
-                        IdColor = detalle.IdColor,
-                        IdProducto = detalle.IdProducto,
-                        PorcGanancia = detalle.PorcGanancia ?? 0,
-                        Producto = detalle.Producto
-                    }).ToList();
-                }
-
-                if (model.PedidosDetalleProcesos != null && model.PedidosDetalleProcesos.Any())
-                {
-                    pedidoDetalleProceso = model.PedidosDetalleProcesos.Select(detalleProceso => new PedidosDetalleProceso
-                    {
-                        Id = detalleProceso.Id,
-                        IdDetalle = detalleProceso.IdDetalle,
-                        Cantidad = detalleProceso.Cantidad,
-                        IdCategoria = detalleProceso.IdCategoria,
-                        Comentarios = detalleProceso.Comentarios,
-                        Descripcion = detalleProceso.Descripcion,
-                        Especificacion = detalleProceso.Especificacion,
-                        IdColor = detalleProceso.IdColor,
-                        FechaActualizacion = DateTime.Now,
-                        SubTotal = detalleProceso.SubTotal ?? 0,
-                        IdEstado = detalleProceso.IdEstado,
-                        IdTipo = detalleProceso.IdTipo,
-                        PrecioUnitario = detalleProceso.PrecioUnitario ?? 0,
-                        IdUnidadMedida = detalleProceso.IdUnidadMedida,
-                        IdProveedor = detalleProceso.IdProveedor,
-                        IdProducto = detalleProceso.IdProducto,
-                        IdInsumo = detalleProceso.IdInsumo
-                    }).ToList();
-                }
+                var pedidoDetalle = MapearDetallesProductoDesdeVm(model);
+                var pedidoDetalleProceso = MapearDetallesProcesoDesdeVm(model);
 
                 var validacion = await _PedidosService.ValidarStockPedido(
                     pedidoDetalle.AsQueryable(),
@@ -199,7 +236,8 @@ namespace SistemaBronx.Application.Controllers
                     {
                         valor = false,
                         stock = false,
-                        errores = validacion.errores
+                        errores = validacion.errores,
+                        msg = "Stock insuficiente para actualizar el pedido."
                     });
                 }
 
@@ -212,94 +250,63 @@ namespace SistemaBronx.Application.Controllers
                 if (!resultado)
                     return BadRequest(new { valor = false, msg = "Error al actualizar el pedido y sus detalles." });
 
-                return Ok(new { valor = true });
+                return Ok(new { valor = true, msg = "Pedido actualizado correctamente." });
             }
             catch (Exception ex)
             {
                 return BadRequest(new { valor = false, msg = "Error al actualizar el pedido: " + ex.Message });
             }
         }
+
+        /* ============================================================
+           ACTUALIZAR DETALLE PROCESO
+        ============================================================ */
 
         [HttpPut]
         public async Task<IActionResult> ActualizarDetalleProceso([FromBody] VMPedidoDetalleProceso model)
         {
             try
             {
-                var pedidoDetalleProceso = new PedidosDetalleProceso();
+                if (model == null)
+                    return BadRequest(new { valor = false, msg = "No se recibieron datos del detalle." });
 
-                if (model != null)
+                var pedidoDetalleProceso = new PedidosDetalleProceso
                 {
-                    pedidoDetalleProceso.Cantidad = model.Cantidad;
-                    pedidoDetalleProceso.Id = model.Id;
-                    pedidoDetalleProceso.Comentarios = model.Comentarios;
-                    pedidoDetalleProceso.Descripcion = model.Descripcion;
-                    pedidoDetalleProceso.Especificacion = model.Especificacion;
-                    pedidoDetalleProceso.IdColor = model.IdColor;
-                    pedidoDetalleProceso.FechaActualizacion = DateTime.Now;
-                    pedidoDetalleProceso.IdEstado = model.IdEstado;
-                }
+                    Id = model.Id,
+                    Cantidad = model.Cantidad,
+                    Comentarios = model.Comentarios,
+                    Descripcion = model.Descripcion,
+                    Especificacion = model.Especificacion,
+                    IdColor = model.IdColor,
+                    FechaActualizacion = DateTime.Now,
+                    IdEstado = model.IdEstado,
+                    CantidadUsadaStock = ObtenerCantidadUsadaStockInsumo(model)
+                };
 
                 var resultado = await _PedidosService.ActualizarDetalleProceso(pedidoDetalleProceso);
 
                 if (!resultado)
                     return BadRequest(new { valor = false, msg = "Error al actualizar el detalle del pedido." });
 
-                return Ok(new { valor = true });
+                return Ok(new { valor = true, msg = "Detalle actualizado correctamente." });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { valor = false, msg = "Error al actualizar el pedido: " + ex.Message });
+                return BadRequest(new { valor = false, msg = "Error al actualizar el detalle del pedido: " + ex.Message });
             }
         }
+
+        /* ============================================================
+           VALIDAR STOCK
+        ============================================================ */
 
         [HttpPost]
         public async Task<IActionResult> ValidarStock([FromBody] VMPedido model)
         {
             try
             {
-                List<PedidosDetalle> pedidoDetalle = new();
-                List<PedidosDetalleProceso> pedidoDetalleProceso = new();
-
-                if (model.PedidosDetalles != null && model.PedidosDetalles.Any())
-                {
-                    pedidoDetalle = model.PedidosDetalles.Select(detalle => new PedidosDetalle
-                    {
-                        Id = detalle.Id,
-                        Cantidad = detalle.Cantidad,
-                        CostoUnitario = detalle.CostoUnitario ?? 0,
-                        PrecioVenta = detalle.PrecioVenta ?? 0,
-                        PorcIva = detalle.PorcIva ?? 0,
-                        IdCategoria = detalle.IdCategoria,
-                        IdColor = detalle.IdColor,
-                        IdProducto = detalle.IdProducto,
-                        PorcGanancia = detalle.PorcGanancia ?? 0,
-                        Producto = detalle.Producto
-                    }).ToList();
-                }
-
-                if (model.PedidosDetalleProcesos != null && model.PedidosDetalleProcesos.Any())
-                {
-                    pedidoDetalleProceso = model.PedidosDetalleProcesos.Select(detalleProceso => new PedidosDetalleProceso
-                    {
-                        Id = detalleProceso.Id,
-                        IdDetalle = detalleProceso.IdDetalle,
-                        Cantidad = detalleProceso.Cantidad,
-                        IdCategoria = detalleProceso.IdCategoria,
-                        Comentarios = detalleProceso.Comentarios,
-                        Descripcion = detalleProceso.Descripcion,
-                        Especificacion = detalleProceso.Especificacion,
-                        IdColor = detalleProceso.IdColor,
-                        FechaActualizacion = DateTime.Now,
-                        SubTotal = detalleProceso.SubTotal ?? 0,
-                        IdEstado = detalleProceso.IdEstado,
-                        IdTipo = detalleProceso.IdTipo,
-                        PrecioUnitario = detalleProceso.PrecioUnitario ?? 0,
-                        IdUnidadMedida = detalleProceso.IdUnidadMedida,
-                        IdProveedor = detalleProceso.IdProveedor,
-                        IdProducto = detalleProceso.IdProducto,
-                        IdInsumo = detalleProceso.IdInsumo
-                    }).ToList();
-                }
+                var pedidoDetalle = MapearDetallesProductoDesdeVm(model);
+                var pedidoDetalleProceso = MapearDetallesProcesoDesdeVm(model);
 
                 var validacion = await _PedidosService.ValidarStockPedido(
                     pedidoDetalle.AsQueryable(),
@@ -321,6 +328,10 @@ namespace SistemaBronx.Application.Controllers
                 });
             }
         }
+
+        /* ============================================================
+           DISPONIBILIDAD STOCK
+        ============================================================ */
 
         [HttpGet]
         public async Task<IActionResult> DisponibilidadStock(string tipoItem, int? idProducto, int? idInsumo, decimal cantidad)
@@ -350,6 +361,10 @@ namespace SistemaBronx.Application.Controllers
             }
         }
 
+        /* ============================================================
+           LISTA
+        ============================================================ */
+
         [HttpGet]
         public async Task<IActionResult> Lista(DateTime FechaDesde, DateTime FechaHasta, int IdCliente, string Estado, int Finalizado)
         {
@@ -363,10 +378,14 @@ namespace SistemaBronx.Application.Controllers
                     Fecha = c.Fecha,
                     Finalizado = c.Finalizado,
                     Facturado = c.Facturado,
+                    NroFactura = c.NroFactura,
                     SubTotal = c.SubTotal,
                     FormaPago = c.IdFormaPagoNavigation?.Nombre ?? "",
                     Saldo = c.Saldo,
+                    IdCliente = c.IdCliente,
+                    IdFormaPago = c.IdFormaPago,
                     Cliente = c.IdClienteNavigation?.Nombre ?? "",
+                    Telefono = c.IdClienteNavigation?.Telefono ?? "",
                     PorcDescuento = c.PorcDescuento,
                     ImporteAbonado = c.ImporteAbonado,
                     ImporteTotal = c.ImporteTotal,
@@ -395,148 +414,236 @@ namespace SistemaBronx.Application.Controllers
             }
         }
 
+        /* ============================================================
+           OBTENER DATOS PEDIDO
+        ============================================================ */
+
         [HttpGet]
         public async Task<IActionResult> ObtenerDatosPedido(int idPedido)
         {
-            var result = new Dictionary<string, object>();
-
-            if (idPedido <= 0)
-                return Ok(new { });
-
-            var pedido = await _PedidosService.ObtenerPedido(idPedido);
-
-            var pedidoJSON = new VMPedido
+            try
             {
-                Id = pedido.Id,
-                Fecha = pedido.Fecha,
-                Finalizado = pedido.Finalizado,
-                Facturado = pedido.Facturado,
-                NroFactura = pedido.NroFactura,
-                SubTotal = pedido.SubTotal,
-                FormaPago = pedido.IdFormaPagoNavigation?.Nombre ?? "",
-                Saldo = pedido.Saldo,
-                IdCliente = pedido.IdCliente,
-                IdFormaPago = pedido.IdFormaPago,
-                Cliente = pedido.IdClienteNavigation?.Nombre ?? "",
-                Telefono = pedido.IdClienteNavigation?.Telefono ?? "",
-                PorcDescuento = pedido.PorcDescuento,
-                ImporteAbonado = pedido.ImporteAbonado,
-                ImporteTotal = pedido.ImporteTotal,
-                Comentarios = pedido.Comentarios,
-                CostoFinanciero = pedido.CostoFinanciero,
-                CostoFinancieroPorc = pedido.CostoFinancieroPorc,
-                Estado = "Pendiente"
-            };
+                if (idPedido <= 0)
+                    return Ok(new { });
 
-            List<VMPedidoDetalle> pedidoDetalle = new();
-            if (pedido.PedidosDetalles != null && pedido.PedidosDetalles.Any())
-            {
-                pedidoDetalle = pedido.PedidosDetalles.Select(detalle => new VMPedidoDetalle
+                var pedido = await _PedidosService.ObtenerPedido(idPedido);
+
+                if (pedido == null)
+                    return NotFound(new { valor = false, msg = "No se encontró el pedido." });
+
+                /* ============================================================
+                   PEDIDO
+                ============================================================ */
+                var pedidoJSON = new VMPedido
                 {
-                    Cantidad = detalle.Cantidad,
-                    CostoUnitario = detalle.CostoUnitario,
-                    PrecioVenta = detalle.PrecioVenta,
-                    PrecioVentaUnitario = detalle.Cantidad != 0 ? (detalle.PrecioVenta / detalle.Cantidad) : 0,
-                    PorcIva = detalle.PorcIva,
-                    IdCategoria = detalle.IdCategoria,
-                    IdColor = detalle.IdColor,
-                    IdProducto = detalle.IdProducto,
-                    PorcGanancia = detalle.PorcGanancia,
-                    IdPedido = detalle.IdPedido,
-                    Id = detalle.Id,
-                    Color = detalle.IdColorNavigation?.Nombre ?? "",
-                    Nombre = !string.IsNullOrWhiteSpace(detalle.Producto) ? detalle.Producto : (detalle.IdProductoNavigation?.Nombre ?? ""),
-                    Categoria = detalle.IdCategoriaNavigation?.Nombre ?? "",
-                    IVA = (decimal)detalle.PrecioVenta * ((decimal)detalle.PorcIva / 100m),
-                    Ganancia = (decimal)detalle.CostoUnitario * ((decimal)detalle.PorcGanancia / 100m)
-                }).ToList();
-            }
+                    Id = pedido.Id,
+                    Fecha = pedido.Fecha,
+                    Finalizado = pedido.Finalizado,
+                    Facturado = pedido.Facturado,
+                    NroFactura = pedido.NroFactura,
+                    SubTotal = pedido.SubTotal,
+                    FormaPago = pedido.IdFormaPagoNavigation?.Nombre ?? "",
+                    Saldo = pedido.Saldo,
+                    IdCliente = pedido.IdCliente,
+                    IdFormaPago = pedido.IdFormaPago,
+                    Cliente = pedido.IdClienteNavigation?.Nombre ?? "",
+                    Telefono = pedido.IdClienteNavigation?.Telefono ?? "",
+                    PorcDescuento = pedido.PorcDescuento,
+                    ImporteAbonado = pedido.ImporteAbonado,
+                    ImporteTotal = pedido.ImporteTotal,
+                    Comentarios = pedido.Comentarios,
+                    CostoFinanciero = pedido.CostoFinanciero,
+                    CostoFinancieroPorc = pedido.CostoFinancieroPorc,
+                    Estado = "Pendiente"
+                };
 
-            List<VMPedidoDetalleProceso> pedidoDetalleProceso = new();
+                /* ============================================================
+                   DETALLE PRODUCTOS
+                ============================================================ */
+                List<VMPedidoDetalle> pedidoDetalle = new();
 
-            if (pedido.PedidosDetalleProcesos != null && pedido.PedidosDetalleProcesos.Any())
-            {
-                var productoIds = pedido.PedidosDetalleProcesos
-                    .Where(x => x.IdProducto.HasValue)
-                    .Select(x => x.IdProducto!.Value)
-                    .Distinct()
-                    .ToList();
-
-                var cantidadesBase = new Dictionary<(int prod, int ins), decimal>();
-                foreach (var pid in productoIds)
+                if (pedido.PedidosDetalles != null && pedido.PedidosDetalles.Any())
                 {
-                    var insumos = await _ProductosService.ObtenerInsumos(pid);
-                    foreach (var i in insumos)
-                        cantidadesBase[(i.IdProducto, i.IdInsumo)] = i.Cantidad;
+                    pedidoDetalle = pedido.PedidosDetalles.Select(detalle =>
+                    {
+                        var cantidadUsadaStock = detalle.CantidadUsadaStock ?? 0;
+                        var stockProducto = detalle.IdProductoNavigation?.Stock ?? 0;
+
+                        return new VMPedidoDetalle
+                        {
+                            Id = detalle.Id,
+                            IdPedido = detalle.IdPedido,
+                            IdProducto = detalle.IdProducto,
+                            Cantidad = detalle.Cantidad,
+                            CostoUnitario = detalle.CostoUnitario,
+                            PrecioVenta = detalle.PrecioVenta,
+                            PrecioVentaUnitario = (detalle.Cantidad ?? 0) != 0
+                                ? ((detalle.PrecioVenta ?? 0) / (detalle.Cantidad ?? 1))
+                                : 0,
+                            PorcIva = detalle.PorcIva,
+                            IdCategoria = detalle.IdCategoria,
+                            IdColor = detalle.IdColor,
+                            PorcGanancia = detalle.PorcGanancia,
+                            Color = detalle.IdColorNavigation?.Nombre ?? "",
+                            Nombre = !string.IsNullOrWhiteSpace(detalle.Producto)
+                                ? detalle.Producto
+                                : (detalle.IdProductoNavigation?.Nombre ?? ""),
+                            Producto = !string.IsNullOrWhiteSpace(detalle.Producto)
+                                ? detalle.Producto
+                                : (detalle.IdProductoNavigation?.Nombre ?? ""),
+                            Categoria = detalle.IdCategoriaNavigation?.Nombre ?? "",
+                            IVA = (detalle.PrecioVenta ?? 0) * ((detalle.PorcIva ?? 0) / 100m),
+                            Ganancia = (detalle.CostoUnitario ?? 0) * ((detalle.PorcGanancia ?? 0) / 100m),
+
+                            // 🔥 EXACTO PARA TU JS
+                            UsaStockProducto = cantidadUsadaStock > 0,
+                            CantidadStockProducto = cantidadUsadaStock,
+                            Stock = stockProducto
+                        };
+                    }).ToList();
                 }
 
-                pedidoDetalleProceso = pedido.PedidosDetalleProcesos.Select(detalleProceso =>
+                /* ============================================================
+                   DETALLE PROCESOS (INSUMOS)
+                ============================================================ */
+                List<VMPedidoDetalleProceso> pedidoDetalleProceso = new();
+
+                if (pedido.PedidosDetalleProcesos != null && pedido.PedidosDetalleProcesos.Any())
                 {
-                    decimal cantInicial = 0m;
-                    if (detalleProceso.IdProducto.HasValue && detalleProceso.IdInsumo.HasValue)
+                    pedidoDetalleProceso = pedido.PedidosDetalleProcesos.Select(detalleProceso =>
                     {
-                        cantidadesBase.TryGetValue(
-                            (detalleProceso.IdProducto.Value, detalleProceso.IdInsumo.Value),
-                            out cantInicial
-                        );
-                    }
+                        var cantidadUsadaStock = detalleProceso.CantidadUsadaStock ?? 0;
+                        var stockInsumo = detalleProceso.IdInsumoNavigation?.Stock ?? 0;
 
-                    return new VMPedidoDetalleProceso
-                    {
-                        Cantidad = detalleProceso.Cantidad,
-                        CantidadInicial = cantInicial,
-                        IdCategoria = detalleProceso.IdCategoria,
-                        Comentarios = detalleProceso.Comentarios,
-                        Descripcion = detalleProceso.Descripcion,
-                        Especificacion = detalleProceso.Especificacion,
-                        IdColor = detalleProceso.IdColor,
-                        FechaActualizacion = detalleProceso.FechaActualizacion,
-                        SubTotal = detalleProceso.SubTotal,
-                        IdEstado = detalleProceso.IdEstado,
-                        IdTipo = detalleProceso.IdTipo,
-                        PrecioUnitario = detalleProceso.PrecioUnitario,
-                        IdUnidadMedida = detalleProceso.IdUnidadMedida,
-                        IdProveedor = detalleProceso.IdProveedor,
-                        IdProducto = detalleProceso.IdProducto,
-                        IdInsumo = detalleProceso.IdInsumo,
-                        Color = detalleProceso.IdColorNavigation?.Nombre,
-                        Estado = detalleProceso.IdEstadoNavigation?.Nombre,
-                        Insumo = detalleProceso.IdInsumoNavigation?.Descripcion,
-                        Producto = detalleProceso.IdProductoNavigation?.Nombre,
-                        Categoria = detalleProceso.IdCategoriaNavigation?.Nombre ?? "",
-                        Tipo = detalleProceso.IdTipoNavigation?.Nombre,
-                        IdPedido = detalleProceso.IdPedido,
-                        IdDetalle = detalleProceso.IdDetalle,
-                        Id = detalleProceso.Id,
-                        Proveedor = detalleProceso.IdProveedorNavigation?.Nombre ?? ""
-                    };
-                }).ToList();
+                        return new VMPedidoDetalleProceso
+                        {
+                            Id = detalleProceso.Id,
+                            IdPedido = detalleProceso.IdPedido,
+                            IdDetalle = detalleProceso.IdDetalle,
+                            IdProducto = detalleProceso.IdProducto,
+                            IdInsumo = detalleProceso.IdInsumo,
+                            Cantidad = detalleProceso.Cantidad,
+                            IdCategoria = detalleProceso.IdCategoria,
+                            Comentarios = detalleProceso.Comentarios,
+                            Descripcion = detalleProceso.Descripcion,
+                            Especificacion = detalleProceso.Especificacion,
+                            IdColor = detalleProceso.IdColor,
+                            FechaActualizacion = detalleProceso.FechaActualizacion,
+                            SubTotal = detalleProceso.SubTotal,
+                            IdEstado = detalleProceso.IdEstado,
+                            IdTipo = detalleProceso.IdTipo,
+                            PrecioUnitario = detalleProceso.PrecioUnitario,
+                            IdUnidadMedida = detalleProceso.IdUnidadMedida,
+                            IdProveedor = detalleProceso.IdProveedor,
+                            Color = detalleProceso.IdColorNavigation?.Nombre,
+                            Estado = detalleProceso.IdEstadoNavigation?.Nombre,
+                            Insumo = detalleProceso.IdInsumoNavigation?.Descripcion,
+                            Nombre = detalleProceso.IdInsumoNavigation?.Descripcion,
+                            Producto = detalleProceso.IdProductoNavigation?.Nombre,
+                            Categoria = detalleProceso.IdCategoriaNavigation?.Nombre ?? "",
+                            Tipo = detalleProceso.IdTipoNavigation?.Nombre,
+                            Proveedor = detalleProceso.IdProveedorNavigation?.Nombre ?? "",
+
+                            // 🔥 EXACTO PARA TU JS
+                            UsaStock = cantidadUsadaStock > 0,
+                            CantidadStock = cantidadUsadaStock,
+                            Stock = stockInsumo,
+                            StockDisponible = stockInsumo
+                        };
+                    }).ToList();
+                }
+
+                /* ============================================================
+                   RESULT FINAL
+                ============================================================ */
+                var result = new Dictionary<string, object>
+        {
+            { "pedido", pedidoJSON },
+            { "PedidoDetalle", pedidoDetalle },
+            { "PedidoDetalleProceso", pedidoDetalleProceso }
+        };
+
+                return Ok(result);
             }
-
-            result.Add("pedido", pedidoJSON);
-            result.Add("PedidoDetalle", pedidoDetalle);
-            result.Add("PedidoDetalleProceso", pedidoDetalleProceso);
-
-            var jsonOptions = new JsonSerializerOptions
+            catch (Exception ex)
             {
-                ReferenceHandler = ReferenceHandler.Preserve
-            };
-
-            return Ok(System.Text.Json.JsonSerializer.Serialize(result, jsonOptions));
+                return BadRequest(new
+                {
+                    valor = false,
+                    msg = "Error al obtener los datos del pedido: " + ex.Message
+                });
+            }
         }
 
+        /* ============================================================
+           ELIMINAR INSUMO
+        ============================================================ */
+
         [HttpDelete]
-        public async Task<bool> Eliminar(int id)
+        public async Task<IActionResult> EliminarInsumo(int idPedido, int idInsumo)
         {
             try
             {
-                return await _PedidosService.EliminarPedido(id);
+                var resultado = await _PedidosService.EliminarInsumo(idPedido, idInsumo);
+
+                if (!resultado)
+                    return BadRequest(new { valor = false, msg = "No se pudo eliminar el insumo del pedido." });
+
+                return Ok(new { valor = true, msg = "Insumo eliminado correctamente." });
             }
-            catch
+            catch (Exception ex)
             {
-                return false;
+                return BadRequest(new { valor = false, msg = "Error al eliminar el insumo: " + ex.Message });
             }
         }
+
+        /* ============================================================
+           ELIMINAR PRODUCTO
+        ============================================================ */
+
+        [HttpDelete]
+        public async Task<IActionResult> EliminarProducto(int idPedido, int idProducto)
+        {
+            try
+            {
+                var resultado = await _PedidosService.EliminarProducto(idPedido, idProducto);
+
+                if (!resultado)
+                    return BadRequest(new { valor = false, msg = "No se pudo eliminar el producto del pedido." });
+
+                return Ok(new { valor = true, msg = "Producto eliminado correctamente." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { valor = false, msg = "Error al eliminar el producto: " + ex.Message });
+            }
+        }
+
+        /* ============================================================
+           ELIMINAR PEDIDO
+        ============================================================ */
+
+        [HttpDelete]
+        public async Task<IActionResult> Eliminar(int id)
+        {
+            try
+            {
+                var resultado = await _PedidosService.EliminarPedido(id);
+
+                if (!resultado)
+                    return BadRequest(new { valor = false, msg = "No se pudo eliminar el pedido." });
+
+                return Ok(new { valor = true, msg = "Pedido eliminado correctamente." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { valor = false, msg = "Error al eliminar el pedido: " + ex.Message });
+            }
+        }
+
+        /* ============================================================
+           VISTAS
+        ============================================================ */
 
         public IActionResult Index()
         {
@@ -546,13 +653,9 @@ namespace SistemaBronx.Application.Controllers
         public async Task<IActionResult> NuevoModif(int? id)
         {
             if (id.HasValue)
-            {
                 ViewBag.Data = id;
-            }
             else
-            {
                 ViewBag.Error = "No se encontró el pedido.";
-            }
 
             return View();
         }

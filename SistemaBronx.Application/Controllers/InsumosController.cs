@@ -47,7 +47,8 @@ namespace SistemaBronx.Application.Controllers
                 Categoria = c.IdCategoriaNavigation.Nombre,
                 Proveedor = c.IdProveedorNavigation.Nombre,
                 UnidaddeMedida = c.IdUnidadMedidaNavigation.Nombre,
-                Tipo = c.IdTipoNavigation.Nombre
+                Tipo = c.IdTipoNavigation.Nombre,
+                 Stock = c.Stock
             }).ToList();
 
             return Ok(lista);
@@ -142,7 +143,8 @@ namespace SistemaBronx.Application.Controllers
                 Categoria = InsumoResp.IdCategoriaNavigation.Nombre,
                 Proveedor = InsumoResp.IdProveedorNavigation.Nombre,
                 UnidaddeMedida = InsumoResp.IdUnidadMedidaNavigation.Nombre,
-                Tipo = InsumoResp.IdTipoNavigation.Nombre
+                Tipo = InsumoResp.IdTipoNavigation.Nombre,
+                Stock = InsumoResp.Stock
             };
 
 

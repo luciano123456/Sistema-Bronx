@@ -27,6 +27,8 @@ public partial class PedidosDetalle
 
     public decimal? PrecioVenta { get; set; }
 
+    public decimal? CantidadUsadaStock { get; set; }
+
     public virtual ProductosCategoria? IdCategoriaNavigation { get; set; }
 
     public virtual Color? IdColorNavigation { get; set; }
@@ -36,4 +38,6 @@ public partial class PedidosDetalle
     public virtual Producto? IdProductoNavigation { get; set; }
 
     public virtual ICollection<PedidosDetalleProceso> PedidosDetalleProcesos { get; set; } = new List<PedidosDetalleProceso>();
+
+    public virtual ICollection<PedidosDetalleStock> PedidosDetalleStocks { get; set; } = new List<PedidosDetalleStock>();
 }

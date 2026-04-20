@@ -41,6 +41,8 @@ public partial class PedidosDetalleProceso
 
     public DateTime? FechaActualizacion { get; set; }
 
+    public decimal? CantidadUsadaStock { get; set; }
+
     public virtual InsumosCategoria? IdCategoriaNavigation { get; set; }
 
     public virtual Color? IdColorNavigation { get; set; }
@@ -60,4 +62,6 @@ public partial class PedidosDetalleProceso
     public virtual PedidosTipo? IdTipoNavigation { get; set; }
 
     public virtual UnidadesDeMedida? IdUnidadMedidaNavigation { get; set; }
+
+    public virtual ICollection<PedidosDetalleProcesosStock> PedidosDetalleProcesosStocks { get; set; } = new List<PedidosDetalleProcesosStock>();
 }

@@ -332,7 +332,7 @@ namespace SistemaBronx.DAL.Repository
 
                 var mov = det.IdMovimientoNavigation;
 
-                // si el movimiento está anulado, no deberíamos tocar stock
+                //// si el movimiento está anulado, no deberíamos tocar stock
                 if (mov.EsAnulado)
                     return false;
 
@@ -390,12 +390,18 @@ namespace SistemaBronx.DAL.Repository
 
         public async Task<List<StockSaldo>> ObtenerSaldos()
         {
-            return await _db.StockSaldos
-                .Include(s => s.IdProductoNavigation)
-                .Include(s => s.IdInsumoNavigation)
-                .OrderBy(s => s.TipoItem)
-                .ThenBy(s => s.IdProducto ?? s.IdInsumo)
-                .ToListAsync();
+            try
+            {
+                return await _db.StockSaldos
+                    .Include(s => s.IdProductoNavigation)
+                    .Include(s => s.IdInsumoNavigation)
+                    .OrderBy(s => s.TipoItem)
+                    .ThenBy(s => s.IdProducto ?? s.IdInsumo)
+                    .ToListAsync();
+            } catch (Exception ex)
+            {
+                return null;
+            }
         }
 
         public async Task<StockSaldo?> ObtenerSaldoItem(string tipoItem, int? idProducto, int? idInsumo)

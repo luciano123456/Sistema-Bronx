@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SistemaBronx.Models;
 
@@ -24,6 +25,9 @@ public partial class Insumo
     public decimal PorcGanancia { get; set; }
 
     public decimal PrecioVenta { get; set; }
+
+    [NotMapped]
+    public decimal Stock { get; set; }
 
     public virtual ICollection<CotizacionesDetalleProceso> CotizacionesDetalleProcesos { get; set; } = new List<CotizacionesDetalleProceso>();
 

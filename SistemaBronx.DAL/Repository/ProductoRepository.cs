@@ -199,6 +199,7 @@ namespace SistemaBronx.DAL.Repository
                                 PorcIva = result.IsDBNull(result.GetOrdinal("PorcIva")) ? (decimal?)null : result.GetDecimal(result.GetOrdinal("PorcIva")),
                                 IdCategoria = result.IsDBNull(result.GetOrdinal("IdCategoria")) ? (int?)null : result.GetInt32(result.GetOrdinal("IdCategoria")),
                                 CostoUnitario = result.GetDecimal(result.GetOrdinal("CostoUnitario")),
+                                Stock = result.GetDecimal(result.GetOrdinal("Stock")),
                                 IdCategoriaNavigation = new ProductosCategoria
                                 {
                                     Id = result.GetInt32(result.GetOrdinal("CategoriaId")),
@@ -251,6 +252,7 @@ namespace SistemaBronx.DAL.Repository
                                 PorcIva = result.IsDBNull(result.GetOrdinal("PorcIva")) ? (decimal?)null : result.GetDecimal(result.GetOrdinal("PorcIva")),
                                 IdCategoria = result.IsDBNull(result.GetOrdinal("IdCategoria")) ? (int?)null : result.GetInt32(result.GetOrdinal("IdCategoria")),
                                 CostoUnitario = result.GetDecimal(result.GetOrdinal("CostoUnitario")),
+                                Stock = result.GetDecimal(result.GetOrdinal("Stock")),
                                 IdCategoriaNavigation = new ProductosCategoria
                                 {
                                     Id = result.GetInt32(result.GetOrdinal("CategoriaId")),
@@ -314,15 +316,39 @@ namespace SistemaBronx.DAL.Repository
         {
             try
             {
-
-                List<ProductosInsumo> productos = _dbcontext.ProductosInsumos
+                var productos = await _dbcontext.ProductosInsumos
                     .Include(c => c.IdInsumoNavigation)
-                    .Include(c => c.IdInsumoNavigation.IdCategoriaNavigation)
-                    .Include(c => c.IdInsumoNavigation.IdTipoNavigation)
-                    .Include(c => c.IdInsumoNavigation.IdProveedorNavigation)
-                    .Where(c => c.IdProducto == idProducto).ToList();
-                return productos;
+                        .ThenInclude(i => i.IdCategoriaNavigation)
+                    .Include(c => c.IdInsumoNavigation)
+                        .ThenInclude(i => i.IdTipoNavigation)
+                    .Include(c => c.IdInsumoNavigation)
+                        .ThenInclude(i => i.IdProveedorNavigation)
+                    .Where(c => c.IdProducto == idProducto)
+                    .ToListAsync();
 
+                // 🔥 TRAER STOCK DE TODOS LOS INSUMOS DE UNA
+                var idsInsumos = productos
+                    .Where(x => x.IdInsumoNavigation != null)
+                    .Select(x => x.IdInsumoNavigation.Id)
+                    .Distinct()
+                    .ToList();
+
+                var stocks = await _dbcontext.StockSaldos
+                    .Where(s => s.TipoItem == "I" && idsInsumos.Contains(s.IdInsumo.Value))
+                    .ToDictionaryAsync(s => s.IdInsumo, s => s.CantidadActual);
+
+                // 🔥 ASIGNAR STOCK
+                foreach (var item in productos)
+                {
+                    var insumo = item.IdInsumoNavigation;
+
+                    if (insumo != null && stocks.TryGetValue(insumo.Id, out var stock))
+                        insumo.Stock = stock;
+                    else if (insumo != null)
+                        insumo.Stock = 0;
+                }
+
+                return productos;
             }
             catch (Exception ex)
             {
