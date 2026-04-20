@@ -44,6 +44,7 @@ namespace SistemaBronx.Application.Controllers
                     IdCategoria = c.IdCategoria,
                     CostoUnitario = c.CostoUnitario,
                     Categoria = c.IdCategoriaNavigation.Nombre,
+                    Stock = c.Stock,
                     TotalInsumos = 0   // ⬅ NO SE CALCULA EN LISTA
                 }).ToList();
 
@@ -210,7 +211,8 @@ namespace SistemaBronx.Application.Controllers
                     PorcGanancia = (decimal)model.PorcGanancia,
                     CostoUnitario = model.CostoUnitario,
                     Categoria = model.IdCategoriaNavigation.Nombre,
-                    TotalInsumos = totalInsumos
+                    TotalInsumos = totalInsumos,
+                    Stock = model.Stock
                 };
 
                 var ProductosInsumos = insumos.Select(p => new VMProductoInsumo
@@ -234,7 +236,9 @@ namespace SistemaBronx.Application.Controllers
                     Tipo = p.IdInsumoNavigation.IdTipoNavigation.Nombre,
                     IdUnidadMedida = p.IdInsumoNavigation.IdUnidadMedida,
                     IdProveedor = (int)p.IdInsumoNavigation.IdProveedor,
-                    Proveedor = p.IdInsumoNavigation.IdProveedorNavigation?.Nombre ?? ""
+                    Proveedor = p.IdInsumoNavigation.IdProveedorNavigation?.Nombre ?? "",
+                    Stock = p.IdInsumoNavigation.Stock
+
                 }).ToList();
 
                 result.Add("Producto", Producto);

@@ -144,9 +144,23 @@ function errorModal(texto) {
     mostrarModalConContador('ErrorModal', texto, 3000);
 }
 
+function errorModalHtml(texto) {
+    mostrarModalConContadorHtml('ErrorModal', texto, 3000);
+}
+
 function advertenciaModal(texto) {
     mostrarModalConContador('AdvertenciaModal', texto, 3000);
 }
+
+function mostrarModalConContadorHtml(modal, texto, tiempo) {
+    $(`#${modal}Text`).html(texto);
+    $(`#${modal}`).modal('show');
+
+    setTimeout(function () {
+        $(`#${modal}`).modal('hide');
+    }, tiempo);
+}
+
 const formatoMoneda = new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency: 'ARS', // Cambia "ARS" por el código de moneda que necesites

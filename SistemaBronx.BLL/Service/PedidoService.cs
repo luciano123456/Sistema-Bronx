@@ -5,15 +5,12 @@ namespace SistemaBronx.BLL.Service
 {
     public class PedidoService : IPedidoService
     {
-
         private readonly IPedidosRepository<Pedido> _contactRepo;
 
         public PedidoService(IPedidosRepository<Pedido> contactRepo)
         {
             _contactRepo = contactRepo;
         }
-
-
 
         public async Task<bool> Actualizar(Pedido pedido, IQueryable<PedidosDetalle> pedidosDetalle, IQueryable<PedidosDetalleProceso> pedidosDetalleProceso)
         {
@@ -35,14 +32,14 @@ namespace SistemaBronx.BLL.Service
             return await _contactRepo.EliminarPedido(id);
         }
 
-        public async Task <bool> EliminarProducto(int IdPedido, int IdProducto)
+        public async Task<bool> EliminarProducto(int IdPedido, int IdProducto)
         {
             return await _contactRepo.EliminarProducto(IdPedido, IdProducto);
         }
 
         public async Task<bool> Insertar(Pedido pedido, IQueryable<PedidosDetalle> pedidosDetalle, IQueryable<PedidosDetalleProceso> pedidosDetalleProceso)
         {
-            return await _contactRepo.Insertar(pedido,pedidosDetalle,pedidosDetalleProceso);
+            return await _contactRepo.Insertar(pedido, pedidosDetalle, pedidosDetalleProceso);
         }
 
         public async Task<PedidosDetalleProceso> ObtenerInsumo(int IdPedido, int IdInsumo)
@@ -67,12 +64,28 @@ namespace SistemaBronx.BLL.Service
 
         public async Task<List<Pedido>> ObtenerPedidos(DateTime FechaDesde, DateTime FechaHasta, int IdCliente, string Estado, int Finalizado)
         {
-            return await _contactRepo.ObtenerPedidos(FechaDesde,  FechaHasta, IdCliente, Estado, Finalizado);
+            return await _contactRepo.ObtenerPedidos(FechaDesde, FechaHasta, IdCliente, Estado, Finalizado);
         }
 
         public async Task<PedidosDetalle> ObtenerProducto(int IdPedido, int IdProducto)
         {
-            return await _contactRepo.ObtenerProducto(IdPedido, IdProducto);   
+            return await _contactRepo.ObtenerProducto(IdPedido, IdProducto);
+        }
+
+        public async Task<(bool ok, List<string> errores)> ValidarStockPedido(
+            IQueryable<PedidosDetalle> pedidosDetalle,
+            IQueryable<PedidosDetalleProceso> pedidosDetalleProceso)
+        {
+            return await _contactRepo.ValidarStockPedido(pedidosDetalle, pedidosDetalleProceso);
+        }
+
+        public async Task<(bool ok, decimal disponible, decimal faltante, string nombre)> ObtenerDisponibilidadStock(
+            string tipoItem,
+            int? idProducto,
+            int? idInsumo,
+            decimal cantidad)
+        {
+            return await _contactRepo.ObtenerDisponibilidadStock(tipoItem, idProducto, idInsumo, cantidad);
         }
     }
 }

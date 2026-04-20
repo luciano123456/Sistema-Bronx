@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="~/css/usuarios.css" />
     <link rel="stylesheet" href="~/css/redisenopantallas.css" />
     <link rel="stylesheet" href="~/css/Insumos.css?v=1.1" />
+    <link rel="stylesheet" href="~/css/Productos.css?v=1.1" />
 }
 
 <div class="container page-99" style="margin-top:100px">
@@ -69,6 +70,13 @@
                 </div>
             </div>
 
+            <div class="filtros-stock">
+                        <button class="btn-stock active" data-filter="">Todos</button>
+                        <button class="btn-stock sin" data-filter="SIN STOCK">Sin Stock</button>
+                        <button class="btn-stock bajo" data-filter="BAJO">Bajo</button>
+                        <button class="btn-stock ok" data-filter="OK">OK</button>
+                    </div>
+
             <!-- Tabla (SIN fila .filters; tu JS la clona) -->
             <div class="dt-dark-wrap">
                 <table class="display nowrap dt-dark" id="grd_Insumos" style="width:100%">
@@ -83,7 +91,10 @@
                             <th>Categoria</th>
                             <th>U. de Medida</th>
                             <th>Proveedor</th>
+                            <th>Stock</th>
+                            <th>Estado</th>
                             <th>Especificacion</th>
+                            
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -217,5 +228,5 @@
     <script src="~/js/utils/moment.js"></script>
 
     <!-- Lógica de Insumos -->
-    <script src="~/js/Insumos.js?v=1.9"></script>
+    <script src="~/js/Insumos.js?v=2.0"></script>
 }

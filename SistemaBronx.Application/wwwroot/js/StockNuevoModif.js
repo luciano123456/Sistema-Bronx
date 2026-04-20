@@ -69,13 +69,18 @@ async function cargarTiposMovimiento() {
     try {
         const resp = await fetch("/StockTiposMovimientos/Lista");
         if (!resp.ok) throw new Error("Error tipos movimiento");
+
         const data = await resp.json();
 
         const $sel = $("#IdTipoMovimiento").empty();
         $sel.append(new Option("Seleccione...", ""));
-        (data || []).forEach(t => {
-            $sel.append(new Option(t.Nombre, t.Id));
-        });
+
+        (data || [])
+            .filter(t => (t.Nombre || "").toUpperCase() !== "PEDIDO") // 🔥 FILTRO
+            .forEach(t => {
+                $sel.append(new Option(t.Nombre, t.Id));
+            });
+
     } catch (e) {
         console.error(e);
         errorModal?.("No se pudieron cargar los tipos de movimiento.");
@@ -91,7 +96,7 @@ async function cargarCatalogos() {
             CATALOGO_PRODUCTOS = (data || []).map(p => ({
                 Id: p.Id,
                 Nombre: p.Nombre,
-                CostoUnitario: Number(p.CostoUnitario || 0)
+                CostoUnitario: parseNumeroAR(p.CostoUnitario || 0)
             }));
         }
 
@@ -102,7 +107,7 @@ async function cargarCatalogos() {
             CATALOGO_INSUMOS = (dataI || []).map(i => ({
                 Id: i.Id,
                 Nombre: i.Descripcion,
-                CostoUnitario: Number(i.PrecioCosto || 0)
+                CostoUnitario: parseNumeroAR(i.PrecioCosto || 0)
             }));
         }
     } catch (e) {
@@ -134,9 +139,9 @@ async function cargarMovimiento(id) {
                 ? (d.IdProductoNavigation?.Nombre || "")
                 : (d.IdInsumoNavigation?.Descripcion || "");
 
-            const costo = Number(d.CostoUnitario ?? 0);
+            const costo = parseNumeroAR(d.CostoUnitario);
             const cantidad = Number(d.Cantidad || 0);
-            const subtotal = Number(d.SubTotal ?? (costo * cantidad));
+            const subtotal = parseNumeroAR(cantidad) * parseNumeroAR(costo);
 
             return {
                 TempId: TEMP_ID_SEQ++,
@@ -355,11 +360,14 @@ function inicializarFilaModal($row) {
         const id = Number($(this).val() || 0);
         const catalogo = tipo === "P" ? CATALOGO_PRODUCTOS : CATALOGO_INSUMOS;
         const item = catalogo.find(x => x.Id === id);
-        const costo = item ? item.CostoUnitario : 0;
+        const costo = parseNumeroAR(item?.CostoUnitario);
         $costo.val(formatMoneda(costo));
 
         const cant = Number($cant.val() || 0);
-        $sub.val(formatMoneda(cant * costo));
+
+        const sub = parseNumeroAR(cant) * parseNumeroAR(costo);
+
+        $sub.val(formatMoneda(sub));
     });
 
     $cant.off("input.modal").on("input.modal", function () {
@@ -369,7 +377,10 @@ function inicializarFilaModal($row) {
         const item = catalogo.find(x => x.Id === id);
         const costo = item ? item.CostoUnitario : 0;
         const cant = Number($(this).val() || 0);
-        $sub.val(formatMoneda(cant * costo));
+
+        const sub = round2(parseNumeroAR(costo) * parseNumeroAR(cant));
+
+        $sub.val(formatMoneda(sub));
     });
 
     // cargar al inicio (por defecto Insumo)
@@ -380,6 +391,10 @@ function inicializarFilaModal($row) {
 
 function eliminarFilaModal(btn) {
     $(btn).closest("tr").remove();
+}
+
+function round2(n) {
+    return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
 /* Agregar ítems del modal al buffer DETALLES
@@ -415,7 +430,7 @@ function confirmarItemsModal() {
 
         if (existente) {
             existente.Cantidad = Number(existente.Cantidad || 0) + cantidad;
-            existente.SubTotal = existente.Cantidad * existente.CostoUnitario;
+            existente.SubTotal = round2(parseNumeroAR(existente.CostoUnitario) * parseNumeroAR(existente.Cantidad))
         } else {
             DETALLES.push({
                 TempId: TEMP_ID_SEQ++,
@@ -426,7 +441,7 @@ function confirmarItemsModal() {
                 IdInsumo: tipo === "I" ? idItem : null,
                 Cantidad: cantidad,
                 CostoUnitario: costo,
-                SubTotal: cantidad * costo,
+                SubTotal: round2(parseNumeroAR(cantidad) * parseNumeroAR(costo)),
                 NombreItem: item ? item.Nombre : ""
             });
         }
@@ -481,7 +496,7 @@ function guardarCantidadEditada() {
     }
 
     det.Cantidad = nuevaCant;
-    det.SubTotal = nuevaCant * det.CostoUnitario;
+    det.SubTotal = round2(parseNumeroAR(det.CostoUnitario) * parseNumeroAR(nuevaCant));
 
     refrescarTablaDetalle();
 
@@ -565,4 +580,18 @@ async function guardarMovimiento() {
 ======================================================================== */
 function volver() {
     window.location.href = "/Stock/Index";
+}
+
+
+function parseNumeroAR(valor) {
+    if (!valor) return 0;
+
+    if (typeof valor === "number") return valor;
+
+    return Number(
+        valor
+            .toString()
+            .replace(/\./g, "")   // elimina miles
+            .replace(",", ".")    // convierte decimal
+    ) || 0;
 }

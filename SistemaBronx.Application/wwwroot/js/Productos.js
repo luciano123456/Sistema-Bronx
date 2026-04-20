@@ -9,7 +9,9 @@ const columnConfigProductos = [
     { index: 3, name: 'Porc. IVA', filterType: 'text' },
     { index: 4, name: 'Porc. Ganancia', filterType: 'text' },
     // CostoUnitario: SIN filtro
-    { index: 5, name: 'Costo Unitario', filterType: 'text' }
+    { index: 5, name: 'Costo Unitario', filterType: 'text' },
+    { index: 6, name: 'Stock', filterType: 'text' },
+    { index: 7, name: 'Estado', filterType: 'selectEstado' }
 ];
 
 // Cache de categorías para no pedirlas mil veces en la edición inline
@@ -112,6 +114,29 @@ async function configurarDataTableProductos(data) {
                 { data: 'PorcIva' },
                 { data: 'PorcGanancia' },
                 { data: 'CostoUnitario' },
+
+                {
+                    data: 'Stock',
+                    title: 'Stock',
+                    render: function (data) {
+                        return `<span class="stock-num">${data}</span>`;
+                    }
+                },
+                {
+                    data: null,
+                    title: 'Estado',
+                    render: function (row) {
+                        const stock = Number(row.Stock || 0);
+
+                        if (stock <= 0) {
+                            return `<span class="badge bg-danger">SIN STOCK</span>`;
+                        }
+                        if (stock <= 5) {
+                            return `<span class="badge bg-warning text-dark">BAJO</span>`;
+                        }
+                        return `<span class="badge bg-success">OK</span>`;
+                    }
+                }
             ],
             dom: 'Bfrtip',
             buttons: [
@@ -138,7 +163,20 @@ async function configurarDataTableProductos(data) {
                     render: (data) => formatNumber(redondearCien(data))
                 },
             ],
+
+            rowCallback: function (row, data) {
+                const stock = Number(data.Stock || 0);
+
+                if (stock <= 0) {
+                    $(row).addClass('row-stock-0');
+                } else if (stock <= 5) {
+                    $(row).addClass('row-stock-low');
+                }
+            },
+
             initComplete: async function () {
+
+
                 const api = this.api();
                 const idTabla = '#grd_Productos';
                 const estadoGuardado = JSON.parse(localStorage.getItem('estadoProductos')) || {};
@@ -162,23 +200,26 @@ async function configurarDataTableProductos(data) {
                     $cell.attr('data-colname', name).empty();
 
                     if (type === 'select') {
-                        const $sel = $(`<select id="filter${idx}" multiple="multiple"><option value=""></option></select>`)
+
+                        const $sel = $(`<select multiple></select>`)
                             .attr('data-index', idx)
                             .appendTo($cell)
-                            .on('change', async function () {
+                            .on('change', function () {
                                 const values = $(this).val();
+
                                 if (values && values.length > 0) {
                                     const rx = '^(' + values.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|') + ')$';
-                                    await api.column(idx).search(rx, true, false).draw();
+                                    api.column(idx).search(rx, true, false).draw();
                                 } else {
-                                    await api.column(idx).search('').draw();
+                                    api.column(idx).search('').draw();
                                 }
                             });
 
                         const dataSel = await cfg.fetchDataFunc();
-                        dataSel.forEach(item => $sel.append(`<option value="${item.Nombre}">${item.Nombre}</option>`));
+                        dataSel.forEach(item => {
+                            $sel.append(`<option value="${item.Nombre}">${item.Nombre}</option>`);
+                        });
 
-                        // Select2 dentro del wrapper de DataTable
                         $sel.select2({
                             placeholder: 'Seleccionar...',
                             width: '100%',
@@ -187,14 +228,44 @@ async function configurarDataTableProductos(data) {
 
                         if (valorGuardado) {
                             const vals = Array.isArray(valorGuardado) ? valorGuardado : [valorGuardado];
-                            const opciones = dataSel.map(x => x.Nombre);
-                            const validos = vals.filter(v => opciones.includes(v));
-                            if (validos.length) {
-                                $sel.val(validos).trigger('change.select2');
-                                const rx = '^(' + validos.map(v => $.fn.dataTable.util.escapeRegex(v)).join('|') + ')$';
-                                await api.column(idx).search(rx, true, false).draw();
-                            }
+                            $sel.val(vals).trigger('change');
                         }
+                    }
+
+                    // ============================
+                    // 🔥 ESTADO (FIX REAL)
+                    // ============================
+                    else if (type === 'selectEstado') {
+
+                        const $sel = $(`<select multiple></select>`)
+                            .attr('data-index', idx)
+                            .appendTo($cell)
+                            .on('change', function () {
+                                const values = $(this).val();
+
+                                if (values && values.length > 0) {
+                                    const rx = values.join('|');
+                                    api.column(idx).search(rx, true, false).draw();
+                                } else {
+                                    api.column(idx).search('').draw();
+                                }
+                            });
+
+                        $sel.append(`<option value="SIN STOCK">🔴 Sin Stock</option>`);
+                        $sel.append(`<option value="BAJO">🟡 Bajo</option>`);
+                        $sel.append(`<option value="OK">🟢 OK</option>`);
+
+                        $sel.select2({
+                            placeholder: 'Seleccionar...',
+                            width: '100%',
+                            dropdownParent: $('#grd_Productos').closest('.dataTables_wrapper')
+                        });
+
+                        if (valorGuardado) {
+                            const vals = Array.isArray(valorGuardado) ? valorGuardado : [valorGuardado];
+                            $sel.val(vals).trigger('change');
+                        }
+                  
                     } else if (type === 'text') {
                         const $input = $('<input type="text" class="form-control form-control-sm dt-input-dark" placeholder="Buscar..." />')
                             .attr('data-index', idx)
@@ -215,6 +286,8 @@ async function configurarDataTableProductos(data) {
                         }
                     }
                 }
+
+
 
                 // sin filtro en col 0 (acciones)
                 $('.filters th').eq(0).empty();
@@ -569,3 +642,17 @@ function enhanceSelect2ChipSummary($select, maxVisible = 2) {
 
     setTimeout(updateSummary, 0);
 }
+
+
+            $(document).on('click', '.btn-stock', function () {
+    $('.btn-stock').removeClass('active');
+    $(this).addClass('active');
+
+    const val = $(this).data('filter');
+
+    if (!val) {
+        gridProductos.column(7).search('').draw();
+    } else {
+        gridProductos.column(7).search(val, true, false).draw();
+    }
+});

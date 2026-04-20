@@ -46,6 +46,13 @@ namespace SistemaBronx.Application.Models.ViewModels
         public string? Estado { get; set; }
         public string? Cliente { get; set; }
 
+        public bool UsaStock { get; set; }
+        public decimal? CantidadStock { get; set; }
+        public decimal? Stock { get; set; }
+        public decimal? StockDisponible { get; set; }
+        public string Nombre { get; set; }
+
+
         public int? IdEstado { get; set; }
 
         public DateTime? FechaActualizacion { get; set; }
