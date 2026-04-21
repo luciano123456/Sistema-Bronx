@@ -510,10 +510,23 @@ namespace SistemaBronx.Application.Controllers
 
                 if (pedido.PedidosDetalleProcesos != null && pedido.PedidosDetalleProcesos.Any())
                 {
+                    var cantidadProductoPorDetalle = (pedido.PedidosDetalles ?? Enumerable.Empty<PedidosDetalle>())
+                        .Where(d => d.Id > 0)
+                        .ToDictionary(d => d.Id, d => (decimal)Math.Max(1m, d.Cantidad ?? 1m));
+
                     pedidoDetalleProceso = pedido.PedidosDetalleProcesos.Select(detalleProceso =>
                     {
                         var cantidadUsadaStock = detalleProceso.CantidadUsadaStock ?? 0;
                         var stockInsumo = detalleProceso.IdInsumoNavigation?.Stock ?? 0;
+                        var cantLinea = detalleProceso.Cantidad ?? 0m;
+                        decimal qProd = 1m;
+                        if (detalleProceso.IdDetalle.HasValue &&
+                            cantidadProductoPorDetalle.TryGetValue(detalleProceso.IdDetalle.Value, out var qDet))
+                        {
+                            qProd = qDet;
+                        }
+
+                        var cantidadInicial = qProd > 0 ? cantLinea / qProd : cantLinea;
 
                         return new VMPedidoDetalleProceso
                         {
@@ -523,6 +536,7 @@ namespace SistemaBronx.Application.Controllers
                             IdProducto = detalleProceso.IdProducto,
                             IdInsumo = detalleProceso.IdInsumo,
                             Cantidad = detalleProceso.Cantidad,
+                            CantidadInicial = cantidadInicial,
                             IdCategoria = detalleProceso.IdCategoria,
                             Comentarios = detalleProceso.Comentarios,
                             Descripcion = detalleProceso.Descripcion,

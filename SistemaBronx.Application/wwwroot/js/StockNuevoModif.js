@@ -6,6 +6,167 @@ let TEMP_ID_SEQ = 1;
 let CATALOGO_PRODUCTOS = [];
 let CATALOGO_INSUMOS = [];
 
+let STOCK_MODAL_ROW_SEQ = 1;
+
+/** Select2 dentro de modales: anclar al body evita saltos de scroll y recortes. */
+function stockModalSelect2Parent() {
+    return $(document.body);
+}
+
+function stockSelect2Instancia($select) {
+    return $select.data("select2");
+}
+
+function stockSelect2Dropdown($select) {
+    const inst = stockSelect2Instancia($select);
+    return inst && inst.$dropdown ? inst.$dropdown : $();
+}
+
+/* ========================================================================
+   SELECT2 INSUMOS (proveedor + búsqueda + foco)
+======================================================================== */
+function normalizarTextoBusqueda(s) {
+    return String(s || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+}
+
+function stockFormatInsumoResult(data) {
+    if (data.loading) {
+        return data.text;
+    }
+    if (!data.id) {
+        return data.text;
+    }
+    const prov = (data.element && data.element.getAttribute("data-proveedor")) || "";
+    const row = document.createElement("div");
+    row.className = "stock-s2-ins-row";
+    const nom = document.createElement("span");
+    nom.className = "stock-s2-ins-nom";
+    nom.textContent = data.text || "";
+    const pv = document.createElement("span");
+    pv.className = "stock-s2-ins-prov";
+    pv.textContent = prov || "—";
+    row.appendChild(nom);
+    row.appendChild(pv);
+    return $(row);
+}
+
+function stockFormatInsumoSelection(data) {
+    if (!data.id) {
+        return data.text;
+    }
+    const prov = (data.element && data.element.getAttribute("data-proveedor")) || "";
+    const wrap = document.createElement("span");
+    wrap.className = "stock-s2-ins-sel";
+    wrap.appendChild(document.createTextNode(data.text || ""));
+    if (prov) {
+        const sep = document.createElement("span");
+        sep.className = "stock-s2-ins-sel-sep";
+        sep.textContent = " · ";
+        const p = document.createElement("span");
+        p.className = "stock-s2-ins-sel-prov";
+        p.textContent = prov;
+        wrap.appendChild(sep);
+        wrap.appendChild(p);
+    }
+    return $(wrap);
+}
+
+function stockMatcherInsumo(params, data) {
+    if ($.trim(params.term || "") === "") {
+        return data;
+    }
+    if (typeof data.text === "undefined" || data.text === "") {
+        return null;
+    }
+    const t = normalizarTextoBusqueda(params.term);
+    const nom = normalizarTextoBusqueda(data.text);
+    const prov = normalizarTextoBusqueda(
+        (data.element && data.element.getAttribute("data-proveedor")) || ""
+    );
+    if (!t) {
+        return data;
+    }
+    if (nom.indexOf(t) !== -1 || prov.indexOf(t) !== -1) {
+        return data;
+    }
+    return null;
+}
+
+function stockInsumoDropdownAgregarCabecera() {
+    const $dd = $(".select2-dropdown.stock-s2-ins-dropdown").first();
+    if (!$dd.length) {
+        return;
+    }
+    const $results = $dd.find(".select2-results");
+    if (!$results.length || $results.find(".stock-s2-ins-head").length) {
+        return;
+    }
+    const head = $(`
+        <div class="stock-s2-ins-head">
+            <span class="stock-s2-ins-head-nom">Insumo</span>
+            <span class="stock-s2-ins-head-prov">Proveedor</span>
+        </div>`);
+    $results.prepend(head);
+}
+
+function stockInsumoSelect2Options($row) {
+    /* No usar dropdownCssClass: con select2.min.js (sin .full) Select2 intenta cargar compat/dropdownCss y revienta. */
+    return {
+        dropdownParent: stockModalSelect2Parent(),
+        placeholder: "Buscar insumo o proveedor…",
+        allowClear: true,
+        width: "100%",
+        minimumResultsForSearch: 0,
+        templateResult: stockFormatInsumoResult,
+        templateSelection: stockFormatInsumoSelection,
+        matcher: stockMatcherInsumo,
+        language: {
+            noResults: function () {
+                return "Sin coincidencias";
+            },
+            searching: function () {
+                return "Buscando…";
+            }
+        }
+    };
+}
+
+function enlazarSelect2InsumoStock($select, $row) {
+    $select.off("change.modal").on("change.modal", () => actualizarCostoSubFila($row));
+    $select.off("select2:open.stockins").on("select2:open.stockins", function () {
+        const $self = $(this);
+        setTimeout(function () {
+            stockSelect2Dropdown($self).addClass("stock-s2-ins-dropdown");
+            stockInsumoDropdownAgregarCabecera();
+            const el = document.querySelector(".select2-container--open .select2-search__field");
+            if (el && typeof el.focus === "function") {
+                try {
+                    el.focus({ preventScroll: true });
+                } catch (_e) {
+                    el.focus();
+                }
+            }
+        }, 0);
+    });
+    $select.off("select2:close.stockins").on("select2:close.stockins", function () {
+        stockSelect2Dropdown($(this)).removeClass("stock-s2-ins-dropdown");
+    });
+}
+
+function llenarSelectInsumosConMeta($sel, placeholder) {
+    $sel.empty();
+    $sel.append(new Option(placeholder, ""));
+    (CATALOGO_INSUMOS || []).forEach(x => {
+        const opt = new Option(x.Nombre, x.Id);
+        opt.setAttribute("data-proveedor", x.Proveedor || "");
+        $sel.append(opt);
+    });
+}
+
 /* ========================================================================
    HELPERS NUMÉRICOS / FORMATO
 ======================================================================== */
@@ -75,11 +236,20 @@ async function cargarTiposMovimiento() {
         const $sel = $("#IdTipoMovimiento").empty();
         $sel.append(new Option("Seleccione...", ""));
 
-        (data || [])
-            .filter(t => (t.Nombre || "").toUpperCase() !== "PEDIDO") // 🔥 FILTRO
-            .forEach(t => {
-                $sel.append(new Option(t.Nombre, t.Id));
-            });
+        const listaTipos = (data || [])
+            .filter(t => (t.Nombre || "").toUpperCase() !== "PEDIDO"); // 🔥 FILTRO
+
+        listaTipos.forEach(t => {
+            $sel.append(new Option(t.Nombre, t.Id));
+        });
+
+        const idMov = Number($("#IdMovimiento").val() || 0);
+        if (idMov <= 0) {
+            const ingreso = listaTipos.find(t => (t.Nombre || "").toUpperCase().includes("INGRES"));
+            if (ingreso) {
+                $sel.val(String(ingreso.Id)).trigger("change");
+            }
+        }
 
     } catch (e) {
         console.error(e);
@@ -107,6 +277,7 @@ async function cargarCatalogos() {
             CATALOGO_INSUMOS = (dataI || []).map(i => ({
                 Id: i.Id,
                 Nombre: i.Descripcion,
+                Proveedor: (i.Proveedor || "").trim(),
                 CostoUnitario: parseNumeroAR(i.PrecioCosto || 0)
             }));
         }
@@ -277,47 +448,47 @@ function abrirModalItems() {
     $("#tbodyModalItems").empty();
     agregarFilaModal();
 
-    const modal = new bootstrap.Modal(document.getElementById("modalItems"));
+    const el = document.getElementById("modalItems");
+    const modal = bootstrap.Modal.getOrCreateInstance(el, { focus: false });
     modal.show();
 }
 
 function agregarFilaModal() {
-    const idx = $("#tbodyModalItems tr").length;
+    const rowUid = STOCK_MODAL_ROW_SEQ++;
     const tr = $(`
-        <tr data-row="${idx}">
-            <td>
-                <select class="form-select form-select-sm stock-input stock-tipo-select" data-field="Tipo">
+        <tr class="stock-mx-tr stock-modal-fila" data-stock-row="${rowUid}">
+            <td class="stock-mx-td-tipo">
+                <select class="form-select form-select-sm stock-input stock-tipo-select stock-mx-tipo" data-field="Tipo">
                     <option value="I">Insumo</option>
                     <option value="P">Producto</option>
                 </select>
             </td>
-            <td>
-                <select class="form-select form-select-sm stock-input stock-item-select" data-field="Item">
-                    <option value="">Seleccione...</option>
-                </select>
-            </td>
-            <td>
+            <td class="stock-mx-td-item stock-modal-item-cell"></td>
+            <td class="stock-mx-td-qty">
                 <input type="number"
-                       class="form-control form-control-sm stock-input text-center"
+                       class="form-control form-control-sm stock-input stock-mx-input stock-mx-cant-simple text-center"
                        data-field="Cantidad"
                        min="0.001" step="0.001" value="1" />
+                <div class="stock-mx-cant-bom-note d-none small text-center stock-mx-cant-bom-hint">
+                    Cantidad<br /><span class="stock-mx-cant-bom-hint-sub">por insumo →</span>
+                </div>
             </td>
-            <td>
+            <td class="stock-mx-td-money">
                 <input type="text"
-                       class="form-control form-control-sm stock-input text-end"
+                       class="form-control form-control-sm stock-input stock-mx-input text-end"
                        data-field="Costo"
                        readonly />
             </td>
-            <td>
+            <td class="stock-mx-td-money">
                 <input type="text"
-                       class="form-control form-control-sm stock-input text-end"
+                       class="form-control form-control-sm stock-input stock-mx-input text-end"
                        data-field="Subtotal"
                        readonly />
             </td>
-            <td class="text-center">
-                <button type="button" class="btn btn-sm btn-outline-danger stock-btn-icon"
-                        onclick="eliminarFilaModal(this)">
-                    <i class="fa fa-times"></i>
+            <td class="stock-mx-td-actions text-center">
+                <button type="button" class="btn btn-sm stock-mx-btn-remove"
+                        onclick="eliminarFilaModal(this)" title="Quitar fila">
+                    <i class="fa fa-trash"></i>
                 </button>
             </td>
         </tr>`);
@@ -326,71 +497,402 @@ function agregarFilaModal() {
     inicializarFilaModal(tr);
 }
 
-function inicializarFilaModal($row) {
-    const $tipo = $row.find('[data-field="Tipo"]');
-    const $item = $row.find('[data-field="Item"]');
-    const $cant = $row.find('[data-field="Cantidad"]');
-    const $costo = $row.find('[data-field="Costo"]');
-    const $sub = $row.find('[data-field="Subtotal"]');
+function destruirSelect2En($root) {
+    $root.find("select").each(function () {
+        const $s = $(this);
+        if ($s.data("select2")) {
+            $s.select2("destroy");
+        }
+    });
+}
 
-    function llenarItems(tipoChar) {
-        $item.empty();
-        $item.append(new Option("Seleccione...", ""));
-        const lista = tipoChar === "P" ? CATALOGO_PRODUCTOS : CATALOGO_INSUMOS;
-        lista.forEach(x => $item.append(new Option(x.Nombre, x.Id)));
-        $item.val("").trigger("change");
-        $costo.val("");
-        $sub.val("");
+function nombreModoProductoRadio($row) {
+    const uid = $row.data("stock-row") || "0";
+    return `modo_prod_${uid}`;
+}
+
+function renderHtmlCeldaItem(tipoChar, rowUid) {
+    const nameRadio = `modo_prod_${rowUid}`;
+    if (tipoChar === "I") {
+        return `
+            <div class="stock-item-panel stock-item-panel--insumo">
+                <span class="stock-field-label">Insumo</span>
+                <select class="form-select form-select-sm stock-input stock-insumo-item-select stock-select-searchable"
+                        data-field="Item" title="Insumo">
+                    <option value="">Seleccioná o buscá…</option>
+                </select>
+            </div>`;
+    }
+    return `
+        <div class="stock-item-panel stock-item-panel--producto">
+            <span class="stock-field-label">Producto</span>
+            <select class="form-select form-select-sm stock-input stock-prod-select stock-select-prod"
+                    data-field="Producto" title="Producto">
+                <option value="">Seleccioná producto…</option>
+            </select>
+            <div class="stock-prod-modo-block">
+                <span class="stock-field-label stock-field-label--sub">¿Qué stock movés?</span>
+                <div class="stock-modo-segmented" role="radiogroup" aria-label="Tipo de stock del producto">
+                    <div class="stock-modo-slot">
+                        <input class="stock-modo-input stock-modo-prod-radio" type="radio" name="${nameRadio}" id="${nameRadio}_T" value="T" checked />
+                        <label class="stock-modo-pill" for="${nameRadio}_T" title="Stock del producto terminado">
+                            <i class="fa fa-cube"></i> Producto terminado
+                        </label>
+                    </div>
+                    <div class="stock-modo-slot">
+                        <input class="stock-modo-input stock-modo-prod-radio" type="radio" name="${nameRadio}" id="${nameRadio}_B" value="B" />
+                        <label class="stock-modo-pill" for="${nameRadio}_B" title="Uno o varios insumos de la ficha del producto">
+                            <i class="fa fa-wrench"></i> Insumos del producto
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="stock-bom-wrap d-none">
+                <span class="stock-field-label stock-field-label--sub">Insumos de la ficha</span>
+                <div class="stock-bom-actions d-none">
+                    <button type="button" class="btn btn-link btn-sm p-0 stock-bom-marcar-todos">Marcar todos</button>
+                    <span class="stock-bom-actions-sep">·</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 stock-bom-desmarcar-todos">Quitar todos</button>
+                </div>
+                <div class="stock-bom-check-list"></div>
+                <div class="stock-bom-vacio small d-none mt-2">
+                    <i class="fa fa-info-circle me-1"></i> Este producto no tiene insumos cargados en la ficha.
+                </div>
+            </div>
+        </div>`;
+}
+
+function llenarSelectBasico($sel, lista, placeholder) {
+    $sel.empty();
+    $sel.append(new Option(placeholder, ""));
+    lista.forEach(x => $sel.append(new Option(x.Nombre, x.Id)));
+}
+
+/** Lista de checkboxes: uno o varios insumos de la ficha del producto. */
+async function renderBomCheckList($row, idProducto) {
+    const $list = $row.find(".stock-bom-check-list");
+    const $vacío = $row.find(".stock-bom-vacio");
+    const $actions = $row.find(".stock-bom-actions");
+
+    $list.empty();
+    $vacío.addClass("d-none");
+    $actions.addClass("d-none");
+
+    if (!idProducto) {
+        return;
     }
 
-    // Select2 para ITEM
-    $item.select2({
-        dropdownParent: $("#modalItems"),
-        placeholder: "Seleccione...",
-        allowClear: true,
-        width: "100%"
+    try {
+        const resp = await fetch(`/Productos/ListaInsumosProducto?IdProducto=${idProducto}`);
+        if (!resp.ok) {
+            throw new Error("insumos");
+        }
+        const lista = await resp.json();
+        const arr = lista || [];
+        if (!arr.length) {
+            $vacío.removeClass("d-none");
+            return;
+        }
+
+        $actions.removeClass("d-none");
+
+        const uid = String($row.data("stock-row") || "0");
+
+        arr.forEach(x => {
+            const idIns = Number(x.IdInsumo || 0);
+            if (!idIns) {
+                return;
+            }
+            const cat = CATALOGO_INSUMOS.find(c => Number(c.Id) === idIns);
+            const nom = String((x.Nombre || cat?.Nombre || "Insumo")).trim();
+            const prov = (cat && cat.Proveedor) ? String(cat.Proveedor).trim() : "";
+            const chkId = `stock-bom-chk-${uid}-${idIns}`;
+
+            const $line = $("<div>").addClass("stock-bom-line");
+            const $chk = $("<input>", {
+                type: "checkbox",
+                class: "stock-bom-chk",
+                id: chkId,
+                value: String(idIns)
+            });
+            const $hit = $("<label>", { for: chkId, class: "stock-bom-line-hit" });
+            $hit.append(
+                $("<span>").addClass("stock-bom-line-nom").text(nom),
+                $("<span>").addClass("stock-bom-line-prov").text(prov || "—")
+            );
+
+            const $qtyWrap = $("<div>").addClass("stock-bom-line-qty-wrap");
+            $qtyWrap.append(
+                $("<span>").addClass("stock-bom-line-qty-lbl").text("Cant."),
+                $("<input>", {
+                    type: "number",
+                    class: "form-control form-control-sm stock-input stock-bom-qty text-center",
+                    min: "0.001",
+                    step: "0.001",
+                    value: "1"
+                })
+            );
+
+            $line.append($chk, $hit, $qtyWrap);
+            $list.append($line);
+        });
+
+        const baseCant = Number($row.find('[data-field="Cantidad"]').val() || 0) || 1;
+        $row.find(".stock-bom-qty").val(String(baseCant));
+        $row.find(".stock-bom-chk").prop("checked", true);
+        syncEstadoCantidadesBom($row);
+    } catch (e) {
+        console.error(e);
+        advertenciaModal?.("No se pudieron cargar los insumos del producto.");
+    }
+}
+
+async function prepararBomSegunContexto($row, idProducto) {
+    if (modoProductoSeleccionado($row) === "B" && idProducto > 0) {
+        await renderBomCheckList($row, idProducto);
+    } else {
+        await renderBomCheckList($row, 0);
+    }
+}
+
+/**
+ * Líneas que esta fila del modal aportará al movimiento (BOM: una por insumo tildado, cada uno con su cantidad).
+ */
+function obtenerLineasConfirmacionDesdeFilaModal($row) {
+    const tipoCol = $row.find('[data-field="Tipo"]').val();
+
+    if (tipoCol === "I") {
+        const cantidad = Number($row.find('[data-field="Cantidad"]').val() || 0);
+        if (cantidad <= 0) {
+            return [];
+        }
+        const id = Number($row.find(".stock-insumo-item-select").val() || 0);
+        const item = CATALOGO_INSUMOS.find(x => x.Id === id);
+        if (!id || !item) {
+            return [];
+        }
+        return [{
+            tipoItem: "I",
+            idProducto: null,
+            idInsumo: id,
+            costo: item.CostoUnitario,
+            nombre: item.Nombre,
+            cantidad
+        }];
+    }
+
+    const idProd = Number($row.find(".stock-prod-select").val() || 0);
+    const prod = CATALOGO_PRODUCTOS.find(x => x.Id === idProd);
+    if (!idProd || !prod) {
+        return [];
+    }
+
+    if (modoProductoSeleccionado($row) === "T") {
+        const cantidad = Number($row.find('[data-field="Cantidad"]').val() || 0);
+        if (cantidad <= 0) {
+            return [];
+        }
+        return [{
+            tipoItem: "P",
+            idProducto: idProd,
+            idInsumo: null,
+            costo: prod.CostoUnitario,
+            nombre: prod.Nombre,
+            cantidad
+        }];
+    }
+
+    const lineasBom = [];
+    $row.find(".stock-bom-line").each(function () {
+        const $line = $(this);
+        if (!$line.find(".stock-bom-chk").is(":checked")) {
+            return;
+        }
+        const id = Number($line.find(".stock-bom-chk").val() || 0);
+        const cantidad = Number($line.find(".stock-bom-qty").val() || 0);
+        if (!id || cantidad <= 0) {
+            return;
+        }
+        const cat = CATALOGO_INSUMOS.find(c => Number(c.Id) === id);
+        if (!cat) {
+            return;
+        }
+        lineasBom.push({
+            tipoItem: "I",
+            idProducto: null,
+            idInsumo: id,
+            costo: cat.CostoUnitario,
+            nombre: cat.Nombre,
+            cantidad
+        });
     });
+    return lineasBom;
+}
+
+function modoProductoSeleccionado($row) {
+    const nameRadio = nombreModoProductoRadio($row);
+    const v = $row.find(`input[name="${nameRadio}"]:checked`).val();
+    return v === "B" ? "B" : "T";
+}
+
+function esCantidadPorBomInsumos($row) {
+    return $row.find('[data-field="Tipo"]').val() === "P" && modoProductoSeleccionado($row) === "B";
+}
+
+function actualizarUIModoCantidadColumna($row) {
+    const $inp = $row.find('[data-field="Cantidad"]');
+    const $note = $row.find(".stock-mx-cant-bom-note");
+    if (esCantidadPorBomInsumos($row)) {
+        $inp.addClass("d-none");
+        $note.removeClass("d-none");
+    } else {
+        $inp.removeClass("d-none");
+        $note.addClass("d-none");
+    }
+}
+
+function syncEstadoCantidadesBom($row) {
+    $row.find(".stock-bom-line").each(function () {
+        const $line = $(this);
+        const on = $line.find(".stock-bom-chk").is(":checked");
+        $line.find(".stock-bom-qty").prop("disabled", !on);
+        $line.toggleClass("stock-bom-line--off", !on);
+    });
+}
+
+function actualizarVisibilidadBom($row) {
+    const tipo = $row.find('[data-field="Tipo"]').val();
+    const $wrap = $row.find(".stock-bom-wrap");
+    if (tipo !== "P") {
+        $wrap.addClass("d-none");
+        actualizarUIModoCantidadColumna($row);
+        return;
+    }
+    const modo = modoProductoSeleccionado($row);
+    if (modo === "B") {
+        $wrap.removeClass("d-none");
+    } else {
+        $wrap.addClass("d-none");
+    }
+    actualizarUIModoCantidadColumna($row);
+    syncEstadoCantidadesBom($row);
+}
+
+function actualizarCostoSubFila($row) {
+    const $costo = $row.find('[data-field="Costo"]');
+    const $sub = $row.find('[data-field="Subtotal"]');
+    const lineas = obtenerLineasConfirmacionDesdeFilaModal($row);
+
+    if (!lineas.length) {
+        $costo.val(formatMoneda(0));
+        $sub.val(formatMoneda(0));
+        return;
+    }
+
+    const total = lineas.reduce((s, L) => s + parseNumeroAR(L.costo) * parseNumeroAR(L.cantidad), 0);
+
+    if (lineas.length === 1) {
+        $costo.val(formatMoneda(lineas[0].costo));
+    } else {
+        $costo.val(`${lineas.length} ítems`);
+    }
+
+    $sub.val(formatMoneda(round2(total)));
+}
+
+function inicializarFilaModal($row) {
+    const $tipo = $row.find('[data-field="Tipo"]');
+    const $cell = $row.find(".stock-modal-item-cell");
+    const $cant = $row.find('[data-field="Cantidad"]');
+    const rowUid = $row.data("stock-row") || STOCK_MODAL_ROW_SEQ++;
+
+    function montarCeldaItem(tipoChar) {
+        destruirSelect2En($cell);
+        $cell.html(renderHtmlCeldaItem(tipoChar, rowUid));
+
+        if (tipoChar === "I") {
+            const $ins = $row.find(".stock-insumo-item-select");
+            llenarSelectInsumosConMeta($ins, "Seleccioná o buscá…");
+            if ($ins.data("select2")) {
+                $ins.select2("destroy");
+            }
+            $ins.select2(stockInsumoSelect2Options($row));
+            enlazarSelect2InsumoStock($ins, $row);
+        } else {
+            const $prod = $row.find(".stock-prod-select");
+            llenarSelectBasico($prod, CATALOGO_PRODUCTOS, "Seleccioná producto…");
+            $prod.select2({
+                dropdownParent: stockModalSelect2Parent(),
+                placeholder: "Buscar producto…",
+                allowClear: true,
+                width: "100%",
+                minimumResultsForSearch: 0
+            });
+            $prod.off("select2:open.stockprod").on("select2:open.stockprod", function () {
+                setTimeout(function () {
+                    const el = document.querySelector(".select2-container--open .select2-search__field");
+                    if (el && typeof el.focus === "function") {
+                        try {
+                            el.focus({ preventScroll: true });
+                        } catch (_e) {
+                            el.focus();
+                        }
+                    }
+                }, 0);
+            });
+
+            void prepararBomSegunContexto($row, 0);
+
+            $prod.off("change.modal").on("change.modal", async function () {
+                const idP = Number($(this).val() || 0);
+                await prepararBomSegunContexto($row, idP);
+                actualizarVisibilidadBom($row);
+                actualizarCostoSubFila($row);
+            });
+
+            $row.find(".stock-modo-prod-radio").off("change.modal").on("change.modal", async function () {
+                actualizarVisibilidadBom($row);
+                const idP = Number($prod.val() || 0);
+                await prepararBomSegunContexto($row, idP);
+                actualizarCostoSubFila($row);
+            });
+
+            $row.off("change.bomchk").on("change.bomchk", ".stock-bom-chk", function () {
+                syncEstadoCantidadesBom($row);
+                actualizarCostoSubFila($row);
+            });
+            $row.off("input.bomqty").on("input.bomqty", ".stock-bom-qty", () => actualizarCostoSubFila($row));
+            $row.off("click.bomall").on("click.bomall", ".stock-bom-marcar-todos", function (e) {
+                e.preventDefault();
+                $row.find(".stock-bom-chk").prop("checked", true);
+                syncEstadoCantidadesBom($row);
+                actualizarCostoSubFila($row);
+            });
+            $row.off("click.bomnone").on("click.bomnone", ".stock-bom-desmarcar-todos", function (e) {
+                e.preventDefault();
+                $row.find(".stock-bom-chk").prop("checked", false);
+                syncEstadoCantidadesBom($row);
+                actualizarCostoSubFila($row);
+            });
+        }
+
+        actualizarVisibilidadBom($row);
+        actualizarCostoSubFila($row);
+    }
 
     $tipo.off("change.modal").on("change.modal", function () {
-        llenarItems($(this).val());
+        montarCeldaItem($(this).val());
     });
 
-    $item.off("change.modal").on("change.modal", function () {
-        const tipo = $tipo.val();
-        const id = Number($(this).val() || 0);
-        const catalogo = tipo === "P" ? CATALOGO_PRODUCTOS : CATALOGO_INSUMOS;
-        const item = catalogo.find(x => x.Id === id);
-        const costo = parseNumeroAR(item?.CostoUnitario);
-        $costo.val(formatMoneda(costo));
+    $cant.off("input.modal").on("input.modal", () => actualizarCostoSubFila($row));
 
-        const cant = Number($cant.val() || 0);
-
-        const sub = parseNumeroAR(cant) * parseNumeroAR(costo);
-
-        $sub.val(formatMoneda(sub));
-    });
-
-    $cant.off("input.modal").on("input.modal", function () {
-        const tipo = $tipo.val();
-        const id = Number($item.val() || 0);
-        const catalogo = tipo === "P" ? CATALOGO_PRODUCTOS : CATALOGO_INSUMOS;
-        const item = catalogo.find(x => x.Id === id);
-        const costo = item ? item.CostoUnitario : 0;
-        const cant = Number($(this).val() || 0);
-
-        const sub = round2(parseNumeroAR(costo) * parseNumeroAR(cant));
-
-        $sub.val(formatMoneda(sub));
-    });
-
-    // cargar al inicio (por defecto Insumo)
-    llenarItems($tipo.val());
-    $costo.val("");
-    $sub.val("");
+    montarCeldaItem($tipo.val());
 }
 
 function eliminarFilaModal(btn) {
-    $(btn).closest("tr").remove();
+    const $tr = $(btn).closest("tr");
+    destruirSelect2En($tr);
+    $tr.remove();
 }
 
 function round2(n) {
@@ -412,41 +914,44 @@ function confirmarItemsModal() {
 
     filas.each(function () {
         const $row = $(this);
-        const tipo = $row.find('[data-field="Tipo"]').val(); // 'P' / 'I'
-        const idItem = Number($row.find('[data-field="Item"]').val() || 0);
-        const cantidad = Number($row.find('[data-field="Cantidad"]').val() || 0);
-        if (!idItem || cantidad <= 0) return;
-
-        const catalogo = tipo === "P" ? CATALOGO_PRODUCTOS : CATALOGO_INSUMOS;
-        const item = catalogo.find(x => x.Id === idItem);
-        const costo = item ? item.CostoUnitario : 0;
-
-        // Buscar si ya existe
-        let existente = DETALLES.find(d =>
-            d.TipoItem === tipo &&
-            ((tipo === "P" && d.IdProducto === idItem) ||
-                (tipo === "I" && d.IdInsumo === idItem))
-        );
-
-        if (existente) {
-            existente.Cantidad = Number(existente.Cantidad || 0) + cantidad;
-            existente.SubTotal = round2(parseNumeroAR(existente.CostoUnitario) * parseNumeroAR(existente.Cantidad))
-        } else {
-            DETALLES.push({
-                TempId: TEMP_ID_SEQ++,
-                Id: 0,
-                IdMovimiento: Number($("#IdMovimiento").val() || 0),
-                TipoItem: tipo, // 'P' / 'I'
-                IdProducto: tipo === "P" ? idItem : null,
-                IdInsumo: tipo === "I" ? idItem : null,
-                Cantidad: cantidad,
-                CostoUnitario: costo,
-                SubTotal: round2(parseNumeroAR(cantidad) * parseNumeroAR(costo)),
-                NombreItem: item ? item.Nombre : ""
-            });
+        const lineas = obtenerLineasConfirmacionDesdeFilaModal($row);
+        if (!lineas.length) {
+            return;
         }
 
-        agregados++;
+        lineas.forEach(function (L) {
+            const tipoItem = L.tipoItem;
+            const cantidad = L.cantidad;
+            const costo = L.costo;
+
+            let existente = DETALLES.find(d =>
+                d.TipoItem === tipoItem &&
+                ((tipoItem === "P" && d.IdProducto === L.idProducto) ||
+                    (tipoItem === "I" && d.IdInsumo === L.idInsumo))
+            );
+
+            if (existente) {
+                existente.Cantidad = Number(existente.Cantidad || 0) + cantidad;
+                existente.SubTotal = round2(
+                    parseNumeroAR(existente.CostoUnitario) * parseNumeroAR(existente.Cantidad)
+                );
+            } else {
+                DETALLES.push({
+                    TempId: TEMP_ID_SEQ++,
+                    Id: 0,
+                    IdMovimiento: Number($("#IdMovimiento").val() || 0),
+                    TipoItem: tipoItem,
+                    IdProducto: L.idProducto,
+                    IdInsumo: L.idInsumo,
+                    Cantidad: cantidad,
+                    CostoUnitario: costo,
+                    SubTotal: round2(parseNumeroAR(cantidad) * parseNumeroAR(costo)),
+                    NombreItem: L.nombre || ""
+                });
+            }
+
+            agregados++;
+        });
     });
 
     if (!agregados) {

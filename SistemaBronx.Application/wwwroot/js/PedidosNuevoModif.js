@@ -4,7 +4,9 @@ let gridProductosModal = null;
 let gridInsumosModal = null;
 let isEditing = false;
 let isEditingProducto = false;
-let filasSeleccionadas = []; // Array para almacenar las filas seleccionadas
+/** Selección múltiple modal insumos: por IdInsumo (las filas DOM se recrean en cada draw). */
+let idsInsumoSeleccionadosModal = [];
+let ultimaFilaInsumoModalId = null;
 let filaSeleccionadaInsumos = []; // Array para almacenar las filas seleccionadas
 let filaSeleccionadaProductos = null; // Variable para almacenar la fila seleccionada
 let facturaCliente = null;
@@ -15,6 +17,117 @@ let promesasInsumos = {};
 let tokenCargaProducto = 0;
 let timeoutSeleccionProducto = null;
 let lastCantidadAFabricar = null;
+
+function parseIdInsumoModal(rowData) {
+    if (!rowData) return 0;
+    const id = rowData.IdInsumo != null ? rowData.IdInsumo : rowData.Id;
+    const n = parseInt(id, 10);
+    return isNaN(n) ? 0 : n;
+}
+
+function aplicarSeleccionVisualInsumosModal() {
+    if (!gridInsumosModal) return;
+    $('#grd_Insumos_Modal tbody tr').removeClass('selected');
+    $('#grd_Insumos_Modal tbody tr td').removeClass('selected');
+    gridInsumosModal.rows().every(function () {
+        const d = this.data();
+        const id = parseIdInsumoModal(d);
+        if (id && idsInsumoSeleccionadosModal.indexOf(id) !== -1) {
+            const node = this.node();
+            if (node) {
+                $(node).addClass('selected');
+                $('td', node).addClass('selected');
+            }
+        }
+    });
+}
+
+function limpiarSeleccionInsumosModal() {
+    idsInsumoSeleccionadosModal = [];
+    ultimaFilaInsumoModalId = null;
+    $('#grd_Insumos_Modal tbody tr').removeClass('selected');
+    $('#grd_Insumos_Modal tbody tr td').removeClass('selected');
+}
+
+/** Cantidades / insumos: sin símbolo $ (formatNumber de site.js es moneda). */
+function formatCantidadPedido(val) {
+    const n = typeof val === 'number' ? val : parseFloat(String(val).replace(/\./g, '').replace(',', '.'));
+    if (val == null || val === '' || isNaN(n)) return '0,00';
+    return n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+}
+
+function stockInsumoDeposito(row) {
+    return parseFloat(row?.Stock ?? row?.StockDisponible ?? 0) || 0;
+}
+
+/** Cantidad de insumo por 1 unidad de producto en el pedido (evita re-multiplicar al editar). */
+function enriquecerInsumosConCantidadInicial(insumos, detalleProductos) {
+    const detalle = normalizarArrayDataTable(detalleProductos);
+    const mapaQtyProducto = {};
+    detalle.forEach(d => {
+        const id = parseInt(d.Id, 10);
+        if (!isNaN(id)) mapaQtyProducto[id] = Math.max(1, parseFloat(d.Cantidad) || 1);
+    });
+    return normalizarArrayDataTable(insumos).map(row => {
+        const idDet = parseInt(row.IdDetalle, 10);
+        const qProd = mapaQtyProducto[idDet] || 1;
+        const cantLinea = parseFloat(row.Cantidad) || 0;
+        const cantidadInicial = cantLinea / Math.max(1, qProd);
+        return { ...row, CantidadInicial: cantidadInicial };
+    });
+}
+
+function obtenerCantidadProductoPedidoPorIdDetalle(idDetalle) {
+    if (!gridProductos) return 1;
+    let q = 1;
+    gridProductos.rows().every(function () {
+        const p = this.data();
+        if (parseInt(p.Id, 10) === parseInt(idDetalle, 10)) {
+            q = Math.max(1, parseFloat(p.Cantidad) || 1);
+            return false;
+        }
+    });
+    return q;
+}
+
+let _listaEstadosPedidoCache = null;
+async function getListaEstadosPedidoCached() {
+    if (!_listaEstadosPedidoCache) _listaEstadosPedidoCache = await listaEstadosFilter();
+    return _listaEstadosPedidoCache;
+}
+
+/** Sin stock de producto → PEDIR; usar stock de producto → ENTREGAR; si no, insumo con stock en depósito → ENTREGAR. */
+async function aplicarEstadosPorDefectoFilasInsumos(insumosFilas) {
+    if (!insumosFilas || !insumosFilas.length) return;
+
+    const estados = await getListaEstadosPedidoCached();
+    const nom = (x) => (x.Nombre || '').trim().toUpperCase();
+    const estPedir = estados.find(x => nom(x) === 'PEDIR') || estados.find(x => nom(x).includes('PEDIR'));
+    const estEntregar = estados.find(x => nom(x) === 'ENTREGAR') || estados.find(x => nom(x).includes('ENTREGAR'));
+    if (!estPedir || !estEntregar) return;
+
+    const prodRow = obtenerFilaProductoModalSeleccionadaData();
+    const ctrl = obtenerControlesStockProductoFilaSeleccionada();
+    const stockProd = parseFloat(prodRow?.Stock ?? 0) || 0;
+    const usaStockProd = !!(ctrl && ctrl.chk && ctrl.chk.is(':checked'));
+
+    for (const row of insumosFilas) {
+        const stockIns = stockInsumoDeposito(row);
+        if (stockProd <= 0) {
+            row.IdEstado = estPedir.Id;
+            row.Estado = estPedir.Nombre;
+        } else if (usaStockProd) {
+            row.IdEstado = estEntregar.Id;
+            row.Estado = estEntregar.Nombre;
+        } else if (stockIns > 0) {
+            row.IdEstado = estEntregar.Id;
+            row.Estado = estEntregar.Nombre;
+        } else {
+            row.IdEstado = estPedir.Id;
+            row.Estado = estPedir.Nombre;
+        }
+    }
+}
 
 $(document).ready(async function () {
 
@@ -40,11 +153,17 @@ $(document).ready(async function () {
         allowClear: false
     });
 
-
+    $('#Colores, #Categorias').on('select2:open', function () {
+        setTimeout(function () {
+            const search = document.querySelector('.select2-container--open .select2-search__field');
+            if (search) search.focus();
+        }, 0);
+    });
 
     await listaColores();
     await listaClientes();
     await listaFormasdepago();
+    void getListaEstadosPedidoCached();
 
 
 
@@ -121,8 +240,10 @@ $(document).ready(async function () {
 async function cargarDatosPedido(id) {
     $("#tituloPedido").text(`Editar Pedido ${id}`);
     const datosPedido = await ObtenerDatosPedido(id);
-    await configurarDataTableProductos(datosPedido.PedidoDetalle);
-    await configurarDataTableInsumos(datosPedido.PedidoDetalleProceso);
+    const detalleProd = normalizarArrayDataTable(datosPedido.PedidoDetalle);
+    const insumosEnriquecidos = enriquecerInsumosConCantidadInicial(datosPedido.PedidoDetalleProceso, detalleProd);
+    await configurarDataTableProductos(detalleProd);
+    await configurarDataTableInsumos(insumosEnriquecidos);
     await insertarDatosPedido(datosPedido);
    
 
@@ -489,12 +610,25 @@ async function configurarDataTableProductosModal(data) {
                         if ($(this).is(':checked')) {
                             input.prop('disabled', false);
                             input.attr('max', maximo);
+                            const auto = Math.min(stockDisponible, cantidadPedido > 0 ? cantidadPedido : stockDisponible);
+                            if (auto > 0) input.val(auto);
                         } else {
                             input.prop('disabled', true);
                             input.val(0);
                         }
 
                         controlarUsoStockInsumos();
+
+                        void (async () => {
+                            if (!gridInsumosModal) return;
+                            const refs = [];
+                            gridInsumosModal.rows().every(function () { refs.push(this.data()); });
+                            await aplicarEstadosPorDefectoFilasInsumos(refs);
+                            gridInsumosModal.rows().every(function (i) {
+                                this.data(refs[i]);
+                            });
+                            gridInsumosModal.draw(false);
+                        })();
                     });
 
                 $('#grd_Productos_Modal tbody')
@@ -561,30 +695,26 @@ async function configurarDataTableInsumosModal(data, editando) {
             scrollCollapse: true,
             searching: false,
             ordering: false,
+            drawCallback: function () {
+                aplicarSeleccionVisualInsumosModal();
+            },
             columns: [
                 { data: 'Nombre' },
                 { data: 'Cantidad' },
                 {
                     data: 'Stock',
                     render: function (data, type, row) {
-                      
-                        const stock = parseFloat(row.Stock) || 0;
+                        const stock = stockInsumoDeposito(row);
                         const usa = Number(row.UsaStock) === 1;
                         const cantidad = parseFloat(row.CantidadStock || 0);
-
-                        if (usa && cantidad > 0) {
-                            return `<span class="badge bg-success">USA STOCK</span>`;
-                        }
 
                         if (stock <= 0) {
                             return `<span class="badge bg-danger">SIN STOCK</span>`;
                         }
-
-                        
-
-                        return `<span class="badge bg-secondary">NO USA</span>`;
-
-                        
+                        if (usa && cantidad > 0) {
+                            return `<span class="badge bg-success">USA STOCK</span>`;
+                        }
+                        return `<span class="badge bg-success">TIENE STOCK</span>`;
                     }
                 },
                 {
@@ -653,9 +783,15 @@ async function configurarDataTableInsumosModal(data, editando) {
             columnDefs: [
                 {
                     render: function (data) {
+                        return formatCantidadPedido(data);
+                    },
+                    targets: [1]
+                },
+                {
+                    render: function (data) {
                         return formatNumber(data);
                     },
-                    targets: [1, 5, 6]
+                    targets: [5, 6]
                 }
             ],
             initComplete: function () {
@@ -663,51 +799,49 @@ async function configurarDataTableInsumosModal(data, editando) {
                     gridInsumosModal.columns.adjust();
                 }, 250);
 
-                var ultimaFilaSeleccionada = null;
+                void getListaEstadosPedidoCached();
 
                 $('#grd_Insumos_Modal tbody').off('click', 'tr').on('click', 'tr', function (event) {
-                    if ($(event.target).is('input')) return;
+                    if ($(event.target).closest('input, select, button, textarea, label').length) return;
 
-                    var fila = $(this);
-                    var ctrlPresionado = event.ctrlKey || event.metaKey;
-                    var shiftPresionado = event.shiftKey;
+                    const $fila = $(this);
+                    const idIns = parseIdInsumoModal(gridInsumosModal.row($fila).data());
+                    if (!idIns) return;
+
+                    const ctrlPresionado = event.ctrlKey || event.metaKey;
+                    const shiftPresionado = event.shiftKey;
 
                     if (ctrlPresionado) {
-                        var index = filasSeleccionadas.indexOf(fila[0]);
-
+                        const index = idsInsumoSeleccionadosModal.indexOf(idIns);
                         if (index === -1) {
-                            filasSeleccionadas.push(fila[0]);
-                            fila.addClass('selected');
-                            $('td', fila).addClass('selected');
+                            idsInsumoSeleccionadosModal.push(idIns);
                         } else {
-                            filasSeleccionadas.splice(index, 1);
-                            fila.removeClass('selected');
-                            $('td', fila).removeClass('selected');
+                            idsInsumoSeleccionadosModal.splice(index, 1);
                         }
-                    } else if (shiftPresionado && ultimaFilaSeleccionada) {
-                        var filas = $('#grd_Insumos_Modal tbody tr');
-                        var indexActual = filas.index(fila);
-                        var indexUltima = filas.index(ultimaFilaSeleccionada);
-
-                        var inicio = Math.min(indexActual, indexUltima);
-                        var fin = Math.max(indexActual, indexUltima);
-
-                        filas.slice(inicio, fin + 1).each(function () {
-                            if (!filasSeleccionadas.includes(this)) {
-                                filasSeleccionadas.push(this);
-                                $(this).addClass('selected');
-                                $('td', this).addClass('selected');
-                            }
+                    } else if (shiftPresionado && ultimaFilaInsumoModalId != null) {
+                        const ordenIds = [];
+                        $('#grd_Insumos_Modal tbody tr').each(function () {
+                            const id = parseIdInsumoModal(gridInsumosModal.row($(this)).data());
+                            if (id) ordenIds.push(id);
                         });
+                        const indexActual = ordenIds.indexOf(idIns);
+                        const indexUltima = ordenIds.indexOf(ultimaFilaInsumoModalId);
+                        if (indexActual !== -1 && indexUltima !== -1) {
+                            const inicio = Math.min(indexActual, indexUltima);
+                            const fin = Math.max(indexActual, indexUltima);
+                            for (let i = inicio; i <= fin; i++) {
+                                const id = ordenIds[i];
+                                if (idsInsumoSeleccionadosModal.indexOf(id) === -1) {
+                                    idsInsumoSeleccionadosModal.push(id);
+                                }
+                            }
+                        }
                     } else {
-                        filasSeleccionadas = [fila[0]];
-                        $('#grd_Insumos_Modal tbody tr').removeClass('selected');
-                        $('#grd_Insumos_Modal tbody tr td').removeClass('selected');
-                        fila.addClass('selected');
-                        $('td', fila).addClass('selected');
+                        idsInsumoSeleccionadosModal = [idIns];
                     }
 
-                    ultimaFilaSeleccionada = fila[0];
+                    ultimaFilaInsumoModalId = idIns;
+                    aplicarSeleccionVisualInsumosModal();
                 });
 
                 $('#grd_Insumos_Modal tbody')
@@ -744,11 +878,34 @@ async function configurarDataTableInsumosModal(data, editando) {
                             return;
                         }
 
-                        rowData.UsaStock = $(this).is(':checked') ? 1 : 0;
+                        const checked = $(this).is(':checked');
+                        rowData.UsaStock = checked ? 1 : 0;
 
                         if (rowData.UsaStock === 1) {
+                            const necesario = cantidadNecesaria;
+                            if (stockDisponible < necesario) {
+                                if (typeof advertenciaModal === 'function') {
+                                    advertenciaModal(`No alcanza el stock de este insumo. Necesitás ${formatCantidadPedido(necesario)} y hay ${formatCantidadPedido(stockDisponible)}.`);
+                                }
+                                $(this).prop('checked', false);
+                                rowData.UsaStock = 0;
+                                rowData.CantidadStock = 0;
+                                input.val(0).prop('disabled', true);
+                                gridInsumosModal.row(rowIndex).data(rowData).draw(false);
+                                return;
+                            }
+                            rowData.CantidadStock = necesario;
                             input.prop('disabled', false);
                             input.attr('max', maximo);
+                            input.val(necesario);
+                            if (_listaEstadosPedidoCache) {
+                                const ent = _listaEstadosPedidoCache.find(x => (x.Nombre || '').trim().toUpperCase() === 'ENTREGAR')
+                                    || _listaEstadosPedidoCache.find(x => (x.Nombre || '').toUpperCase().includes('ENTREGAR'));
+                                if (ent) {
+                                    rowData.IdEstado = ent.Id;
+                                    rowData.Estado = ent.Nombre;
+                                }
+                            }
                         } else {
                             rowData.CantidadStock = 0;
                             input.prop('disabled', true);
@@ -818,22 +975,28 @@ async function configurarDataTableInsumosModal(data, editando) {
                         const rowData = gridInsumosModal.row($td.closest('tr')).data();
 
                         async function saveEdit(newText, newValue) {
-                            const filas = filasSeleccionadas.length > 0 ? filasSeleccionadas : [$td.closest('tr')[0]];
+                            const idCelda = parseIdInsumoModal(rowData);
+                            const idsEditar =
+                                idsInsumoSeleccionadosModal.length > 0
+                                    ? idsInsumoSeleccionadosModal.slice()
+                                    : (idCelda ? [idCelda] : []);
 
-                            for (let i = 0; i < filas.length; i++) {
-                                const rowElement = filas[i];
-                                const row = gridInsumosModal.row($(rowElement));
-                                const d = row.data();
+                            gridInsumosModal.rows().every(function () {
+                                const d = this.data();
+                                const idRow = parseIdInsumoModal(d);
+                                if (idsEditar.indexOf(idRow) === -1) return;
 
                                 if (dataSrc === 'Color') {
-                                    d.IdColor = parseInt(newValue) || 0;
+                                    d.IdColor = parseInt(newValue, 10) || 0;
                                     d.Color = newText;
                                 } else if (dataSrc === 'Estado') {
-                                    d.IdEstado = parseInt(newValue) || 0;
+                                    d.IdEstado = parseInt(newValue, 10) || 0;
                                     d.Estado = newText;
                                 } else if (dataSrc === 'Cantidad') {
                                     const cantidad = parseFloat(newValue) || 0;
                                     d.Cantidad = cantidad;
+                                    const qFab = obtenerCantidadAFabricar();
+                                    d.CantidadInicial = qFab > 0 ? (cantidad / qFab) : (parseFloat(d.CantidadInicial) || 0);
                                     if (parseFloat(d.CantidadStock || 0) > cantidad) {
                                         d.CantidadStock = cantidad;
                                         d.UsaStock = cantidad > 0 ? d.UsaStock : 0;
@@ -842,14 +1005,12 @@ async function configurarDataTableInsumosModal(data, editando) {
                                     d[dataSrc] = newText;
                                 }
 
-                                row.data(d);
-                            }
+                                this.data(d);
+                            });
 
+                            idsInsumoSeleccionadosModal = [];
+                            ultimaFilaInsumoModalId = null;
                             gridInsumosModal.draw(false);
-
-                            $(filas).removeClass('selected');
-                            $(filas).find('td').removeClass('selected');
-                            filasSeleccionadas = [];
                             isEditing = false;
 
                             controlarUsoStockInsumos();
@@ -914,6 +1075,7 @@ async function configurarDataTableInsumosModal(data, editando) {
             }
         });
     } else {
+        limpiarSeleccionInsumosModal();
         gridInsumosModal.clear().rows.add(dataFinal).draw();
         setTimeout(function () {
             gridInsumosModal.columns.adjust();
@@ -980,68 +1142,49 @@ $('#Colores').on('change', function () {
     var idColorSeleccionado = $(this).val(); // El valor es el ID del color
     var colorSeleccionadoTexto = $('#Colores option:selected').text(); // El texto es el nombre del color
 
-    // Verificar si hay filas seleccionadas
-    if (filasSeleccionadas.length > 0) {
-        // Si hay filas seleccionadas, actualizar solo esas
-        filasSeleccionadas.forEach(function (fila) {
-            var tr = $(fila); // Referencia al <tr> actual
-            var rowData = gridInsumosModal.row(tr).data(); // Obtener los datos de la fila
-
-            // Actualizar el objeto rowData
-            rowData.Color = colorSeleccionadoTexto;  // Actualiza el color en rowData
-            rowData.IdColor = idColorSeleccionado;  // Actualiza el ID del color
-
-            // Actualizar la tabla con el nuevo rowData
-            gridInsumosModal.row(tr).data(rowData).draw();
+    if (idsInsumoSeleccionadosModal.length > 0) {
+        gridInsumosModal.rows().every(function () {
+            var rowData = this.data();
+            if (idsInsumoSeleccionadosModal.indexOf(parseIdInsumoModal(rowData)) === -1) return;
+            rowData.Color = colorSeleccionadoTexto;
+            rowData.IdColor = idColorSeleccionado;
+            this.data(rowData);
         });
+        gridInsumosModal.draw(false);
     } else {
-        // Si no hay filas seleccionadas, actualizar todas las filas
-        $('#grd_Insumos_Modal tbody tr').each(function () {
-            var tr = $(this); // Referencia al <tr> actual
-            var rowData = gridInsumosModal.row(tr).data(); // Obtener los datos de la fila
-
-            // Actualizar el objeto rowData
-            rowData.Color = colorSeleccionadoTexto;  // Actualiza el color en rowData
-            rowData.IdColor = idColorSeleccionado;  // Actualiza el ID del color
-
-            // Actualizar la tabla con el nuevo rowData
-            gridInsumosModal.row(tr).data(rowData).draw();
+        gridInsumosModal.rows().every(function () {
+            var rowData = this.data();
+            rowData.Color = colorSeleccionadoTexto;
+            rowData.IdColor = idColorSeleccionado;
+            this.data(rowData);
         });
+        gridInsumosModal.draw(false);
     }
 });
 
 $('#btnEliminarInsumo').on('click', function () {
-    // Verificar si hay filas seleccionadas
-    if (filasSeleccionadas.length === 0) {
+    if (idsInsumoSeleccionadosModal.length === 0) {
         alert("No tienes ninguna fila seleccionada.");
         return;
     }
 
-    // Verificar cuántas filas están en la tabla
     var cantidadFilasTotales = gridInsumosModal.data().length;
-    var cantidadFilasSeleccionadas = filasSeleccionadas.length;
+    var cantidadFilasSeleccionadas = idsInsumoSeleccionadosModal.length;
 
-    // Verificar si al eliminar las filas seleccionadas se quedaría con menos de una fila
     if (cantidadFilasTotales - cantidadFilasSeleccionadas < 1) {
         alert("No puedes eliminar todas las filas. Debe quedar al menos un insumo.");
         return;
     }
 
-    // Confirmar eliminación
     var confirmacion = confirm("¿Deseas eliminar " + cantidadFilasSeleccionadas + " registro(s)?");
 
     if (confirmacion) {
-        // Eliminar las filas seleccionadas
-        filasSeleccionadas.forEach(function (fila) {
-            var tr = $(fila); // Referencia al <tr> actual
-            var rowData = gridInsumosModal.row(tr).data(); // Obtener los datos de la fila
-
-            // Eliminar la fila de la tabla
-            gridInsumosModal.row(tr).remove().draw();
-        });
-
-        // Limpiar el array de filas seleccionadas
-        filasSeleccionadas = [];
+        var idsQuitar = idsInsumoSeleccionadosModal.slice();
+        gridInsumosModal.rows(function (idx, data) {
+            return idsQuitar.indexOf(parseIdInsumoModal(data)) !== -1;
+        }).remove();
+        limpiarSeleccionInsumosModal();
+        gridInsumosModal.draw(false);
     }
 });
 
@@ -1084,7 +1227,7 @@ async function configurarDataTableProductos(data) {
                             return `<span class="badge bg-success">USA STOCK</span>`;
                         }
 
-                        return `<span class="badge bg-secondary">NO USA</span>`;
+                        return `<span class="badge bg-success">TIENE STOCK</span>`;
                     }
                 },
 
@@ -1131,6 +1274,12 @@ async function configurarDataTableProductos(data) {
             fixedHeader: false,
             "columnDefs": [
 
+                {
+                    "render": function (data, type, row) {
+                        return formatCantidadPedido(data);
+                    },
+                    "targets": [4]
+                },
                 {
                     "render": function (data, type, row) {
                         return formatNumber(data); // Formatear números
@@ -1186,36 +1335,32 @@ async function configurarDataTableInsumos(data) {
                     data: 'UsaStock',
                     render: function (data, type, row) {
 
-                        const stock = parseFloat(row.CantidadStock ?? row.StockDisponible ?? 0) || 0;
+                        const stockDep = stockInsumoDeposito(row);
                         const usa = Number(data) === 1;
                         const cantidadStock = parseFloat(row.CantidadStock || 0) || 0;
 
-                        // 🔴 SIN STOCK REAL
-                        if (stock <= 0) {
+                        if (stockDep <= 0) {
                             return `<span class="badge bg-danger">SIN STOCK</span>`;
                         }
 
-                        // 🟢 USA STOCK REAL
                         if (usa && cantidadStock > 0) {
                             return `<span class="badge bg-success">USA STOCK</span>`;
                         }
 
-                        // ⚪ NO USA STOCK
-                        return `<span class="badge bg-secondary">NO USA</span>`;
+                        return `<span class="badge bg-success">TIENE STOCK</span>`;
                     }
                 },
                 {
                     data: 'CantidadStockInsumo',
                     render: function (data, type, row) {
 
-                        const stock = parseFloat(row.CantidadStock ?? row.CantidadStock ?? 0) || 0;
+                        const usado = parseFloat(row.CantidadStock || 0) || 0;
 
-                        // 🔴 SIN STOCK → BLOQUEADO
-                        if (stock <= 0) {
-                            return `<span style="color:#dc3545">0</span>`;
+                        if (usado <= 0) {
+                            return `<span style="color:#6c757d">0</span>`;
                         }
 
-                        return `<span style="font-weight:bold">${stock}</span>`;
+                        return `<span style="font-weight:bold">${formatCantidadPedido(usado)}</span>`;
                     }
                 },
 
@@ -1261,6 +1406,12 @@ async function configurarDataTableInsumos(data) {
 
                 {
                     "render": function (data, type, row) {
+                        return formatCantidadPedido(data);
+                    },
+                    "targets": [3]
+                },
+                {
+                    "render": function (data, type, row) {
                         return formatNumber(data); // Formatear números
                     },
                     "targets": [6, 7] // Índices de las columnas de números
@@ -1271,6 +1422,7 @@ async function configurarDataTableInsumos(data) {
             initComplete: async function () {
                 var api = this.api();
 
+                void getListaEstadosPedidoCached();
 
                 $('.filters th').eq(0).html(''); // Limpiar la última columna si es necesario
 
@@ -1379,6 +1531,8 @@ async function configurarDataTableInsumos(data) {
                                 } else if (dataSrc === 'Cantidad') {
                                     const cantidad = parseFloat(newValue) || 0;
                                     d.Cantidad = cantidad;
+                                    const qProd = obtenerCantidadProductoPedidoPorIdDetalle(d.IdDetalle);
+                                    d.CantidadInicial = qProd > 0 ? (cantidad / qProd) : (parseFloat(d.CantidadInicial) || 0);
                                     if (parseFloat(d.CantidadStock || 0) > cantidad) {
                                         d.CantidadStock = cantidad;
                                         d.UsaStock = cantidad > 0 ? d.UsaStock : 0;
@@ -1725,7 +1879,7 @@ async function ObtenerInsumosProducto(id) {
 }
 
 async function limpiarInformacionProducto() {
-    filasSeleccionadas = [];
+    limpiarSeleccionInsumosModal();
     filaSeleccionadaProductos = null;
 
     if (gridInsumosModal != null) {
@@ -1750,9 +1904,6 @@ async function limpiarInformacionProducto() {
 
     $('#grd_Productos_Modal .chk-usa-stock-producto').prop('checked', false);
     $('#grd_Productos_Modal .txt-cantidad-stock-producto').val(0).prop('disabled', true);
-
-    filasSeleccionadas = [];
-    ultimaFilaSeleccionada = null;
 }
 
 async function cargarInformacionProducto(id) {
@@ -1776,7 +1927,7 @@ async function cargarInformacionProducto(id) {
         // Si mientras esperaba se seleccionó otro producto, no pises el modal
         if (miToken !== tokenCargaProducto) return;
 
-        procesarProducto(data);
+        await procesarProducto(data);
     } catch (error) {
         delete promesasInsumos[id];
         console.error("Error cargando insumos del producto:", error);
@@ -1784,7 +1935,7 @@ async function cargarInformacionProducto(id) {
     }
 }
 
-function procesarProducto(insumosProducto) {
+async function procesarProducto(insumosProducto) {
     if (!insumosProducto) return;
 
     const insumos = normalizarArrayDataTable(insumosProducto.Insumos).map(i => ({
@@ -1796,6 +1947,8 @@ function procesarProducto(insumosProducto) {
         CantidadStock: parseFloat(i.CantidadStock || 0) || 0,
         UsaStock: Number(i.UsaStock) === 1 ? 1 : 0
     }));
+
+    await aplicarEstadosPorDefectoFilasInsumos(insumos);
 
     if (gridInsumosModal == null) {
         configurarDataTableInsumosModal(insumos, false);
@@ -1839,6 +1992,11 @@ function procesarProducto(insumosProducto) {
     document.getElementById("ProductoModalPrecioVenta").value = formatNumber(
         Math.ceil((parseFloat(producto.CostoUnitario || 0)) / 100) * 100
     );
+
+    const qModal = parseFloat($('#ProductoModalCantidad').val());
+    if (!isNaN(qModal) && qModal > 0) {
+        recalcularInsumosPorCantidadProducto();
+    }
 
     controlarUsoStockInsumosOptimizado();
 }
@@ -1972,11 +2130,18 @@ async function editarProducto(producto) {
     // =========================================================
     // 6) TRANSFORMAR INSUMOS PARA MODAL
     // =========================================================
-    const transformedData = insumosData.map(row => ({
+    const qProdLinea = Math.max(1, parseFloat(producto.Cantidad) || 1);
+
+    const transformedData = insumosData.map(row => {
+
+        const cantLinea = parseFloat(row.Cantidad) || 0;
+        const cantidadInicial = cantLinea / qProdLinea;
+
+        return {
 
         Nombre: row.Insumo,
         Cantidad: row.Cantidad,
-        CantidadInicial: row.CantidadInicial ?? row.Cantidad,
+        CantidadInicial: cantidadInicial,
 
         CostoUnitario: row.PrecioUnitario,
         SubTotal: row.SubTotal,
@@ -2010,7 +2175,8 @@ async function editarProducto(producto) {
 
         UsaStock: row.UsaStock === true || Number(row.UsaStock) === 1 ? 1 : 0,
         CantidadStock: parseFloat(row.CantidadStock || 0) || 0
-    }));
+        };
+    });
 
     // =========================================================
     // 7) SETEAR FORMULARIO

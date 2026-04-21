@@ -1249,3 +1249,285 @@
     border-radius: 10px;
     color: white;
 }
+
+/* ========================================================================
+   Modal “Añadir ítems” — paneles legibles + Select2 insumos (nombre | proveedor)
+   ======================================================================== */
+
+.stock-modal-items-card {
+    overflow: hidden;
+}
+
+.stock-modal-icon--items {
+    background: linear-gradient(145deg, rgba(76, 141, 255, 0.45), rgba(123, 92, 255, 0.25));
+    border-color: rgba(124, 194, 255, 0.45);
+}
+
+.stock-modal-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: rgba(24, 195, 126, 0.2);
+    border: 1px solid rgba(24, 195, 126, 0.45);
+    color: #9ff3d0;
+}
+
+.stock-modal-lead {
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: #b4c2e5;
+    max-width: 58rem;
+}
+
+.stock-modal-lead strong {
+    color: #eaf1ff;
+    font-weight: 700;
+}
+
+.stock-btn-add-row-modal {
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+.stock-modal-table-shell {
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+#modalItems .stock-modal-fila > td {
+    vertical-align: top;
+    padding-top: 0.9rem;
+    padding-bottom: 0.9rem;
+}
+
+.stock-item-panel {
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(165deg, rgba(30, 39, 66, 0.96), rgba(16, 23, 40, 0.82));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.stock-item-panel--insumo {
+    border-color: rgba(24, 195, 126, 0.28);
+    box-shadow: inset 0 1px 0 rgba(24, 195, 126, 0.08), 0 4px 18px rgba(0, 0, 0, 0.25);
+}
+
+.stock-item-panel--producto {
+    border-color: rgba(124, 194, 255, 0.28);
+    box-shadow: inset 0 1px 0 rgba(124, 194, 255, 0.08), 0 4px 18px rgba(0, 0, 0, 0.25);
+}
+
+.stock-field-label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8a9bc4;
+    margin-bottom: 6px;
+}
+
+.stock-field-label--sub {
+    margin-top: 12px;
+}
+
+.stock-prod-modo-block {
+    margin-top: 2px;
+}
+
+.stock-modo-segmented {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.stock-modo-slot {
+    position: relative;
+}
+
+.stock-modo-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+}
+
+.stock-modo-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(0, 0, 0, 0.22);
+    color: #cfd8ff;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stock-modo-pill:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+.stock-modo-input:focus-visible + .stock-modo-pill {
+    outline: 2px solid rgba(124, 194, 255, 0.7);
+    outline-offset: 2px;
+}
+
+.stock-modo-input:checked + .stock-modo-pill {
+    background: linear-gradient(135deg, rgba(76, 141, 255, 0.5), rgba(123, 92, 255, 0.38));
+    border-color: rgba(124, 194, 255, 0.55);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.stock-modo-pill .fa {
+    opacity: 0.9;
+    font-size: 0.85em;
+}
+
+.stock-bom-wrap {
+    margin-top: 2px;
+}
+
+.stock-bom-vacio {
+    color: #ffc876 !important;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(255, 200, 118, 0.1);
+    border: 1px solid rgba(255, 200, 118, 0.22);
+}
+
+/* Select2 dropdown insumos: cabecera tipo tabla + filas en dos columnas */
+.select2-container--open .select2-dropdown.stock-s2-ins-dropdown {
+    border-radius: 12px !important;
+    border: 1px solid rgba(124, 194, 255, 0.28) !important;
+    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.55);
+    overflow: hidden;
+    min-width: min(100vw - 24px, 420px) !important;
+}
+
+.stock-s2-ins-dropdown .select2-search--dropdown {
+    padding: 10px 10px 8px;
+    background: #0c1222;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stock-s2-ins-dropdown .select2-search__field {
+    background: #151d32 !important;
+    border: 1px solid rgba(78, 160, 255, 0.4) !important;
+    border-radius: 10px !important;
+    color: #eaf1ff !important;
+    padding: 8px 12px !important;
+    font-size: 0.9rem !important;
+}
+
+.stock-s2-ins-dropdown .select2-search__field::placeholder {
+    color: #6b7aa0;
+}
+
+.stock-s2-ins-head {
+    display: grid;
+    grid-template-columns: 1fr minmax(96px, 36%);
+    gap: 8px;
+    padding: 8px 12px 6px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #6b7aa0;
+    background: #10182a;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.stock-s2-ins-head-prov {
+    text-align: right;
+}
+
+.stock-s2-ins-dropdown .select2-results__options {
+    max-height: 280px !important;
+}
+
+.stock-s2-ins-dropdown .select2-results__option {
+    padding: 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.stock-s2-ins-dropdown .select2-results__option--highlighted {
+    background: rgba(76, 141, 255, 0.25) !important;
+}
+
+#modalItems .select2-container--open {
+    z-index: 1062;
+}
+
+.stock-s2-ins-row {
+    display: grid;
+    grid-template-columns: 1fr minmax(96px, 36%);
+    gap: 8px;
+    align-items: start;
+    padding: 9px 12px;
+    font-size: 0.84rem;
+}
+
+.stock-s2-ins-nom {
+    font-weight: 600;
+    color: #f1f4ff;
+    line-height: 1.35;
+}
+
+.stock-s2-ins-prov {
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: #8ab8ff;
+    line-height: 1.35;
+    text-align: right;
+    word-break: break-word;
+}
+
+#modalItems .select2-container .stock-s2-ins-sel-prov {
+    color: #9dbce8;
+    font-weight: 600;
+    font-size: 0.76rem;
+}
+
+#modalItems .select2-container .stock-s2-ins-sel-sep {
+    color: #5a6888;
+    font-weight: 500;
+}
+
+/* Selección insumo: permitir segunda línea si hace falta */
+#modalItems .stock-insumo-item-select + .select2-container .select2-selection--single,
+#modalItems .stock-bom-insumo-select + .select2-container .select2-selection--single {
+    height: auto !important;
+    min-height: 40px !important;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+#modalItems .stock-insumo-item-select + .select2-container .select2-selection__rendered,
+#modalItems .stock-bom-insumo-select + .select2-container .select2-selection__rendered {
+    line-height: 1.3 !important;
+    white-space: normal !important;
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+#modalItems .stock-insumo-item-select + .select2-container .select2-selection__arrow,
+#modalItems .stock-bom-insumo-select + .select2-container .select2-selection__arrow {
+    height: auto !important;
+    min-height: 40px;
+}
