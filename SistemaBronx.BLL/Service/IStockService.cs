@@ -17,9 +17,9 @@ namespace SistemaBronx.BLL.Service
         Task<StockMovimiento?> ObtenerMovimiento(int id);
 
         Task<List<StockSaldo>> ObtenerSaldos();
-        Task<StockSaldo?> ObtenerSaldoItem(string tipoItem, int? idProducto, int? idInsumo);
+        Task<StockSaldo?> ObtenerSaldoItem(string tipoItem, int? idProducto, int? idInsumo, int? idColor = null);
 
-        Task<List<StockMovimiento>> ObtenerMovimientosItem(string tipoItem, int? idProducto, int? idInsumo);
+        Task<List<StockMovimiento>> ObtenerMovimientosItem(string tipoItem, int? idProducto, int? idInsumo, int? idColor = null);
 
         // *** NUEVO: eliminar SOLO un detalle ***
         Task<bool> EliminarDetalleMovimiento(int idDetalle);

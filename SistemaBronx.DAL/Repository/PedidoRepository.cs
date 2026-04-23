@@ -27,8 +27,8 @@ namespace SistemaBronx.DAL.Repository
         private string BuildComentarioStockPedidoDevolucion(int idPedido)
            => $"{STOCK_PEDIDO_PREFIX_DEVOLUCION}{idPedido}";
 
-        private string BuildKey(string tipoItem, int? idProducto, int? idInsumo)
-            => $"{(tipoItem ?? string.Empty).ToUpper()}|{idProducto}|{idInsumo}";
+        private string BuildKey(string tipoItem, int? idProducto, int? idInsumo, int? idColor)
+            => $"{(tipoItem ?? string.Empty).ToUpper()}|{idProducto}|{idInsumo}|{idColor ?? 0}";
 
         private async Task<int> ObtenerIdTipoMovimientoSalidaAsync()
         {
@@ -100,7 +100,8 @@ namespace SistemaBronx.DAL.Repository
             var saldo = await _dbcontext.StockSaldos.FirstOrDefaultAsync(s =>
                 s.TipoItem == det.TipoItem &&
                 s.IdProducto == det.IdProducto &&
-                s.IdInsumo == det.IdInsumo
+                s.IdInsumo == det.IdInsumo &&
+                (s.IdColor ?? 0) == (det.IdColor ?? 0)
             );
 
             if (saldo == null)
@@ -110,6 +111,7 @@ namespace SistemaBronx.DAL.Repository
                     TipoItem = det.TipoItem,
                     IdProducto = det.IdProducto,
                     IdInsumo = det.IdInsumo,
+                    IdColor = det.IdColor,
                     CantidadActual = 0,
                     FechaUltMovimiento = DateTime.Now
                 };
@@ -147,6 +149,7 @@ namespace SistemaBronx.DAL.Repository
                     TipoItem = "P",
                     IdProducto = det.IdProducto,
                     IdInsumo = null,
+                    IdColor = det.IdColor,
                     Cantidad = det.CantidadUsadaStock ?? 0,
                     CostoUnitario = det.CostoUnitario ?? 0,
                     FechaCreado = DateTime.Now
@@ -164,6 +167,7 @@ namespace SistemaBronx.DAL.Repository
                     TipoItem = "I",
                     IdProducto = null,
                     IdInsumo = proc.IdInsumo,
+                    IdColor = proc.IdColor,
                     Cantidad = proc.CantidadUsadaStock ?? 0,
                     CostoUnitario = proc.PrecioUnitario ?? 0,
                     FechaCreado = DateTime.Now
@@ -175,12 +179,13 @@ namespace SistemaBronx.DAL.Repository
             ============================================================ */
             return salida
                 .Where(x => x.Cantidad > 0)
-                .GroupBy(x => new { x.TipoItem, x.IdProducto, x.IdInsumo })
+                .GroupBy(x => new { x.TipoItem, x.IdProducto, x.IdInsumo, x.IdColor })
                 .Select(g => new StockMovimientosDetalle
                 {
                     TipoItem = g.Key.TipoItem,
                     IdProducto = g.Key.IdProducto,
                     IdInsumo = g.Key.IdInsumo,
+                    IdColor = g.Key.IdColor,
                     Cantidad = g.Sum(x => x.Cantidad),
                     CostoUnitario = g.OrderByDescending(x => x.CostoUnitario)
                                      .Select(x => x.CostoUnitario)
@@ -218,7 +223,7 @@ namespace SistemaBronx.DAL.Repository
 
                 foreach (var d in detallesDb)
                 {
-                    var key = BuildKey("P", d.IdProducto, null);
+                    var key = BuildKey("P", d.IdProducto, null, d.IdColor);
 
                     if (!consumidoActual.ContainsKey(key))
                         consumidoActual[key] = 0;
@@ -235,7 +240,7 @@ namespace SistemaBronx.DAL.Repository
 
                 foreach (var p in procesosDb)
                 {
-                    var key = BuildKey("I", null, p.IdInsumo);
+                    var key = BuildKey("I", null, p.IdInsumo, p.IdColor);
 
                     if (!consumidoActual.ContainsKey(key))
                         consumidoActual[key] = 0;
@@ -253,11 +258,12 @@ namespace SistemaBronx.DAL.Repository
                     .Where(s =>
                         s.TipoItem == item.TipoItem &&
                         s.IdProducto == item.IdProducto &&
-                        s.IdInsumo == item.IdInsumo)
-                    .Select(s => s.CantidadActual)
-                    .FirstOrDefaultAsync();
+                        s.IdInsumo == item.IdInsumo &&
+                        (s.IdColor ?? 0) == (item.IdColor ?? 0))
+                    .Select(s => (decimal?)s.CantidadActual)
+                    .SumAsync() ?? 0m;
 
-                var key = BuildKey(item.TipoItem, item.IdProducto, item.IdInsumo);
+                var key = BuildKey(item.TipoItem, item.IdProducto, item.IdInsumo, item.IdColor);
 
                 // 🔥 CLAVE: devolver lo que ya estaba consumido por ESTE pedido
                 if (consumidoActual.TryGetValue(key, out decimal usado))
@@ -334,7 +340,7 @@ namespace SistemaBronx.DAL.Repository
                 .ToListAsync();
 
             var dictStock = stockDetalles.ToDictionary(
-                x => BuildKey(x.TipoItem, x.IdProducto, x.IdInsumo),
+                x => BuildKey(x.TipoItem, x.IdProducto, x.IdInsumo, x.IdColor),
                 x => x
             );
 
@@ -344,7 +350,7 @@ namespace SistemaBronx.DAL.Repository
 
             foreach (var det in detallesPedido)
             {
-                var key = BuildKey("P", det.IdProducto, null);
+                var key = BuildKey("P", det.IdProducto, null, det.IdColor);
 
                 if (dictStock.TryGetValue(key, out var movDet))
                 {
@@ -363,7 +369,7 @@ namespace SistemaBronx.DAL.Repository
 
             foreach (var proc in procesosPedido)
             {
-                var key = BuildKey("I", null, proc.IdInsumo);
+                var key = BuildKey("I", null, proc.IdInsumo, proc.IdColor);
 
                 if (dictStock.TryGetValue(key, out var movDet))
                 {
@@ -637,7 +643,7 @@ namespace SistemaBronx.DAL.Repository
                     .FirstOrDefaultAsync();
 
                 var dictAnterior = movAnterior?.StockMovimientosDetalles?
-                    .GroupBy(x => BuildKey(x.TipoItem, x.IdProducto, x.IdInsumo))
+                    .GroupBy(x => BuildKey(x.TipoItem, x.IdProducto, x.IdInsumo, x.IdColor))
                     .ToDictionary(g => g.Key, g => g.Sum(x => x.Cantidad))
                     ?? new Dictionary<string, decimal>();
 
@@ -697,7 +703,7 @@ namespace SistemaBronx.DAL.Repository
                 );
 
                 var dictNuevo = detallesStock
-                    .GroupBy(x => BuildKey(x.TipoItem, x.IdProducto, x.IdInsumo))
+                    .GroupBy(x => BuildKey(x.TipoItem, x.IdProducto, x.IdInsumo, x.IdColor))
                     .ToDictionary(g => g.Key, g => g.Sum(x => x.Cantidad));
 
                 /* ============================================================
@@ -1037,7 +1043,7 @@ namespace SistemaBronx.DAL.Repository
                     return null;
 
                 /* ============================================================
-                   🔥 STOCK PRODUCTOS (REAL DESDE SALDOS)
+                   STOCK POR COLOR (saldos reales por línea de detalle / proceso)
                 ============================================================ */
                 var productosIds = pedido.PedidosDetalles
                     .Where(x => x.IdProducto.HasValue)
@@ -1045,46 +1051,42 @@ namespace SistemaBronx.DAL.Repository
                     .Distinct()
                     .ToList();
 
-                var stockProductos = await _dbcontext.StockSaldos
-                    .Where(s => s.TipoItem == "P" && s.IdProducto.HasValue && productosIds.Contains(s.IdProducto.Value))
-                    .ToDictionaryAsync(s => s.IdProducto.Value, s => s.CantidadActual);
-
-                foreach (var det in pedido.PedidosDetalles)
-                {
-                    if (det.IdProducto.HasValue && stockProductos.ContainsKey(det.IdProducto.Value))
-                    {
-                        // 🔥 PISAMOS EL STOCK NAVIGATION
-                        det.IdProductoNavigation.Stock = stockProductos[det.IdProducto.Value];
-                    }
-                    else if (det.IdProductoNavigation != null)
-                    {
-                        det.IdProductoNavigation.Stock = 0;
-                    }
-                }
-
-                /* ============================================================
-                   🔥 STOCK INSUMOS
-                ============================================================ */
                 var insumosIds = pedido.PedidosDetalleProcesos
                     .Where(x => x.IdInsumo.HasValue)
                     .Select(x => x.IdInsumo.Value)
                     .Distinct()
                     .ToList();
 
-                var stockInsumos = await _dbcontext.StockSaldos
-                    .Where(s => s.TipoItem == "I" && s.IdInsumo.HasValue && insumosIds.Contains(s.IdInsumo.Value))
-                    .ToDictionaryAsync(s => s.IdInsumo.Value, s => s.CantidadActual);
+                var saldosStock = await _dbcontext.StockSaldos
+                    .Where(s =>
+                        (s.TipoItem == "P" && s.IdProducto.HasValue && productosIds.Contains(s.IdProducto.Value)) ||
+                        (s.TipoItem == "I" && s.IdInsumo.HasValue && insumosIds.Contains(s.IdInsumo.Value)))
+                    .ToListAsync();
+
+                foreach (var det in pedido.PedidosDetalles)
+                {
+                    if (!det.IdProducto.HasValue)
+                        continue;
+
+                    var c = det.IdColor ?? 0;
+                    var qty = saldosStock
+                        .Where(s => s.TipoItem == "P" && s.IdProducto == det.IdProducto && (s.IdColor ?? 0) == c)
+                        .Sum(s => s.CantidadActual);
+
+                    det.StockDisponibleDeposito = qty;
+                }
 
                 foreach (var proc in pedido.PedidosDetalleProcesos)
                 {
-                    if (proc.IdInsumo.HasValue && stockInsumos.ContainsKey(proc.IdInsumo.Value))
-                    {
-                        proc.IdInsumoNavigation.Stock = stockInsumos[proc.IdInsumo.Value];
-                    }
-                    else if (proc.IdInsumoNavigation != null)
-                    {
-                        proc.IdInsumoNavigation.Stock = 0;
-                    }
+                    if (!proc.IdInsumo.HasValue)
+                        continue;
+
+                    var c = proc.IdColor ?? 0;
+                    var qty = saldosStock
+                        .Where(s => s.TipoItem == "I" && s.IdInsumo == proc.IdInsumo && (s.IdColor ?? 0) == c)
+                        .Sum(s => s.CantidadActual);
+
+                    proc.StockDisponibleDeposito = qty;
                 }
 
                 return pedido;
@@ -1285,7 +1287,8 @@ namespace SistemaBronx.DAL.Repository
             string tipoItem,
             int? idProducto,
             int? idInsumo,
-            decimal cantidad)
+            decimal cantidad,
+            int? idColor = null)
         {
             tipoItem = (tipoItem ?? string.Empty).ToUpper();
 
@@ -1293,9 +1296,10 @@ namespace SistemaBronx.DAL.Repository
                 .Where(s =>
                     s.TipoItem == tipoItem &&
                     s.IdProducto == idProducto &&
-                    s.IdInsumo == idInsumo)
-                .Select(s => s.CantidadActual)
-                .FirstOrDefaultAsync();
+                    s.IdInsumo == idInsumo &&
+                    (s.IdColor ?? 0) == (idColor ?? 0))
+                .Select(s => (decimal?)s.CantidadActual)
+                .SumAsync() ?? 0m;
 
             string nombre = string.Empty;
 

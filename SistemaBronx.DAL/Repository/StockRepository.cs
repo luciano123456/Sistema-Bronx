@@ -49,7 +49,8 @@ namespace SistemaBronx.DAL.Repository
             var saldo = await _db.StockSaldos.FirstOrDefaultAsync(s =>
                 s.TipoItem == det.TipoItem &&
                 s.IdProducto == det.IdProducto &&
-                s.IdInsumo == det.IdInsumo
+                s.IdInsumo == det.IdInsumo &&
+                (s.IdColor ?? 0) == (det.IdColor ?? 0)
             );
 
             if (saldo == null)
@@ -59,6 +60,7 @@ namespace SistemaBronx.DAL.Repository
                     TipoItem = det.TipoItem,
                     IdProducto = det.IdProducto,
                     IdInsumo = det.IdInsumo,
+                    IdColor = det.IdColor,
                     CantidadActual = 0,
                     FechaUltMovimiento = DateTime.Now
                 };
@@ -99,6 +101,7 @@ namespace SistemaBronx.DAL.Repository
                         TipoItem = (det.TipoItem ?? "").ToUpper(),
                         IdProducto = det.IdProducto,
                         IdInsumo = det.IdInsumo,
+                        IdColor = det.IdColor,
                         Cantidad = det.Cantidad,
                         CostoUnitario = det.CostoUnitario,
                         FechaCreado = DateTime.Now
@@ -170,6 +173,7 @@ namespace SistemaBronx.DAL.Repository
                         TipoItem = (det.TipoItem ?? "").ToUpper(),
                         IdProducto = det.IdProducto,
                         IdInsumo = det.IdInsumo,
+                        IdColor = det.IdColor,
                         Cantidad = det.Cantidad,
                         CostoUnitario = det.CostoUnitario,
                         FechaCreado = DateTime.Now
@@ -385,6 +389,9 @@ namespace SistemaBronx.DAL.Repository
                 .Include(m => m.StockMovimientosDetalles)
                     .ThenInclude(d => d.IdInsumoNavigation)
 
+                .Include(m => m.StockMovimientosDetalles)
+                    .ThenInclude(d => d.IdColorNavigation)
+
                 .FirstOrDefaultAsync();
         }
 
@@ -395,8 +402,10 @@ namespace SistemaBronx.DAL.Repository
                 return await _db.StockSaldos
                     .Include(s => s.IdProductoNavigation)
                     .Include(s => s.IdInsumoNavigation)
+                    .Include(s => s.IdColorNavigation)
                     .OrderBy(s => s.TipoItem)
                     .ThenBy(s => s.IdProducto ?? s.IdInsumo)
+                    .ThenBy(s => s.IdColor ?? 0)
                     .ToListAsync();
             } catch (Exception ex)
             {
@@ -404,23 +413,29 @@ namespace SistemaBronx.DAL.Repository
             }
         }
 
-        public async Task<StockSaldo?> ObtenerSaldoItem(string tipoItem, int? idProducto, int? idInsumo)
+        public async Task<StockSaldo?> ObtenerSaldoItem(string tipoItem, int? idProducto, int? idInsumo, int? idColor = null)
         {
             tipoItem = (tipoItem ?? "").ToUpper();
 
             return await _db.StockSaldos.FirstOrDefaultAsync(s =>
                 s.TipoItem == tipoItem &&
                 s.IdProducto == idProducto &&
-                s.IdInsumo == idInsumo
+                s.IdInsumo == idInsumo &&
+                (s.IdColor ?? 0) == (idColor ?? 0)
             );
         }
 
-        public async Task<List<StockMovimiento>> ObtenerMovimientosItem(string tipoItem, int? idProducto, int? idInsumo)
+        public async Task<List<StockMovimiento>> ObtenerMovimientosItem(string tipoItem, int? idProducto, int? idInsumo, int? idColor = null)
         {
             tipoItem = (tipoItem ?? "").ToUpper();
 
             var query = _db.StockMovimientos
                 .Include(m => m.StockMovimientosDetalles)
+                    .ThenInclude(d => d.IdProductoNavigation)
+                .Include(m => m.StockMovimientosDetalles)
+                    .ThenInclude(d => d.IdInsumoNavigation)
+                .Include(m => m.StockMovimientosDetalles)
+                    .ThenInclude(d => d.IdColorNavigation)
                 .Include(m => m.IdTipoMovimientoNavigation)
                 .AsQueryable();
 
@@ -428,7 +443,8 @@ namespace SistemaBronx.DAL.Repository
                 m.StockMovimientosDetalles.Any(d =>
                     d.TipoItem == tipoItem &&
                     d.IdProducto == idProducto &&
-                    d.IdInsumo == idInsumo
+                    d.IdInsumo == idInsumo &&
+                    (d.IdColor ?? 0) == (idColor ?? 0)
                 ));
 
             return await query

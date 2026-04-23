@@ -154,12 +154,55 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(0, 0, 0, 0.18);
     overflow: hidden;
+    /* Tabla ancha: scroll horizontal en pantallas chicas (evita columnas encimadas) */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .stock-mx-table {
     margin: 0;
     color: #e8eef7;
     --mx-th: #5a6a8a;
+    width: 100%;
+    table-layout: fixed;
+}
+
+/* Reparto de columnas estable (misma fila alineada en desktop; en móvil ver min-width abajo) */
+.stock-mx-table thead th:nth-child(1),
+.stock-mx-table tbody td:nth-child(1) {
+    width: 10.5%;
+}
+
+/* Col 2 = ítem (flexible), col 3 = color */
+.stock-mx-table thead th:nth-child(2),
+.stock-mx-table tbody td:nth-child(2) {
+    width: auto;
+    min-width: 0;
+}
+
+.stock-mx-table thead th:nth-child(3),
+.stock-mx-table tbody td:nth-child(3) {
+    width: 11%;
+}
+
+.stock-mx-table thead th:nth-child(4),
+.stock-mx-table tbody td:nth-child(4) {
+    width: 9%;
+}
+
+.stock-mx-table thead th:nth-child(5),
+.stock-mx-table tbody td:nth-child(5) {
+    width: 10%;
+}
+
+.stock-mx-table thead th:nth-child(6),
+.stock-mx-table tbody td:nth-child(6) {
+    width: 10%;
+}
+
+.stock-mx-table thead th:nth-child(7),
+.stock-mx-table tbody td:nth-child(7) {
+    width: 2.75rem;
 }
 
 .stock-mx-table thead th {
@@ -188,20 +231,29 @@
     background: rgba(255, 255, 255, 0.02);
 }
 
-.stock-mx-td-tipo {
-    width: 11rem;
+.stock-mx-td-color {
+    min-width: 0;
+    max-width: none;
+    vertical-align: middle;
 }
 
-.stock-mx-td-qty {
-    width: 7.5rem;
+.stock-mx-td-item {
+    min-width: 0;
+    max-width: 100%;
 }
 
-.stock-mx-td-money {
-    width: 8.5rem;
+.stock-mx-root .stock-mx-td-color .select2-container,
+.stock-mx-root .stock-mx-color-select + .select2-container {
+    max-width: 100% !important;
+}
+
+.stock-mx-color-select {
+    font-size: 0.8rem;
 }
 
 .stock-mx-td-actions {
-    width: 3.25rem;
+    width: 2.75rem;
+    text-align: center;
 }
 
 .stock-mx-tipo {
@@ -272,6 +324,9 @@
 /* Paneles ítem (insumo / producto) dentro del modal nuevo */
 .stock-mx-root .stock-item-panel {
     border-radius: 14px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* Lista BOM: varios insumos con checkbox */
@@ -303,25 +358,93 @@
     display: flex;
     flex-direction: column;
     gap: 0.45rem;
-    max-height: 260px;
+    max-height: min(42vh, 280px);
     overflow-y: auto;
+    overflow-x: hidden;
     overscroll-behavior: contain;
-    padding: 0.35rem 0.15rem 0.15rem;
-    margin: 0 -0.15rem;
+    padding: 0.35rem 0.25rem 0.15rem;
+    margin: 0;
+    min-width: 0;
+}
+
+.stock-bom-line-controls {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: flex-start;
+    gap: 0.5rem 0.75rem;
+    min-width: 0;
+    flex: 1 1 100%;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.stock-bom-line-color-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1 1 10rem;
+    min-width: 0;
+    max-width: 100%;
+    width: min(100%, 16rem);
+}
+
+.stock-bom-line-color-wrap .select2-container,
+.stock-bom-line-color-wrap select.stock-bom-color-select {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
 }
 
 .stock-bom-line {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) minmax(5.4rem, 6.75rem);
-    align-items: center;
-    gap: 0.5rem 0.65rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.55rem 0.65rem;
     margin: 0;
-    padding: 0.55rem 0.65rem;
+    padding: 0.6rem 0.65rem;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: linear-gradient(145deg, rgba(22, 30, 52, 0.95), rgba(12, 18, 32, 0.88));
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
     transition: border-color 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+    min-width: 0;
+}
+
+/* Una fila: checkbox | nombre (crece/encoge) | cantidad+color */
+@media (min-width: 520px) {
+    .stock-bom-line {
+        flex-wrap: nowrap;
+    }
+
+    .stock-bom-line-controls {
+        flex: 0 1 auto;
+        width: auto;
+        max-width: min(19rem, 100%);
+        flex-wrap: nowrap;
+    }
+
+    .stock-bom-line-hit {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+}
+
+/* Móvil muy angosto: cantidad y color a ancho completo, debajo del nombre */
+@media (max-width: 519.98px) {
+    .stock-bom-line-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .stock-bom-line-qty-wrap {
+        width: 100%;
+    }
+
+    .stock-bom-line-color-wrap {
+        width: 100%;
+    }
 }
 
 .stock-bom-line:hover {
@@ -333,8 +456,8 @@
 }
 
 .stock-bom-line .stock-bom-chk {
-    margin: 0;
-    align-self: center;
+    margin: 0.35rem 0 0;
+    flex-shrink: 0;
     accent-color: #5c9dff;
     width: 1.05rem;
     height: 1.05rem;
@@ -344,6 +467,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
+    flex: 1 1 0;
     min-width: 0;
     margin: 0;
     cursor: pointer;
@@ -354,7 +478,9 @@
     font-weight: 600;
     font-size: 0.82rem;
     color: #f0f4ff;
-    line-height: 1.3;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .stock-bom-line-prov {
@@ -372,6 +498,10 @@
     flex-direction: column;
     gap: 0.25rem;
     align-items: stretch;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    width: 5.25rem;
+    max-width: 100%;
 }
 
 .stock-bom-line-qty-lbl {
@@ -427,6 +557,17 @@
 
     .stock-mx-td-tipo {
         width: auto;
+    }
+
+    /* Tabla no se aplasta a columnas ilegibles: scroll horizontal táctil */
+    .stock-mx-root .stock-mx-table {
+        min-width: 36rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .stock-mx-root .stock-mx-table {
+        min-width: 32rem;
     }
 }
 

@@ -42,6 +42,8 @@ namespace SistemaBronx.Application.Controllers
                 Producto = s.IdProductoNavigation?.Nombre,
                 s.IdInsumo,
                 Insumo = s.IdInsumoNavigation?.Descripcion,
+                s.IdColor,
+                Color = s.IdColorNavigation?.Nombre,
                 s.CantidadActual,
                 Fecha = s.FechaUltMovimiento.ToString("dd-MM-yyyy HH:mm")
             });
@@ -60,14 +62,14 @@ namespace SistemaBronx.Application.Controllers
         // HISTORIAL POR ÍTEM
         // =====================================================
         [HttpGet]
-        public async Task<IActionResult> HistorialItem(string tipoItem, int? idProducto, int? idInsumo)
+        public async Task<IActionResult> HistorialItem(string tipoItem, int? idProducto, int? idInsumo, int? idColor = null)
         {
             if (string.IsNullOrWhiteSpace(tipoItem))
                 return Json(new List<VMStockViewModels.VMStockMovimientoDetalle>());
 
             tipoItem = tipoItem.ToUpper();
 
-            var movimientos = await _svc.ObtenerMovimientosItem(tipoItem, idProducto, idInsumo);
+            var movimientos = await _svc.ObtenerMovimientosItem(tipoItem, idProducto, idInsumo, idColor);
 
             var vm = movimientos
                 .OrderBy(m => m.Fecha)
@@ -76,7 +78,8 @@ namespace SistemaBronx.Application.Controllers
                         .Where(d =>
                             d.TipoItem == tipoItem &&
                             d.IdProducto == idProducto &&
-                            d.IdInsumo == idInsumo)
+                            d.IdInsumo == idInsumo &&
+                            (d.IdColor ?? 0) == (idColor ?? 0))
                         .Select(d => new VMStockViewModels.VMStockMovimientoDetalle
                         {
                             Id = d.Id,
@@ -95,6 +98,11 @@ namespace SistemaBronx.Application.Controllers
                                 : d.IdInsumoNavigation != null
                                     ? d.IdInsumoNavigation.Descripcion
                                     : string.Empty,
+
+                            IdColor = d.IdColor,
+                            NombreColor = d.IdColorNavigation != null
+                                ? d.IdColorNavigation.Nombre
+                                : null,
 
                             // Campos extra para el historial
                             Fecha = m.Fecha,
@@ -136,6 +144,8 @@ namespace SistemaBronx.Application.Controllers
                     d.TipoItem,
                     d.IdProducto,
                     d.IdInsumo,
+                    d.IdColor,
+                    ColorNombre = d.IdColorNavigation != null ? d.IdColorNavigation.Nombre : null,
                     Cantidad = d.Cantidad,
                     CostoUnitario = d.CostoUnitario,
                     NombreItem = d.IdProductoNavigation != null

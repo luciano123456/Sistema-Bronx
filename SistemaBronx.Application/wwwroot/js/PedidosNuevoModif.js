@@ -14,9 +14,22 @@ const IdPedido = document.getElementById('IdPedido').value;
 
 let cacheInsumosProducto = {};
 let promesasInsumos = {};
+
+function claveCacheInsumosProducto(idProducto, idColor) {
+    const c = idColor == null || idColor === undefined || idColor === '' ? 0 : (parseInt(idColor, 10) || 0);
+    return `${idProducto}_${c}`;
+}
 let tokenCargaProducto = 0;
 let timeoutSeleccionProducto = null;
 let lastCantidadAFabricar = null;
+
+/** Catálogo modal pedido: líneas producto×color (servidor). */
+let _pedModalLineasConStock = [];
+let _pedModalLineasSinStock = [];
+/** Sub-modo UI del modal: 'pt' | 'fab' | 'ins' */
+let pedidoModalPaneActivo = "pt";
+/** True si la línea elegida es de fabricación (sin stock de producto terminado para ese color). */
+let _pedModalLineaEsFabricacion = false;
 
 function parseIdInsumoModal(rowData) {
     if (!rowData) return 0;
@@ -58,6 +71,218 @@ function formatCantidadPedido(val) {
 
 function stockInsumoDeposito(row) {
     return parseFloat(row?.Stock ?? row?.StockDisponible ?? 0) || 0;
+}
+
+function actualizarPedidoModalTabsEdicionBloqueo() {
+    const dis = !!isEditingProducto;
+    document.querySelectorAll('.ped-modal-seg[data-ped-modal-pane="pt"], .ped-modal-seg[data-ped-modal-pane="fab"]').forEach(b => {
+        b.disabled = dis;
+    });
+}
+
+/**
+ * Ajusta visibilidad de columnas según pestaña del modal.
+ */
+function aplicarVisibilidadColumnasStockProductoModal() {
+    const esFabricacion = pedidoModalPaneActivo === "fab";
+    const host = document.getElementById("listaProductos");
+    if (host) {
+        host.classList.toggle("ped-modal-cat-fabricacion", esFabricacion);
+    }
+    if (gridProductosModal) {
+        try {
+            // 0 Desc, 1 Color, 2 Categoria, 3 Stock, 4 Usa stock PT, 5 Cant. stock PT, 6 Precio venta
+            gridProductosModal.column(1).visible(!esFabricacion, false); // Color
+            gridProductosModal.column(3).visible(!esFabricacion, false);
+            gridProductosModal.column(4).visible(!esFabricacion, false); // Usa stock PT
+            gridProductosModal.column(5).visible(!esFabricacion, false); // Cant. stock PT
+            gridProductosModal.column(6).visible(true, false);
+            gridProductosModal.columns.adjust().draw(false);
+        } catch (e) { /* no-op */ }
+    }
+}
+
+function obtenerLineasBaseModalProductos() {
+    if (isEditingProducto && gridProductosModal && gridProductosModal.rows().count() === 1) {
+        return normalizarArrayDataTable(gridProductosModal.rows().data().toArray());
+    }
+    if (pedidoModalPaneActivo === "fab") return normalizarArrayDataTable(_pedModalLineasSinStock);
+    return normalizarArrayDataTable(_pedModalLineasConStock);
+}
+
+function filtrarLineasModalProductos(lineas) {
+    if (isEditingProducto) {
+        // En edición el modal debe mostrar exclusivamente la línea editada.
+        return normalizarArrayDataTable(lineas);
+    }
+
+    const bus = ($("#busqueda").val() || "").toString().toLowerCase().trim();
+    const $cat = $("#Categorias");
+    const valSel = ($cat.val() ?? "").toString().trim();
+    const textoSel = ($cat.find("option:selected").text() || "").toString().toLowerCase().trim();
+    const esTodos = valSel === "" || valSel === "-1" || textoSel === "" || textoSel === "todos";
+
+    return normalizarArrayDataTable(lineas).filter(row => {
+        const nombre = (row?.Nombre ?? "").toString().toLowerCase().trim();
+        const color = (row?.Color ?? "").toString().toLowerCase().trim();
+        const categoria = (row?.Categoria ?? "").toString().toLowerCase().trim();
+
+        if (bus) {
+            const blob = [nombre, color, categoria].join(" ");
+            if (blob.indexOf(bus) === -1) return false;
+        }
+
+        if (!esTodos && categoria.indexOf(textoSel) === -1) return false;
+        return true;
+    });
+}
+
+function obtenerNombreColorPorId(idColor) {
+    const id = parseInt(idColor, 10) || 0;
+    if (id <= 0) return "";
+    const $opt = $("#Colores option").filter(function () {
+        return (parseInt($(this).val(), 10) || 0) === id;
+    }).first();
+    return ($opt.text() || "").toString().trim();
+}
+
+function forzarColorInsumosModalDesdeProducto(colorId, colorTexto) {
+    if (!gridInsumosModal) return;
+    const id = parseInt(colorId, 10) || 0;
+    const txt = (colorTexto || "").toString().trim() || obtenerNombreColorPorId(id) || ($("#Colores option:selected").text() || "").toString().trim() || "-";
+
+    gridInsumosModal.rows().every(function () {
+        const rowData = this.data() || {};
+        if (id > 0) rowData.IdColor = id;
+        rowData.Color = txt;
+        this.data(rowData);
+    });
+    gridInsumosModal.draw(false);
+}
+
+function redrawModalProductosSiHayGrilla() {
+    if (gridProductosModal) {
+        try {
+            const base = obtenerLineasBaseModalProductos();
+            const filtradas = filtrarLineasModalProductos(base);
+            filaSeleccionadaProductos = null;
+            $("#grd_Productos_Modal tbody tr").removeClass("selected");
+            $("#grd_Productos_Modal tbody tr td").removeClass("selected");
+            gridProductosModal.clear().rows.add(filtradas).draw(false);
+            aplicarVisibilidadColumnasStockProductoModal();
+            forzarReflowTablaModalProductos();
+        } catch (e) { /* no-op */ }
+    }
+}
+
+function forzarReflowTablaModalProductos() {
+    if (!gridProductosModal) return;
+    const ajustes = () => {
+        try { gridProductosModal.columns.adjust().draw(false); } catch (e) { /* no-op */ }
+    };
+    requestAnimationFrame(ajustes);
+    setTimeout(ajustes, 40);
+    setTimeout(ajustes, 120);
+}
+
+/** Limpia búsqueda/categoría del modal producto (coherente con filtros vía DataTables, no manipulación directa del DOM). */
+function resetFiltrosVistaModalProductos() {
+    $("#busqueda").val("");
+    const $cat = $("#Categorias");
+    if (!$cat.length) {
+        redrawModalProductosSiHayGrilla();
+        return;
+    }
+    let todosVal = null;
+    $cat.find("option").each(function () {
+        if ($(this).text().trim().toLowerCase() === "todos") {
+            todosVal = $(this).attr("value");
+            return false;
+        }
+    });
+    if (todosVal != null) {
+        $cat.val(todosVal);
+    }
+    redrawModalProductosSiHayGrilla();
+}
+
+let _debounceRedrawModalProductosBusq = null;
+
+function limpiarSeleccionModalProductoYCampos() {
+    filaSeleccionadaProductos = null;
+    $("#grd_Productos_Modal tbody tr").removeClass("selected");
+    $("#grd_Productos_Modal tbody tr td").removeClass("selected");
+    void limpiarInformacionProducto();
+}
+
+/**
+ * Cambia la solapa interna del modal de pedido (producto terminado / fabricación / insumos).
+ * @param {string} pane 'pt' | 'fab' | 'ins'
+ * @param {{ skipReloadProductosGrid?: boolean }} [opts]
+ */
+function setPedidoModalPane(pane, opts) {
+    opts = opts || {};
+    const p = pane === "fab" ? "fab" : pane === "ins" ? "ins" : "pt";
+    const anterior = pedidoModalPaneActivo;
+
+    document.querySelectorAll("#productoModal .ped-modal-seg").forEach(btn => {
+        const on = btn.getAttribute("data-ped-modal-pane") === p;
+        btn.classList.toggle("active", on);
+        btn.setAttribute("aria-selected", on ? "true" : "false");
+    });
+
+    pedidoModalPaneActivo = p;
+
+    const areaProd = document.getElementById("pedModalAreaProducto");
+    if (areaProd) {
+        areaProd.classList.remove("d-none");
+        if (p === "ins") {
+            setTimeout(() => {
+                const el = document.getElementById("pedModalInlineInsumos");
+                if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                }
+                try {
+                    gridInsumosModal?.columns?.adjust();
+                } catch (e) { /* no-op */ }
+            }, 80);
+        } else {
+            setTimeout(() => {
+                try {
+                    forzarReflowTablaModalProductos();
+                } catch (e) { /* no-op */ }
+            }, 50);
+        }
+    }
+
+    const tituloLista = document.getElementById("pedModalListaTitulo");
+    if (tituloLista) {
+        if (p === "fab") {
+            tituloLista.textContent = "Productos sin stock terminado (elegí el color al añadir)";
+        } else if (p === "pt") {
+            tituloLista.textContent = "Productos con stock (terminados)";
+        }
+    }
+
+    if (opts.skipReloadProductosGrid) {
+        aplicarVisibilidadColumnasStockProductoModal();
+        lastCantidadAFabricar = null;
+        controlarUsoStockInsumosOptimizado();
+        return;
+    }
+
+    if (anterior !== p && (p === "pt" || p === "fab") && (anterior === "pt" || anterior === "fab")) {
+        limpiarSeleccionModalProductoYCampos();
+    }
+
+    if (p === "pt" || p === "fab") {
+        const data = p === "fab" ? _pedModalLineasSinStock : _pedModalLineasConStock;
+        configurarDataTableProductosModal(normalizarArrayDataTable(data));
+    }
+
+    aplicarVisibilidadColumnasStockProductoModal();
+    lastCantidadAFabricar = null;
+    controlarUsoStockInsumosOptimizado();
 }
 
 /** Cantidad de insumo por 1 unidad de producto en el pedido (evita re-multiplicar al editar). */
@@ -130,8 +355,6 @@ async function aplicarEstadosPorDefectoFilasInsumos(insumosFilas) {
 }
 
 $(document).ready(async function () {
-
-
     $('#txtNombreClienteModal').on('input', function () {
         validarCamposCliente()
     });
@@ -160,9 +383,7 @@ $(document).ready(async function () {
         }, 0);
     });
 
-    await listaColores();
-    await listaClientes();
-    await listaFormasdepago();
+    await Promise.all([listaColores(), listaClientes(), listaFormasdepago()]);
     void getListaEstadosPedidoCached();
 
 
@@ -187,54 +408,35 @@ $(document).ready(async function () {
 
 
 
-    $("#Categorias").on("change", function () {
-        var textoSeleccionado = $(this).find("option:selected").text().toLowerCase().trim(); // Obtener el texto seleccionado de la lista de categorías
-
-        // Si se selecciona "Todos", mostrar todas las filas
-        if (textoSeleccionado === "todos") {
-            $("#grd_Productos_Modal tbody tr").show(); // Muestra todas las filas
-            // Eliminar mensaje de "No se encontraron resultados" si está presente
-            $("#grd_Productos_Modal tbody tr:contains('No hay datos disponibles en la tabla')").remove();
-        } else {
-            // Filtrar las filas de la tabla
-            var foundAny = false; // Variable para saber si encontramos al menos una coincidencia
-
-            $("#grd_Productos_Modal tbody tr").each(function () {
-                var categoriaTexto = $(this).find('td').eq(1).text().toLowerCase().trim(); // Ajusta el índice de la columna si es necesario
-                if (categoriaTexto.indexOf(textoSeleccionado) > -1) {
-                    $(this).show(); // Mostrar la fila si hay coincidencia
-                    foundAny = true; // Marcamos que encontramos una coincidencia
-                } else {
-                    $(this).hide(); // Ocultar la fila si no hay coincidencia
-                }
-            });
-
-            // Si no se encontró ninguna coincidencia, mostrar un mensaje o hacer algo
-            if (!foundAny) {
-                // Verificar si ya existe la fila de "No se encontraron resultados"
-                if ($("#grd_Productos_Modal tbody tr:contains('No hay datos disponibles en la tabla')").length === 0) {
-                    $("#grd_Productos_Modal tbody").append('<tr><td colspan="5" class="text-center">No hay datos disponibles en la tabla</td></tr>');
-                }
-            } else {
-                // Si hay coincidencias, asegurarse de que cualquier mensaje previo sea eliminado
-                $("#grd_Productos_Modal tbody tr:contains('No hay datos disponibles en la tabla')").remove();
-            }
-        }
+    $("#Categorias").on("change select2:select", function () {
+        redrawModalProductosSiHayGrilla();
     });
 
-
-
-    $("#busqueda").on("keyup", function () {
-        var value = $(this).val().toLowerCase();
-        $("#grd_Productos_Modal tbody tr").filter(function () {
-            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
-        });
+    $("#busqueda").on("keyup input", function () {
+        clearTimeout(_debounceRedrawModalProductosBusq);
+        _debounceRedrawModalProductosBusq = setTimeout(redrawModalProductosSiHayGrilla, 120);
     });
 
+    $(document).on("click", "#productoModal .ped-modal-seg", function () {
+        if (this.disabled) return;
+        const pane = this.getAttribute("data-ped-modal-pane");
+        if (!pane) return;
+        setPedidoModalPane(pane);
+    });
 
+    $("#productoModal").on("hidden.bs.modal", function () {
+        isEditingProducto = false;
+        actualizarPedidoModalTabsEdicionBloqueo();
+        $("#Colores").prop("disabled", false);
+        setPedidoModalPane("pt", { skipReloadProductosGrid: true });
+    });
 
-
-
+    $("#productoModal").on("shown.bs.modal", function () {
+        setTimeout(() => {
+            forzarReflowTablaModalProductos();
+            try { gridInsumosModal?.columns?.adjust().draw(false); } catch (e) { /* no-op */ }
+        }, 80);
+    });
 });
 
 async function cargarDatosPedido(id) {
@@ -242,12 +444,11 @@ async function cargarDatosPedido(id) {
     const datosPedido = await ObtenerDatosPedido(id);
     const detalleProd = normalizarArrayDataTable(datosPedido.PedidoDetalle);
     const insumosEnriquecidos = enriquecerInsumosConCantidadInicial(datosPedido.PedidoDetalleProceso, detalleProd);
-    await configurarDataTableProductos(detalleProd);
-    await configurarDataTableInsumos(insumosEnriquecidos);
+    await Promise.all([
+        configurarDataTableProductos(detalleProd),
+        configurarDataTableInsumos(insumosEnriquecidos)
+    ]);
     await insertarDatosPedido(datosPedido);
-   
-
-
 }
 
 
@@ -400,22 +601,65 @@ function normalizarArrayDataTable(data) {
     return [];
 }
 
+/** Una sola fila por (Id producto, Id color) en el catálogo del modal. */
+function dedupePedidoModalLineasCatalogo(arr) {
+    const list = normalizarArrayDataTable(arr);
+    const map = new Map();
+    for (let i = 0; i < list.length; i++) {
+        const row = list[i];
+        const k = `${parseInt(row.Id, 10) || 0}_${parseInt(row.IdColor, 10) || 0}`;
+        if (!map.has(k)) {
+            map.set(k, row);
+        }
+    }
+    return Array.from(map.values());
+}
+
 function obtenerFilaProductoModalSeleccionadaData() {
     if (!filaSeleccionadaProductos || !gridProductosModal) return null;
+    if (!document.body.contains(filaSeleccionadaProductos)) {
+        filaSeleccionadaProductos = null;
+        return null;
+    }
     return gridProductosModal.row(filaSeleccionadaProductos).data();
 }
 
+/** Índice de fila en la grilla modal para leer controles de stock de producto (incluye edición con una sola fila). */
+function obtenerIndiceFilaStockProductoModal() {
+    if (filaSeleccionadaProductos && gridProductosModal && document.body.contains(filaSeleccionadaProductos)) {
+        return gridProductosModal.row(filaSeleccionadaProductos).index();
+    }
+    if (isEditingProducto && gridProductosModal && gridProductosModal.rows().count() === 1) {
+        return 0;
+    }
+    return null;
+}
+
 function obtenerControlesStockProductoFilaSeleccionada() {
-    if (!filaSeleccionadaProductos || !gridProductosModal) return null;
+    if (!gridProductosModal) return null;
 
-    const rowIndex = gridProductosModal.row(filaSeleccionadaProductos).index();
-    if (rowIndex === undefined || rowIndex === null) return null;
+    if (filaSeleccionadaProductos && document.body.contains(filaSeleccionadaProductos)) {
+        const $tr = $(filaSeleccionadaProductos);
+        const idx = gridProductosModal.row(filaSeleccionadaProductos).index();
+        return {
+            rowIndex: idx,
+            chk: $tr.find(".chk-usa-stock-producto"),
+            txt: $tr.find(".txt-cantidad-stock-producto")
+        };
+    }
 
-    return {
-        rowIndex: rowIndex,
-        chk: $(`.chk-usa-stock-producto[data-row="${rowIndex}"]`),
-        txt: $(`.txt-cantidad-stock-producto[data-row="${rowIndex}"]`)
-    };
+    if (isEditingProducto && gridProductosModal.rows().count() === 1) {
+        const tr = gridProductosModal.row(0).node();
+        if (!tr) return null;
+        const $tr = $(tr);
+        return {
+            rowIndex: 0,
+            chk: $tr.find(".chk-usa-stock-producto"),
+            txt: $tr.find(".txt-cantidad-stock-producto")
+        };
+    }
+
+    return null;
 }
 
 function sincronizarStockProductoSeleccionadoConCantidad() {
@@ -486,14 +730,17 @@ async function configurarDataTableProductosModal(data) {
                 lengthMenu: "Anzeigen von _MENU_ Einträgen",
                 url: "//cdn.datatables.net/plug-ins/2.0.7/i18n/es-MX.json"
             },
+            deferRender: true,
             paging: false,
             scrollX: true,
             scrollY: "400px",
             scrollCollapse: true,
             searching: false,
             ordering: false,
+            info: false,
             columns: [
                 { data: 'Nombre' },
+                { data: 'Color' },
                 { data: 'Categoria' },
                 {
                     data: 'Stock',
@@ -504,31 +751,29 @@ async function configurarDataTableProductosModal(data) {
                             return `<span style="color:#dc3545;font-weight:bold">SIN STOCK</span>`;
                         }
                         if (stock < 5) {
-                            return `<span style="color:#ffc107;font-weight:bold">${formatNumber(stock)}</span>`;
+                            return `<span style="color:#ffc107;font-weight:bold">${formatCantidadPedido(stock)}</span>`;
                         }
 
-                        return `<span style="color:#28a745;font-weight:bold">${formatNumber(stock)}</span>`;
+                        return `<span style="color:#28a745;font-weight:bold">${formatCantidadPedido(stock)}</span>`;
                     }
                 },
                 {
                     data: null,
-                    render: function (data, type, row, meta) {
+                    render: function () {
                         return `
                             <div class="form-check d-flex justify-content-center align-items-center m-0">
                                 <input class="form-check-input chk-usa-stock-producto"
-                                       type="checkbox"
-                                       data-row="${meta.row}">
+                                       type="checkbox">
                             </div>
                         `;
                     }
                 },
                 {
                     data: null,
-                    render: function (data, type, row, meta) {
+                    render: function () {
                         return `
                             <input type="number"
                                    class="form-control form-control-sm txt-cantidad-stock-producto"
-                                   data-row="${meta.row}"
                                    min="0"
                                    step="0.01"
                                    value="0"
@@ -543,11 +788,14 @@ async function configurarDataTableProductosModal(data) {
                         return formatNumber(v);
                     }
                 },
-                { data: 'Id', visible: false }
+                { data: 'Id', visible: false },
+                { data: 'IdColor', visible: false }
             ],
             initComplete: function () {
+                aplicarVisibilidadColumnasStockProductoModal();
                 setTimeout(() => {
-                    gridProductosModal.columns.adjust();
+                    forzarReflowTablaModalProductos();
+                    resetFiltrosVistaModalProductos();
                 }, 250);
 
                 $('#grd_Productos_Modal tbody')
@@ -574,22 +822,27 @@ async function configurarDataTableProductosModal(data) {
                             const data = gridProductosModal.row(this).data();
                             if (!data) return;
 
-                            // 🔥 SI ES EL MISMO PRODUCTO → NO HACER NADA
-                            if (filaSeleccionadaProductos) {
-                                const dataActual = gridProductosModal.row(filaSeleccionadaProductos).data();
-
-                                if (dataActual && dataActual.Id === data.Id) {
-                                    return;
-                                }
+                            if (filaSeleccionadaProductos === this) {
+                                return;
                             }
 
                             filaSeleccionadaProductos = this;
 
                             $(this).addClass('selected');
                             $('td', this).addClass('selected');
+                            _pedModalLineaEsFabricacion = (parseFloat(data.Stock) || 0) <= 0;
 
                             if (!isEditingProducto) {
-                                await cargarInformacionProducto(data.Id);
+                                await cargarInformacionProducto(data.Id, data.IdColor, data.Color);
+                                const esFabricacion = pedidoModalPaneActivo === "fab";
+                                if (esFabricacion) {
+                                    // En fabricación el color siempre se elige manualmente al añadir.
+                                    $("#Colores").val("-1").trigger("change.select2");
+                                    $("#Colores").prop("disabled", false);
+                                } else {
+                                    const colorFijado = (parseInt(data.IdColor, 10) || 0) > 0;
+                                    $("#Colores").prop("disabled", colorFijado);
+                                }
                             }
 
                         }, 120); // 🔥 ultra rápido pero evita spam
@@ -599,9 +852,15 @@ async function configurarDataTableProductosModal(data) {
                     .off('change', '.chk-usa-stock-producto')
                     .on('change', '.chk-usa-stock-producto', function () {
 
-                        const rowIndex = parseInt($(this).attr('data-row'));
-                        const rowData = gridProductosModal.row(rowIndex).data();
-                        const input = $(`.txt-cantidad-stock-producto[data-row="${rowIndex}"]`);
+                        const $tr = $(this).closest('tr');
+                        const tr = $tr[0];
+                        if (!tr || !gridProductosModal) return;
+
+                        const rowApi = gridProductosModal.row(tr);
+                        const rowData = rowApi.data();
+                        if (!rowData) return;
+
+                        const input = $tr.find('.txt-cantidad-stock-producto');
 
                         const cantidadPedido = parseFloat($('#ProductoModalCantidad').val()) || 0;
                         const stockDisponible = parseFloat(rowData.Stock) || 0;
@@ -635,9 +894,12 @@ async function configurarDataTableProductosModal(data) {
                     .off('input', '.txt-cantidad-stock-producto')
                     .on('input', '.txt-cantidad-stock-producto', function () {
 
-                        const rowIndex = parseInt($(this).attr('data-row'));
-                        const rowData = gridProductosModal.row(rowIndex).data();
+                        const $tr = $(this).closest('tr');
+                        const tr = $tr[0];
+                        if (!tr || !gridProductosModal) return;
 
+                        const rowApi = gridProductosModal.row(tr);
+                        const rowData = rowApi.data();
                         if (!rowData) return;
 
                         const cantidadPedido = parseFloat($('#ProductoModalCantidad').val()) || 0;
@@ -647,15 +909,13 @@ async function configurarDataTableProductosModal(data) {
 
                         const maximo = Math.min(stockDisponible, cantidadPedido);
 
-                        // 🔥 ACA ESTA LA MAGIA
                         if (valor < 0) valor = 0;
                         if (valor > maximo) valor = maximo;
 
                         $(this).val(valor);
 
-                        const chk = $(`.chk-usa-stock-producto[data-row="${rowIndex}"]`);
+                        const chk = $tr.find('.chk-usa-stock-producto');
 
-                        // sincroniza check con el valor
                         if (valor > 0) {
                             chk.prop('checked', true);
                             $(this).prop('disabled', false);
@@ -673,8 +933,15 @@ async function configurarDataTableProductosModal(data) {
             }
         });
     } else {
-        gridProductosModal.clear().rows.add(dataFinal).draw();
-        setTimeout(() => gridProductosModal.columns.adjust(), 250);
+        filaSeleccionadaProductos = null;
+        $("#grd_Productos_Modal tbody tr").removeClass("selected");
+        $("#grd_Productos_Modal tbody tr td").removeClass("selected");
+        gridProductosModal.clear().rows.add(dataFinal).draw(false);
+        aplicarVisibilidadColumnasStockProductoModal();
+        setTimeout(() => {
+            forzarReflowTablaModalProductos();
+            resetFiltrosVistaModalProductos();
+        }, 0);
     }
 }
 
@@ -695,6 +962,7 @@ async function configurarDataTableInsumosModal(data, editando) {
             scrollCollapse: true,
             searching: false,
             ordering: false,
+            info: false,
             drawCallback: function () {
                 aplicarSeleccionVisualInsumosModal();
             },
@@ -1128,8 +1396,16 @@ async function cargarDatosClienteRegistrado(idCliente) {
 
 }
 
-$('#Colores').on('change', function () {
-    // Obtener el color seleccionado
+$('#Colores').on('change', async function () {
+    var idColorSeleccionado = $(this).val(); // El valor es el ID del color
+    const idColorNum = parseInt(idColorSeleccionado, 10) || 0;
+
+    if (pedidoModalPaneActivo === "fab" && !isEditingProducto && idColorNum > 0) {
+        const pid = document.getElementById("ProductoModalId")?.value;
+        if (pid) {
+            await cargarInformacionProducto(parseInt(pid, 10), idColorNum);
+        }
+    }
 
     // Verificar si hay filas en gridInsumosModal
     var filasEnGrid = gridInsumosModal.rows().data().length;
@@ -1138,8 +1414,6 @@ $('#Colores').on('change', function () {
     if (filasEnGrid === 0) {
         return; // Detener la ejecución si no hay filas
     }
-
-    var idColorSeleccionado = $(this).val(); // El valor es el ID del color
     var colorSeleccionadoTexto = $('#Colores option:selected').text(); // El texto es el nombre del color
 
     if (idsInsumoSeleccionadosModal.length > 0) {
@@ -1200,8 +1474,9 @@ async function configurarDataTableProductos(data) {
                 lengthMenu: "Anzeigen von _MENU_ Einträgen",
                 url: "//cdn.datatables.net/plug-ins/2.0.7/i18n/es-MX.json"
             },
-            scrollX: "100px",
+            scrollX: true,
             scrollCollapse: true,
+            deferRender: true,
             pageLength: 100,
             searching: false, // 🔹 Esto oculta el campo de búsqueda
             columns: [
@@ -1290,8 +1565,6 @@ async function configurarDataTableProductos(data) {
             ],
 
             initComplete: async function () {
-                var api = this.api();
-
                 configurarOpcionesColumnasProductos();
 
                 $('.filters th').eq(0).html(''); // Limpiar la última columna si es necesario
@@ -1321,8 +1594,9 @@ async function configurarDataTableInsumos(data) {
                 lengthMenu: "Anzeigen von _MENU_ Einträgen",
                 url: "//cdn.datatables.net/plug-ins/2.0.7/i18n/es-MX.json"
             },
-            scrollX: "100px",
+            scrollX: true,
             scrollCollapse: true,
+            deferRender: true,
             pageLength: 100,
             searching: false, // 🔹 Esto oculta el campo de búsqueda
             columns: [
@@ -1420,8 +1694,6 @@ async function configurarDataTableInsumos(data) {
             ],
 
             initComplete: async function () {
-                var api = this.api();
-
                 void getListaEstadosPedidoCached();
 
                 $('.filters th').eq(0).html(''); // Limpiar la última columna si es necesario
@@ -1656,27 +1928,35 @@ async function guardarProducto() {
     let usaStockProducto = 0;
     let cantidadStockProducto = 0;
 
-    if (filaSeleccionadaProductos) {
-        const rowIndex = gridProductosModal.row(filaSeleccionadaProductos).index();
-        const rowProducto = gridProductosModal.row(rowIndex).data();
+    const rowIndexStock = gridProductosModal ? obtenerIndiceFilaStockProductoModal() : null;
+    if (rowIndexStock != null && gridProductosModal) {
+        const rowProducto = gridProductosModal.row(rowIndexStock).data();
 
         if (rowProducto) {
             stockDisponibleProducto = parseFloat(rowProducto.Stock) || 0;
 
-            const chk = $(`.chk-usa-stock-producto[data-row="${rowIndex}"]`);
-            const txt = $(`.txt-cantidad-stock-producto[data-row="${rowIndex}"]`);
+            if (_pedModalLineaEsFabricacion) {
+                usaStockProducto = 0;
+                cantidadStockProducto = 0;
+            } else {
+                const ctrl = obtenerControlesStockProductoFilaSeleccionada();
+                if (!ctrl || !ctrl.chk.length) {
+                    usaStockProducto = 0;
+                    cantidadStockProducto = 0;
+                } else {
+                    usaStockProducto = ctrl.chk.is(":checked") ? 1 : 0;
+                    cantidadStockProducto = usaStockProducto ? (parseFloat(ctrl.txt.val()) || 0) : 0;
 
-            usaStockProducto = chk.is(':checked') ? 1 : 0;
-            cantidadStockProducto = usaStockProducto ? (parseFloat(txt.val()) || 0) : 0;
+                    if (cantidadStockProducto > stockDisponibleProducto) {
+                        errorModal(`La cantidad a usar de stock no puede superar el stock disponible (${stockDisponibleProducto}).`);
+                        return false;
+                    }
 
-            if (cantidadStockProducto > stockDisponibleProducto) {
-                errorModal(`La cantidad a usar de stock no puede superar el stock disponible (${stockDisponibleProducto}).`);
-                return false;
-            }
-
-            if (cantidadStockProducto > Cantidad) {
-                errorModal(`La cantidad a usar de stock no puede superar la cantidad del producto (${Cantidad}).`);
-                return false;
+                    if (cantidadStockProducto > Cantidad) {
+                        errorModal(`La cantidad a usar de stock no puede superar la cantidad del producto (${Cantidad}).`);
+                        return false;
+                    }
+                }
             }
         }
     }
@@ -1834,6 +2114,9 @@ async function guardarProducto() {
         });
     }
 
+    isEditingProducto = false;
+    actualizarPedidoModalTabsEdicionBloqueo();
+
     await limpiarInformacionProducto();
     $('#Colores').val('-1').trigger('change');
     $('#productoModal').modal('hide');
@@ -1843,15 +2126,17 @@ async function guardarProducto() {
 }
 
 async function cargarDatosProductoModal() {
-
-    await limpiarInformacionProducto();
     await listaCategorias();
 
-
-    const datosProducto = await ObtenerDatosProductoModal();
-
-    // Ahora se cargan los datos filtrados (productos que no están en gridProductos)
-    configurarDataTableProductosModal(datosProducto);
+    const response = await fetch("/Productos/CatalogoPedidoModal");
+    if (!response.ok) {
+        errorModal("No se pudo cargar el catálogo de productos para el pedido.");
+        return;
+    }
+    const j = await response.json();
+    _pedModalLineasConStock = dedupePedidoModalLineasCatalogo(j.lineasConStock);
+    _pedModalLineasSinStock = dedupePedidoModalLineasCatalogo(j.lineasSinStock);
+    setPedidoModalPane("pt");
 }
 
 
@@ -1862,17 +2147,13 @@ async function ObtenerDatosCliente(id) {
     return data;
 }
 
-async function ObtenerDatosProductoModal() {
-
-
-    const url = `/Productos/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-    return data;
-}
-
-async function ObtenerInsumosProducto(id) {
-    const url = `/Productos/EditarInfo?Id=${id}`;
+async function ObtenerInsumosProducto(id, idColor) {
+    const idColorNum = idColor == null || idColor === '' ? NaN : Number(idColor);
+    const colorQ =
+        idColor == null || idColor === undefined || idColor === '' || idColorNum === 0 || Number.isNaN(idColorNum)
+            ? ''
+            : `&idColor=${encodeURIComponent(idColor)}`;
+    const url = `/Productos/EditarInfo?Id=${id}${colorQ}`;
     const response = await fetch(url);
     const data = await response.json();
     return data;
@@ -1881,6 +2162,8 @@ async function ObtenerInsumosProducto(id) {
 async function limpiarInformacionProducto() {
     limpiarSeleccionInsumosModal();
     filaSeleccionadaProductos = null;
+    _pedModalLineaEsFabricacion = false;
+    $("#Colores").prop("disabled", false);
 
     if (gridInsumosModal != null) {
         gridInsumosModal.clear().draw();
@@ -1906,36 +2189,40 @@ async function limpiarInformacionProducto() {
     $('#grd_Productos_Modal .txt-cantidad-stock-producto').val(0).prop('disabled', true);
 }
 
-async function cargarInformacionProducto(id) {
+async function cargarInformacionProducto(id, idColor, colorTextoProducto) {
     const miToken = ++tokenCargaProducto;
+    const cacheKey = claveCacheInsumosProducto(id, idColor);
 
     try {
         let data = null;
 
-        if (cacheInsumosProducto[id]) {
-            data = cacheInsumosProducto[id];
+        if (cacheInsumosProducto[cacheKey]) {
+            data = cacheInsumosProducto[cacheKey];
         } else {
-            if (!promesasInsumos[id]) {
-                promesasInsumos[id] = ObtenerInsumosProducto(id);
+            if (!promesasInsumos[cacheKey]) {
+                promesasInsumos[cacheKey] = ObtenerInsumosProducto(id, idColor);
             }
 
-            data = await promesasInsumos[id];
-            cacheInsumosProducto[id] = data;
-            delete promesasInsumos[id];
+            data = await promesasInsumos[cacheKey];
+            cacheInsumosProducto[cacheKey] = data;
+            delete promesasInsumos[cacheKey];
         }
 
         // Si mientras esperaba se seleccionó otro producto, no pises el modal
         if (miToken !== tokenCargaProducto) return;
 
-        await procesarProducto(data);
+        await procesarProducto(data, idColor, colorTextoProducto);
+        if (pedidoModalPaneActivo === "pt") {
+            forzarColorInsumosModalDesdeProducto(idColor, colorTextoProducto);
+        }
     } catch (error) {
-        delete promesasInsumos[id];
+        delete promesasInsumos[cacheKey];
         console.error("Error cargando insumos del producto:", error);
         errorModal("No se pudieron cargar los insumos del producto.");
     }
 }
 
-async function procesarProducto(insumosProducto) {
+async function procesarProducto(insumosProducto, idColorSeleccionado, colorTextoProducto) {
     if (!insumosProducto) return;
 
     const insumos = normalizarArrayDataTable(insumosProducto.Insumos).map(i => ({
@@ -1972,6 +2259,20 @@ async function procesarProducto(insumosProducto) {
     });
 
     const producto = insumosProducto.Producto || {};
+    const colorSelectId = parseInt($("#Colores").val(), 10) || 0;
+    const colorProducto = parseInt(idColorSeleccionado, 10) || parseInt(producto.IdColor, 10) || colorSelectId || 0;
+    const colorSelectTexto = ($("#Colores option:selected").text() || "").toString().trim();
+    const colorProductoTexto =
+        ((colorTextoProducto ?? producto.Color ?? "").toString().trim()) ||
+        obtenerNombreColorPorId(colorProducto) ||
+        colorSelectTexto;
+
+    if (pedidoModalPaneActivo === "pt") {
+        insumos.forEach(i => {
+            if (colorProducto > 0) i.IdColor = colorProducto;
+            i.Color = colorProductoTexto || "-";
+        });
+    }
 
     const porcGanancia = parseFloat(producto.PorcGanancia || 0) || 0;
     const porcIva = parseFloat(producto.PorcIva || 0) || 0;
@@ -1993,12 +2294,27 @@ async function procesarProducto(insumosProducto) {
         Math.ceil((parseFloat(producto.CostoUnitario || 0)) / 100) * 100
     );
 
+    if (colorProducto > 0) {
+        // Refleja el color de la fila seleccionada en el Select2 sin disparar el handler global de cambio.
+        $('#Colores').val(String(colorProducto)).trigger('change.select2');
+    }
+
+    if (pedidoModalPaneActivo === "pt") {
+        forzarColorInsumosModalDesdeProducto(colorProducto, colorProductoTexto);
+    }
+
     const qModal = parseFloat($('#ProductoModalCantidad').val());
     if (!isNaN(qModal) && qModal > 0) {
         recalcularInsumosPorCantidadProducto();
     }
 
     controlarUsoStockInsumosOptimizado();
+
+    setTimeout(() => {
+        try {
+            gridInsumosModal?.columns?.adjust();
+        } catch (e) { /* no-op */ }
+    }, 120);
 }
 
 document.getElementById("ProductoModalPorcIva").addEventListener("input", calcularIVAyGanancia);
@@ -2067,18 +2383,9 @@ async function editarProducto(producto) {
     await listaCategorias();
    
 
-    // =========================================================
-    // 2) TRAER PRODUCTO REAL DESDE BACKEND (🔥 FIX STOCK)
-    // =========================================================
-    const productos = await ObtenerDatosProductoModal();
-
-    const productoReal = productos.find(p =>
-        parseInt(p.Id) === parseInt(producto.IdProducto)
-    );
-
-    const stockReal = parseFloat(
-        productoReal?.Stock ?? productoReal?.StockDisponible ?? 0
-    ) || 0;
+    // Stock por color viene del detalle del pedido (API); no usar lista genérica de productos.
+    const stockReal = parseFloat(producto.Stock ?? producto.StockDisponible ?? 0) || 0;
+    _pedModalLineaEsFabricacion = stockReal <= 0;
 
     // =========================================================
     // 3) ARMAR PRODUCTO PARA MODAL
@@ -2111,6 +2418,8 @@ async function editarProducto(producto) {
     // 4) CARGAR PRODUCTO EN MODAL
     // =========================================================
     await configurarDataTableProductosModal([productoSoloModal]);
+    setPedidoModalPane(stockReal > 0 ? "pt" : "fab", { skipReloadProductosGrid: true });
+    actualizarPedidoModalTabsEdicionBloqueo();
 
     // =========================================================
     // 5) OBTENER INSUMOS DEL GRID PRINCIPAL
@@ -2230,7 +2539,8 @@ async function editarProducto(producto) {
         gridProductosModal.rows().every(function () {
             const d = this.data();
 
-            if (parseInt(d.Id) === parseInt(producto.IdProducto)) {
+            if (parseInt(d.Id, 10) === parseInt(producto.IdProducto, 10) &&
+                (parseInt(d.IdColor, 10) || 0) === (parseInt(producto.IdColor, 10) || 0)) {
                 filaEncontrada = this.node();
             }
         });
@@ -2255,11 +2565,15 @@ async function editarProducto(producto) {
             Number(producto.UsaStockProducto) === 1 ||
             parseFloat(producto.CantidadStockProducto || 0) > 0;
 
-        chk.prop('checked', usaStock);
-        txt.prop('disabled', !usaStock);
-        txt.val(parseFloat(producto.CantidadStockProducto || 0) || 0);
-
-        sincronizarStockProductoSeleccionadoConCantidad();
+        if (_pedModalLineaEsFabricacion) {
+            chk.prop('checked', false);
+            txt.prop('disabled', true).val(0);
+        } else {
+            chk.prop('checked', usaStock);
+            txt.prop('disabled', !usaStock);
+            txt.val(parseFloat(producto.CantidadStockProducto || 0) || 0);
+            sincronizarStockProductoSeleccionadoConCantidad();
+        }
     }
 
     // =========================================================
@@ -2298,6 +2612,7 @@ async function anadirProducto() {
         gridInsumosModal.clear().draw();
     }
 
+    actualizarPedidoModalTabsEdicionBloqueo();
     $("#productoModal").modal('show');
 }
 let formasPagoCache = {}; // { [id]: { Id, Nombre, CostoFinanciero } }
@@ -3896,7 +4211,7 @@ function controlarUsoStockInsumos() {
     const controles = obtenerControlesStockProductoFilaSeleccionada();
     if (!controles) return;
 
-    const usaStockProducto = controles.chk.is(':checked');
+    const usaStockProducto = _pedModalLineaEsFabricacion ? false : controles.chk.is(':checked');
     const cantidadStockProducto = usaStockProducto ? (parseFloat(controles.txt.val()) || 0) : 0;
 
     const cantidadAFabricar = Math.max(0, cantidadProducto - cantidadStockProducto);
@@ -3947,6 +4262,10 @@ function obtenerCantidadAFabricar() {
     const controles = obtenerControlesStockProductoFilaSeleccionada();
 
     if (!controles) return cantidadProducto;
+
+    if (_pedModalLineaEsFabricacion) {
+        return cantidadProducto;
+    }
 
     const usaStock = controles.chk.is(':checked');
     const cantidadStock = usaStock ? (parseFloat(controles.txt.val()) || 0) : 0;

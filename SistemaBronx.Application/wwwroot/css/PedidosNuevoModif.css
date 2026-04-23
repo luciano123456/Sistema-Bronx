@@ -2473,3 +2473,291 @@ table.dataTable tbody tr.selected {
 .export-card.mayorista:hover {
     box-shadow: 0 10px 30px rgba(0,0,0,.6), 0 0 0 1px #3b82f6;
 }
+
+/* —— Tabla resumen fabricación (modal) —— */
+.ped-fab-table {
+    width: 100%;
+    font-size: 0.82rem;
+    margin-bottom: 0.5rem;
+}
+
+.ped-fab-table th,
+.ped-fab-table td {
+    padding: 0.35rem 0.45rem;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.ped-fab-stock-ok {
+    color: var(--ok);
+    font-weight: 700;
+}
+
+.ped-fab-stock-warn {
+    color: var(--warn);
+    font-weight: 700;
+}
+
+.ped-fab-stock-bad {
+    color: var(--danger);
+    font-weight: 700;
+}
+
+/* —— Modal producto: solapas internas —— */
+.ped-modal-inner-tabs {
+    border-bottom: 1px solid var(--b1);
+    flex-shrink: 0;
+}
+
+.ped-modal-inner-tabs .nav-link {
+    font-weight: 700;
+    color: var(--muted);
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.5rem 1rem;
+}
+
+.ped-modal-inner-tabs .nav-link:hover {
+    color: var(--txt);
+}
+
+.ped-modal-inner-tabs .nav-link.active {
+    color: var(--txt);
+    background: transparent;
+    border-bottom-color: var(--primary);
+}
+
+.ped-modal-tab-content {
+    min-height: 0;
+}
+
+.ped-modal-fab-host {
+    max-height: min(50vh, 420px);
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+
+.ped-modal-fab-head {
+    font-size: 0.92rem;
+    line-height: 1.4;
+}
+
+/* —— Modal pedido: tres segmentos (PT / Fab / Insumos) —— */
+.ped-modal-body {
+    gap: 0;
+}
+
+.ped-modal-segments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    border-bottom: 1px solid var(--b1);
+    padding-bottom: 10px;
+}
+
+.ped-modal-seg {
+    appearance: none;
+    border: 1px solid var(--b1);
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+}
+
+.ped-modal-seg:hover:not(:disabled) {
+    color: var(--txt);
+    border-color: rgba(76, 141, 255, 0.45);
+}
+
+.ped-modal-seg.active {
+    color: var(--txt);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px rgba(76, 141, 255, 0.25);
+}
+
+.ped-modal-seg:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.ped-modal-area {
+    min-height: 200px;
+}
+
+/* ===== productoModal refresh visual ===== */
+#productoModal .ped-modal-shell {
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,.14);
+    background: radial-gradient(1200px 420px at 5% -10%, rgba(76,141,255,.18), transparent 60%), linear-gradient(180deg, #121b2d 0%, #0d1526 100%);
+    box-shadow: 0 24px 80px rgba(0,0,0,.5);
+}
+
+#productoModal .ped-modal-header {
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(255,255,255,.12);
+    background: linear-gradient(180deg, rgba(34,50,81,.95), rgba(24,36,60,.95));
+}
+
+#productoModal .ped-modal-header-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+#productoModal .ped-modal-kicker {
+    font-size: .75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #9fc1ff;
+}
+
+#productoModal .ped-modal-subtitle {
+    font-size: .88rem;
+    color: #bdd1f5;
+}
+
+#productoModal .ped-modal-layout {
+    padding: 14px;
+    gap: 12px;
+    max-height: calc(90vh - 92px);
+}
+
+#productoModal .ped-modal-segments-pro {
+    display: flex;
+    gap: 8px;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 14px;
+    padding: 8px;
+    background: rgba(6,12,23,.45);
+}
+
+#productoModal .ped-modal-segments-pro .ped-modal-seg {
+    flex: 1;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.1);
+    font-weight: 800;
+    color: #cfdcff;
+    background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+    transition: all .18s ease;
+}
+
+#productoModal .ped-modal-segments-pro .ped-modal-seg:hover:not(:disabled) {
+    color: #ffffff;
+    border-color: rgba(111,166,255,.65);
+    background: linear-gradient(180deg, rgba(74,123,224,.28), rgba(74,123,224,.14));
+}
+
+#productoModal .ped-modal-segments-pro .ped-modal-seg.active {
+    color: #ffffff;
+    border-color: #67a4ff;
+    background: linear-gradient(180deg, rgba(92,145,255,.42), rgba(60,108,209,.28));
+    box-shadow: 0 0 0 1px rgba(103,164,255,.35), 0 8px 20px rgba(33,57,111,.45);
+}
+
+#productoModal .ped-modal-main {
+    gap: 12px;
+}
+
+#productoModal .ped-modal-top {
+    display: grid;
+    grid-template-columns: minmax(0,1.2fr) minmax(360px,.8fr);
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-shrink: 0;
+}
+
+#productoModal .ped-modal-card {
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 16px;
+    padding: 12px;
+    background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+}
+
+#productoModal .ped-modal-left .cc-titlebar,
+#productoModal .ped-modal-right .cc-titlebar,
+#productoModal .ped-modal-bottom .cc-titlebar {
+    margin-bottom: 10px !important;
+}
+
+#productoModal .ped-modal-actions-left {
+    margin-top: 10px;
+}
+
+#productoModal .ped-modal-actions-left .btn {
+    min-width: 138px;
+    min-height: 42px;
+    font-weight: 900;
+}
+
+#productoModal .ped-modal-bottom {
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+    padding: 12px;
+    margin-top: 20px !important;
+}
+
+#productoModal #pedModalInlineInsumos {
+    position: relative;
+    z-index: 1;
+    clear: both;
+}
+
+#productoModal .cc-form-producto {
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 14px;
+    padding: 10px;
+    background: rgba(9,16,30,.5);
+}
+
+#productoModal .cc-form-producto .form-control,
+#productoModal .cc-form-producto .form-select {
+    min-height: 42px;
+}
+
+#productoModal .lista-productos-height {
+    min-height: 320px;
+    max-height: 320px;
+}
+
+#productoModal .lista-insumos-height {
+    min-height: 300px;
+    max-height: 300px;
+}
+
+#productoModal .cc-tablewrap {
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.1);
+}
+
+#productoModal .table thead th {
+    font-size: .8rem;
+}
+
+@media (max-width: 1199.98px) {
+    #productoModal .ped-modal-top {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767.98px) {
+    #productoModal .ped-modal-segments-pro {
+        flex-wrap: wrap;
+    }
+
+    #productoModal .ped-modal-segments-pro .ped-modal-seg {
+        flex: 1 1 calc(50% - 8px);
+    }
+
+    #productoModal .ped-modal-actions-left .btn {
+        width: 100%;
+        min-width: 0;
+    }
+}

@@ -103,6 +103,7 @@ Documento vivo: resume arquitectura, convenciones y lecciones aprendidas para se
 | 2026 | Análisis de arquitectura en capas; riesgos (secretos, static files, etc.). |
 | 2026 | Pedidos: badges TIENE STOCK / USA STOCK; auto cantidad al usar stock de insumo; defaults PEDIR/ENTREGAR; cantidades sin `$`; corrección `CantidadInicial` al editar; `ObtenerDatosPedido` con `CantidadInicial`. |
 | 2026 | Fix JS: `CantidadInicial` shorthand; `formatoMoneda` + quitar `site.js` duplicado en vistas NuevoModif; `site.js` idempotente para `formatoMoneda`. |
+| 2026 | Modal pedido (`#productoModal`): tres segmentos PT / Fabricación / Insumos; catálogo `GET /Productos/CatalogoPedidoModal` (producto×color, stock por `StockSaldos` tipo P); PT lista `Stock>0`, Fab `Stock<=0`; insumos compartidos; línea fabricación no usa stock de producto terminado (`_pedModalLineaEsFabricacion`). |
 
 ---
 

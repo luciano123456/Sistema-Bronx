@@ -1,4 +1,4 @@
-﻿// ============================== Stock.js (v5.2 con filtros) ==============================
+﻿// ============================== Stock.js (v5.3 con filtros + color) ==============================
 let gridStock = null;
 let gridHistorial = null;
 
@@ -7,17 +7,19 @@ let histContext = {
     tipoItem: null,
     idProducto: null,
     idInsumo: null,
-    nombre: null
+    nombre: null,
+    idColor: null,
+    etiquetaColor: ""
 };
 
 // Config de filtros por columna para STOCK
-// index según las columnas del DataTable:
-// 0 = TipoItem, 1 = Nombre, 2 = CantidadActual, 3 = Fecha
+// 0 Tipo, 1 Ítem, 2 Color, 3 Stock, 4 Fecha (sin filtro en acciones)
 const columnConfigStock = [
     { index: 0, filterType: "select" },
     { index: 1, filterType: "text" },
     { index: 2, filterType: "text" },
-    { index: 3, filterType: "text" }
+    { index: 3, filterType: "text" },
+    { index: 4, filterType: "text" }
 ];
 
 /* ============================================================
@@ -109,8 +111,8 @@ function renderTablaStock(data) {
         pageLength: 50,
         scrollX: true,
         language: { url: "//cdn.datatables.net/plug-ins/2.0.7/i18n/es-MX.json" },
-        // Orden por defecto: Fecha (col 3) descendente → más nuevo primero
-        order: [[3, "desc"]],
+        // Orden por defecto: Fecha (col 4) descendente → más nuevo primero
+        order: [[4, "desc"]],
         columns: [
             {
                 data: "TipoItem",
@@ -144,6 +146,14 @@ function renderTablaStock(data) {
                 }
             },
             {
+                data: "Color",
+                className: "align-middle",
+                render: function (d) {
+                    const t = (d || "").trim();
+                    return t ? `<span class="stock-color-chip">${t}</span>` : "—";
+                }
+            },
+            {
                 data: "CantidadActual",
                 className: "text-end align-middle",
                 render: function (d) {
@@ -174,12 +184,15 @@ function renderTablaStock(data) {
                     const idProd = row.IdProducto != null ? row.IdProducto : null;
                     const idInsu = row.IdInsumo != null ? row.IdInsumo : null;
                     const nombre = tipo === "P" ? (row.Producto || "") : (row.Insumo || "");
-                    const safeNombre = (nombre || "").replace(/'/g, "\\'");
+                    const safeNombre = (nombre || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+                    const idCol =
+                        row.IdColor != null && Number(row.IdColor) > 0 ? Number(row.IdColor) : null;
+                    const safeColor = String(row.Color || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
                     return `
                         <button type="button"
                                 class="btn btn-sm btn-outline-light stock-btn-icon"
                                 title="Historial de movimientos"
-                                onclick="verHistorial('${tipo}', ${idProd ?? "null"}, ${idInsu ?? "null"}, '${safeNombre}')">
+                                onclick="verHistorial('${tipo}', ${idProd ?? "null"}, ${idInsu ?? "null"}, '${safeNombre}', ${idCol ?? "null"}, '${safeColor}')">
                             <i class="fa fa-history"></i>
                         </button>`;
                 }
@@ -191,7 +204,7 @@ function renderTablaStock(data) {
                 extend: "excelHtml5",
                 text: "Exportar Excel",
                 filename: "Stock_Actual",
-                exportOptions: { columns: [0, 1, 2, 3] }
+                exportOptions: { columns: [0, 1, 2, 3, 4] }
             }
         ],
         orderCellsTop: true,
@@ -259,7 +272,7 @@ function renderTablaStock(data) {
             });
 
             // No queremos filtro en la columna de acciones
-            $(".filters th").eq(4).html("");
+            $(".filters th").eq(5).html("");
 
             // Restaurar filtros si tenés helper global
             if (typeof aplicarFiltrosRestaurados === "function") {
@@ -275,14 +288,20 @@ function renderTablaStock(data) {
 
 /* ============================================================
    HISTORIAL POR ITEM
-   Usa: GET /Stock/HistorialItem?tipoItem=P|I&idProducto=&idInsumo=
+   Usa: GET /Stock/HistorialItem?tipoItem=P|I&idProducto=&idInsumo=&idColor=
 ============================================================ */
-async function verHistorial(tipoItem, idProducto, idInsumo, nombreItem) {
+async function verHistorial(tipoItem, idProducto, idInsumo, nombreItem, idColor, etiquetaColor) {
+    const idC =
+        idColor === null || idColor === undefined || idColor === "null" || idColor === ""
+            ? null
+            : Number(idColor);
     histContext = {
         tipoItem: (tipoItem || "").toUpperCase(),
         idProducto: idProducto,
         idInsumo: idInsumo,
-        nombre: nombreItem
+        nombre: nombreItem || "",
+        idColor: idC != null && !Number.isNaN(idC) && idC > 0 ? idC : null,
+        etiquetaColor: etiquetaColor || ""
     };
 
     await cargarHistorialActual();
@@ -300,9 +319,12 @@ async function cargarHistorialActual() {
         const idProducto = histContext.idProducto;
         const idInsumo = histContext.idInsumo;
         const nombreItem = histContext.nombre;
+        const etiquetaColor = histContext.etiquetaColor || "";
 
         // Header modal
-        $("#histItemNombre").text(nombreItem || "-");
+        $("#histItemNombre").text(
+            etiquetaColor ? `${nombreItem || "-"} — ${etiquetaColor}` : (nombreItem || "-")
+        );
         $("#histItemTipo")
             .removeClass("stock-pill-producto stock-pill-insumo stock-pill-generic")
             .addClass(
@@ -324,7 +346,7 @@ async function cargarHistorialActual() {
         if (!gridHistorial) {
             $("#grd_Historial tbody").html(`
                 <tr>
-                    <td colspan="6" class="text-center py-3">
+                    <td colspan="7" class="text-center py-3">
                         Cargando historial...
                     </td>
                 </tr>`);
@@ -335,6 +357,9 @@ async function cargarHistorialActual() {
         params.append("tipoItem", tipo);
         if (tipo === "P" && idProducto != null) params.append("idProducto", idProducto);
         if (tipo === "I" && idInsumo != null) params.append("idInsumo", idInsumo);
+        if (histContext.idColor != null && histContext.idColor > 0) {
+            params.append("idColor", String(histContext.idColor));
+        }
 
         const resp = await fetch(`/Stock/HistorialItem?${params.toString()}`);
         if (!resp.ok) throw new Error("Error HTTP historial");
@@ -356,7 +381,9 @@ async function cargarHistorialActual() {
             // para el ojo (detalle completo)
             TipoItem: det.TipoItem || null,
             IdProducto: det.IdProducto ?? null,
-            IdInsumo: det.IdInsumo ?? null
+            IdInsumo: det.IdInsumo ?? null,
+            IdColor: det.IdColor ?? null,
+            NombreColor: det.NombreColor || ""
         }));
 
         // Orden cronológico
@@ -410,6 +437,8 @@ function renderTablaHistorial(data) {
                     const tipoItem = (row.TipoItem || "").toUpperCase();
                     const idProd = row.IdProducto != null ? row.IdProducto : "null";
                     const idInsu = row.IdInsumo != null ? row.IdInsumo : "null";
+                    const idClr =
+                        row.IdColor != null && Number(row.IdColor) > 0 ? Number(row.IdColor) : "null";
 
                     return `
                         <div class="d-flex justify-content-between align-items-center gap-2">
@@ -417,10 +446,18 @@ function renderTablaHistorial(data) {
                             <button type="button"
                                     class="btn btn-xs btn-outline-light stock-btn-icon"
                                     title="Ver detalle completo del movimiento"
-                                    onclick="verMovimientoCompleto(${row.IdMovimiento}, '${tipoItem}', ${idProd}, ${idInsu})">
+                                    onclick="verMovimientoCompleto(${row.IdMovimiento}, '${tipoItem}', ${idProd}, ${idInsu}, ${idClr})">
                                 <i class="fa fa-eye"></i>
                             </button>
                         </div>`;
+                }
+            },
+            {
+                data: "NombreColor",
+                className: "align-middle",
+                render: function (d) {
+                    const t = (d || "").trim();
+                    return t || "—";
                 }
             },
             {
@@ -484,7 +521,7 @@ function renderTablaHistorial(data) {
                 extend: "excelHtml5",
                 text: "Exportar Excel",
                 filename: "Stock_Historial_Item",
-                exportOptions: { columns: [0, 1, 2, 3, 4] }
+                exportOptions: { columns: [0, 1, 2, 3, 4, 5] }
             }
         ]
     });
@@ -518,7 +555,7 @@ function recalcularResumenHistorial(historial) {
    DETALLE COMPLETO DE MOVIMIENTO (ojito en historial)
    Usa: GET /Stock/Obtener?id=
 ============================================================ */
-async function verMovimientoCompleto(idMovimiento, tipoItemSel, idProductoSel, idInsumoSel) {
+async function verMovimientoCompleto(idMovimiento, tipoItemSel, idProductoSel, idInsumoSel, idColorSel) {
     try {
         const resp = await fetch(`/Stock/Obtener?id=${idMovimiento}`);
 
@@ -550,24 +587,43 @@ async function verMovimientoCompleto(idMovimiento, tipoItemSel, idProductoSel, i
         const tipoSel = (tipoItemSel || "").toUpperCase();
         const idProdSel = idProductoSel != null ? Number(idProductoSel) : null;
         const idInsuSel = idInsumoSel != null ? Number(idInsumoSel) : null;
+        const idColorSelNorm =
+            idColorSel === null || idColorSel === undefined || idColorSel === "null"
+                ? null
+                : Number(idColorSel);
 
         detalles.forEach(d => {
             const tipo = (d.TipoItem || "").toUpperCase();
             const esProducto = tipo === "P";
             const idProd = d.IdProducto ?? null;
             const idInsu = d.IdInsumo ?? null;
+            const idColorD = d.IdColor != null ? Number(d.IdColor) : null;
 
             const nombre = d.NombreItem || "-";
+            const escHtml = s =>
+                String(s ?? "")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;");
+            const colorNom =
+                d.ColorNombre && String(d.ColorNombre).trim()
+                    ? escHtml(d.ColorNombre)
+                    : "—";
             const cantidad = Number(d.Cantidad || 0);
             const costo = Number(d.CostoUnitario ?? 0);
             const subtotal = cantidad * costo;
 
-            const seleccionado =
+            const matchItem =
                 tipoSel === tipo &&
                 (
                     (tipo === "P" && idProdSel === idProd) ||
                     (tipo === "I" && idInsuSel === idInsu)
                 );
+            const matchColor =
+                idColorSelNorm == null || Number.isNaN(idColorSelNorm) || idColorSelNorm === 0
+                    ? true
+                    : idColorD === idColorSelNorm;
+            const seleccionado = matchItem && matchColor;
 
             const pill = esProducto
                 ? `<span class="stock-pill stock-pill-producto me-2"><i class="fa fa-cube me-1"></i>Producto</span>`
@@ -587,6 +643,10 @@ async function verMovimientoCompleto(idMovimiento, tipoItemSel, idProductoSel, i
                             Cantidad<br>
                             <strong>${formatNumber(cantidad)}</strong>
                         </div>
+                    </div>
+                    <div class="small mb-2">
+                        <span class="text-muted-cc">Color:</span>
+                        <strong>${colorNom}</strong>
                     </div>
                     <div class="d-flex justify-content-between small mt-1">
                         <span>Costo unitario:

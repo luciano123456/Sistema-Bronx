@@ -1,4 +1,21 @@
-﻿$(document).ready(function () {
+﻿function setLoginUiLoading(loading) {
+    var $btn = $("#btnLoginSubmit");
+    if (!$btn.length) return;
+
+    if (loading) {
+        $btn.attr("aria-busy", "true").prop("disabled", true);
+        $btn.find(".login-btn-default").addClass("d-none").removeClass("d-inline-flex");
+        $btn.find(".login-btn-loading").removeClass("d-none").addClass("d-inline-flex");
+        $("#username, #password, #rememberMe").prop("disabled", true);
+    } else {
+        $btn.attr("aria-busy", "false").prop("disabled", false);
+        $btn.find(".login-btn-default").removeClass("d-none").addClass("d-inline-flex");
+        $btn.find(".login-btn-loading").addClass("d-none").removeClass("d-inline-flex");
+        $("#username, #password, #rememberMe").prop("disabled", false);
+    }
+}
+
+$(document).ready(function () {
     // Verificar si el usuario tiene credenciales guardadas
     if (localStorage.getItem('rememberMe') === 'true') {
         // Si el checkbox estaba seleccionado la última vez
@@ -11,6 +28,8 @@
     // Al enviar el formulario
     $("#loginForm").on("submit", function (event) {
         event.preventDefault(); // Evitar el envío tradicional del formulario
+
+        setLoginUiLoading(true);
 
         var username = $("#username").val(); // Obtener el nombre de usuario
         var password = $("#password").val(); // Obtener la contraseña
@@ -60,22 +79,19 @@
                     localStorage.setItem('userSession', JSON.stringify(data.user)); // Guardar el usuario
                     window.location.href = data.redirectUrl;
                 } else {
-                    // Mostrar el mensaje de error
-                    $(document).ready(function () {
-                        // Mostrar el mensaje de error
-                        $("#errorMessage").text(data.message).show(); // Establecer el mensaje
-                        $("#diverrorMessage").show(); // Mostrar el div
-
-                        // Ocultar el div después de 3 segundos
-                        setTimeout(function () {
-                            $("#diverrorMessage").fadeOut();
-                        }, 3000); // 3000 milisegundos = 3 segundos
-                    });
+                    setLoginUiLoading(false);
+                    $("#errorMessage").text(data.message);
+                    $("#diverrorMessage").show();
+                    setTimeout(function () {
+                        $("#diverrorMessage").fadeOut();
+                    }, 3000);
                 }
             })
             .catch(error => {
                 console.error("Error: " + error);
-                $("#errorMessage").text("Hubo un problema al procesar la solicitud. Error: " + error).show();
+                setLoginUiLoading(false);
+                $("#errorMessage").text("Hubo un problema al procesar la solicitud. Volvé a intentarlo.");
+                $("#diverrorMessage").show();
             });
     });
 

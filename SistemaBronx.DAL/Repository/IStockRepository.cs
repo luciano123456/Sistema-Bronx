@@ -17,10 +17,10 @@ namespace SistemaBronx.DAL.Repository
         Task<StockMovimiento?> ObtenerMovimiento(int id);
 
         Task<List<StockSaldo>> ObtenerSaldos();
-        Task<StockSaldo?> ObtenerSaldoItem(string tipoItem, int? idProducto, int? idInsumo);
+        Task<StockSaldo?> ObtenerSaldoItem(string tipoItem, int? idProducto, int? idInsumo, int? idColor = null);
 
         // Historial por ítem
-        Task<List<StockMovimiento>> ObtenerMovimientosItem(string tipoItem, int? idProducto, int? idInsumo);
+        Task<List<StockMovimiento>> ObtenerMovimientosItem(string tipoItem, int? idProducto, int? idInsumo, int? idColor = null);
 
         // *** NUEVO: eliminar SOLO un detalle ***
         Task<bool> EliminarDetalleMovimiento(int idDetalle);
