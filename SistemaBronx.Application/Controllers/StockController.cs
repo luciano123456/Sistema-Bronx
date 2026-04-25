@@ -24,7 +24,14 @@ namespace SistemaBronx.Application.Controllers
         // INDEX
         // =====================================================
         public IActionResult Index() => View();
-        public IActionResult NuevoModif() => View();
+        public IActionResult NuevoModif(int? id)
+        {
+            if (id.HasValue && id.Value > 0)
+            {
+                ViewBag.IdMovimiento = id.Value;
+            }
+            return View();
+        }
 
 
         // =====================================================

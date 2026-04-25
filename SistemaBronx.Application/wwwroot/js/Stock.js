@@ -25,14 +25,12 @@ const columnConfigStock = [
 /* ============================================================
    HELPERS NUMÉRICOS / FECHAS
 ============================================================ */
-if (typeof window.formatNumber !== "function") {
-    window.formatNumber = function (n) {
-        const v = Number(n || 0);
-        return v.toLocaleString("es-AR", {
-            minimumFractionDigits: 3,
-            maximumFractionDigits: 3
-        });
-    };
+function formatCantidadStock(n) {
+    const v = Number(n || 0);
+    return v.toLocaleString("es-AR", {
+        minimumFractionDigits: 3,
+        maximumFractionDigits: 3
+    });
 }
 
 function formatDateTimeAR(value) {
@@ -79,6 +77,24 @@ function editarMovimiento(id) {
     window.location.href = "/Stock/NuevoModif/" + id;
 }
 
+/** Desde historial por ítem: abre edición y remarca la fila del producto/insumo (+ color si aplica). */
+function editarMovimientoConContexto(idMovimiento, tipoItem, idProducto, idInsumo, idColor) {
+    const p = new URLSearchParams();
+    const t = (tipoItem || "").toUpperCase();
+    if (t === "P" && idProducto != null && idProducto !== "null" && !Number.isNaN(Number(idProducto))) {
+        p.set("resaltarTipo", "P");
+        p.set("resaltarProducto", String(idProducto));
+    } else if (t === "I" && idInsumo != null && idInsumo !== "null" && !Number.isNaN(Number(idInsumo))) {
+        p.set("resaltarTipo", "I");
+        p.set("resaltarInsumo", String(idInsumo));
+    }
+    if (idColor != null && idColor !== "null" && Number(idColor) > 0) {
+        p.set("resaltarColor", String(idColor));
+    }
+    const qs = p.toString();
+    window.location.href = "/Stock/NuevoModif/" + idMovimiento + (qs ? "?" + qs : "");
+}
+
 /* ============================================================
    LISTA STOCK (Saldos)
 ============================================================ */
@@ -117,8 +133,12 @@ function renderTablaStock(data) {
             {
                 data: "TipoItem",
                 className: "text-center align-middle stock-col-tipo",
-                render: function (tipo) {
+                render: function (tipo, type) {
                     const t = (tipo || "").toUpperCase();
+                    const label = t === "P" ? "Producto" : t === "I" ? "Insumo" : (t || "-");
+                    if (type === "filter" || type === "sort") {
+                        return label;
+                    }
                     if (t === "P") {
                         return `
                             <span class="stock-pill stock-pill-producto">
@@ -158,7 +178,7 @@ function renderTablaStock(data) {
                 className: "text-end align-middle",
                 render: function (d) {
                     const v = Number(d || 0);
-                    const abs = formatNumber(Math.abs(v));
+                    const abs = formatCantidadStock(Math.abs(v));
                     if (v > 0) {
                         return `<span class="stock-qty-pos">+ ${abs}</span>`;
                     } else if (v < 0) {
@@ -234,24 +254,28 @@ function renderTablaStock(data) {
                         });
 
                     // Construir opciones desde los datos actuales de la columna
-                    api
-                        .column(config.index)
-                        .data()
-                        .unique()
-                        .sort()
-                        .each(function (d) {
-                            // Extraer texto plano si viene con HTML (TipoItem)
-                            let txt = d;
-                            if (typeof d === "string") {
-                                const tmp = document.createElement("div");
-                                tmp.innerHTML = d;
-                                txt = tmp.textContent || tmp.innerText || "";
-                                txt = txt.trim();
-                            }
-                            if (txt) {
-                                select.append('<option value="' + txt + '">' + txt + "</option>");
-                            }
-                        });
+                    if (config.index === 0) {
+                        select.append('<option value="Producto">Producto</option>');
+                        select.append('<option value="Insumo">Insumo</option>');
+                    } else {
+                        api
+                            .column(config.index)
+                            .data()
+                            .unique()
+                            .sort()
+                            .each(function (d) {
+                                let txt = d;
+                                if (typeof d === "string") {
+                                    const tmp = document.createElement("div");
+                                    tmp.innerHTML = d;
+                                    txt = tmp.textContent || tmp.innerText || "";
+                                    txt = txt.trim();
+                                }
+                                if (txt) {
+                                    select.append('<option value="' + txt + '">' + txt + "</option>");
+                                }
+                            });
+                    }
 
                 } else if (config.filterType === "text") {
                     const input = $('<input type="text" placeholder="Buscar..." />')
@@ -469,7 +493,7 @@ function renderTablaHistorial(data) {
                 className: "text-end align-middle",
                 render: function (d, t, row) {
                     const v = Number(row.Cantidad || 0);
-                    const abs = formatNumber(Math.abs(v));
+                    const abs = formatCantidadStock(Math.abs(v));
                     const cls = v >= 0 ? "stock-qty-pos" : "stock-qty-neg";
                     const sign = v >= 0 ? "+" : "-";
                     return `<span class="${cls}">${sign} ${abs}</span>`;
@@ -495,6 +519,18 @@ function renderTablaHistorial(data) {
                 orderable: false,
                 render: function (row) {
                     const idDet = row.Id;         // Id del detalle
+                    const tipoIt = (row.TipoItem || "").toUpperCase();
+                    const idProd = row.IdProducto != null ? row.IdProducto : "null";
+                    const idInsu = row.IdInsumo != null ? row.IdInsumo : "null";
+                    const idClr =
+                        row.IdColor != null && Number(row.IdColor) > 0 ? Number(row.IdColor) : "null";
+                    const editarMovimientoBtn = `
+                        <button type="button"
+                                class="btn btn-outline-warning"
+                                title="Editar movimiento completo"
+                                onclick="editarMovimientoConContexto(${row.IdMovimiento}, '${tipoIt}', ${idProd}, ${idInsu}, ${idClr})">
+                            <i class="fa fa-pencil"></i>
+                        </button>`;
                     const eliminarDetalleBtn = `
                         <button type="button"
                                 class="btn btn-outline-danger"
@@ -505,6 +541,7 @@ function renderTablaHistorial(data) {
 
                     return `
                         <div class="stock-actions d-inline-flex align-items-center">
+                            ${editarMovimientoBtn}
                             ${eliminarDetalleBtn}
                         </div>`;
                 }
@@ -546,9 +583,9 @@ function recalcularResumenHistorial(historial) {
 
     const neto = entradas - salidas;
 
-    $("#histTotalEntradas").text(formatNumber(entradas));
-    $("#histTotalSalidas").text(formatNumber(salidas));
-    $("#histTotalNeto").text(formatNumber(neto));
+    $("#histTotalEntradas").text(formatCantidadStock(entradas));
+    $("#histTotalSalidas").text(formatCantidadStock(salidas));
+    $("#histTotalNeto").text(formatCantidadStock(neto));
 }
 
 /* ============================================================
@@ -641,7 +678,7 @@ async function verMovimientoCompleto(idMovimiento, tipoItemSel, idProductoSel, i
                         </div>
                         <div class="text-end small text-muted-cc">
                             Cantidad<br>
-                            <strong>${formatNumber(cantidad)}</strong>
+                            <strong>${formatCantidadStock(cantidad)}</strong>
                         </div>
                     </div>
                     <div class="small mb-2">

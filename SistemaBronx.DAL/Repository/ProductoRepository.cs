@@ -26,8 +26,10 @@ namespace SistemaBronx.DAL.Repository
         public async Task<decimal> ObtenerStockSaldoProductoAsync(int idProducto, int? idColorFiltro = null)
         {
             var q = _dbcontext.StockSaldos.Where(s => s.TipoItem == "P" && s.IdProducto == idProducto);
-            if (idColorFiltro.HasValue)
-                q = q.Where(s => (s.IdColor ?? 0) == idColorFiltro.Value);
+            if (idColorFiltro.HasValue && idColorFiltro.Value != 0)
+                q = q.Where(s => (s.IdColor ?? 0) == idColorFiltro.Value || (s.IdColor ?? 0) == 0);
+            else if (idColorFiltro.HasValue && idColorFiltro.Value == 0)
+                q = q.Where(s => (s.IdColor ?? 0) == 0);
             return await q.SumAsync(s => (decimal?)s.CantidadActual) ?? 0m;
         }
 
@@ -355,10 +357,23 @@ namespace SistemaBronx.DAL.Repository
                     .ToList();
 
                 var qSaldo = _dbcontext.StockSaldos
-                    .Where(s => s.TipoItem == "I" && s.IdInsumo.HasValue && idsInsumos.Contains(s.IdInsumo.Value));
+                    .Where(s =>
+                        s.TipoItem != null &&
+                        s.TipoItem.Trim().ToUpper() == "I" &&
+                        s.IdInsumo.HasValue &&
+                        idsInsumos.Contains(s.IdInsumo.Value));
 
-                if (idColorFiltro.HasValue)
-                    qSaldo = qSaldo.Where(s => (s.IdColor ?? 0) == idColorFiltro.Value);
+                if (idColorFiltro.HasValue && idColorFiltro.Value != 0)
+                {
+                    var color = idColorFiltro.Value;
+                    // Pedidos: stock sin color (0/null) cuenta para cualquier color pedido;
+                    // stock coloreado solo suma si coincide con el color pedido.
+                    qSaldo = qSaldo.Where(s => (s.IdColor ?? 0) == color || (s.IdColor ?? 0) == 0);
+                }
+                else if (idColorFiltro.HasValue && idColorFiltro.Value == 0)
+                {
+                    qSaldo = qSaldo.Where(s => (s.IdColor ?? 0) == 0);
+                }
 
                 var stocksPorInsumo = await qSaldo
                     .GroupBy(s => s.IdInsumo!.Value)

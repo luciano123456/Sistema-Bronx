@@ -124,8 +124,20 @@ function filtrarLineasModalProductos(lineas) {
 
     return normalizarArrayDataTable(lineas).filter(row => {
         const nombre = (row?.Nombre ?? "").toString().toLowerCase().trim();
-        const color = (row?.Color ?? "").toString().toLowerCase().trim();
+        const colorBase = (row?.Color ?? "").toString().toLowerCase().trim();
         const categoria = (row?.Categoria ?? "").toString().toLowerCase().trim();
+        const idColRow = parseInt(row?.IdColor, 10) || 0;
+        const stockRow = parseFloat(row?.Stock) || 0;
+        // Fabricación (catálogo): fila sin PT — el color se elige después; sumamos el color del
+        // desplegable "Colores" al texto buscable para que no desaparezca al buscar "cromo", etc.
+        let color = colorBase;
+        if (stockRow <= 0 && idColRow === 0) {
+            const selId = parseInt($("#Colores").val(), 10) || 0;
+            const selTxt = ($("#Colores option:selected").text() || "").toString().toLowerCase().trim();
+            if (selId > 0 && selTxt) {
+                color = [colorBase, selTxt].filter(Boolean).join(" ");
+            }
+        }
 
         if (bus) {
             const blob = [nombre, color, categoria].join(" ");
@@ -160,9 +172,26 @@ function forzarColorInsumosModalDesdeProducto(colorId, colorTexto) {
     gridInsumosModal.draw(false);
 }
 
+function restaurarSeleccionProductoModalSiCorresponde(idProductoEsperado) {
+    if (!gridProductosModal || !idProductoEsperado || isEditingProducto) return;
+    let node = null;
+    gridProductosModal.rows().every(function () {
+        const d = this.data();
+        if (parseInt(d.Id, 10) === idProductoEsperado) {
+            node = this.node();
+            return false;
+        }
+    });
+    if (!node) return;
+    filaSeleccionadaProductos = node;
+    $(node).addClass("selected");
+    $("td", node).addClass("selected");
+}
+
 function redrawModalProductosSiHayGrilla() {
     if (gridProductosModal) {
         try {
+            const pidGuardado = parseInt($("#ProductoModalId").val() || "0", 10) || 0;
             const base = obtenerLineasBaseModalProductos();
             const filtradas = filtrarLineasModalProductos(base);
             filaSeleccionadaProductos = null;
@@ -171,6 +200,9 @@ function redrawModalProductosSiHayGrilla() {
             gridProductosModal.clear().rows.add(filtradas).draw(false);
             aplicarVisibilidadColumnasStockProductoModal();
             forzarReflowTablaModalProductos();
+            if (pidGuardado > 0) {
+                restaurarSeleccionProductoModalSiCorresponde(pidGuardado);
+            }
         } catch (e) { /* no-op */ }
     }
 }
@@ -834,6 +866,10 @@ async function configurarDataTableProductosModal(data) {
 
                             if (!isEditingProducto) {
                                 await cargarInformacionProducto(data.Id, data.IdColor, data.Color);
+                                if (pedidoModalPaneActivo === "pt") {
+                                    // Refuerzo: al elegir producto terminado, todos sus insumos heredan su color.
+                                    forzarColorInsumosModalDesdeProducto(data.IdColor, data.Color);
+                                }
                                 const esFabricacion = pedidoModalPaneActivo === "fab";
                                 if (esFabricacion) {
                                     // En fabricación el color siempre se elige manualmente al añadir.
@@ -1399,6 +1435,11 @@ async function cargarDatosClienteRegistrado(idCliente) {
 $('#Colores').on('change', async function () {
     var idColorSeleccionado = $(this).val(); // El valor es el ID del color
     const idColorNum = parseInt(idColorSeleccionado, 10) || 0;
+
+    // Catálogo fabricación: el buscador usa también el color elegido (ver filtrarLineasModalProductos).
+    if (pedidoModalPaneActivo === "fab" && gridProductosModal) {
+        redrawModalProductosSiHayGrilla();
+    }
 
     if (pedidoModalPaneActivo === "fab" && !isEditingProducto && idColorNum > 0) {
         const pid = document.getElementById("ProductoModalId")?.value;
@@ -2518,6 +2559,10 @@ async function editarProducto(producto) {
     $('#Colores')
         .val(parseInt(producto.IdColor) || -1)
         .trigger('change');
+
+    if ((parseFloat(producto.Stock ?? producto.StockDisponible ?? 0) || 0) > 0) {
+        forzarColorInsumosModalDesdeProducto(producto.IdColor, producto.Color);
+    }
 
     // =========================================================
     // 10) LIMPIAR SELECCIÓN

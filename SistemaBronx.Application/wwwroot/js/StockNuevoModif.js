@@ -9,6 +9,55 @@ let CATALOGO_COLORES = [];
 
 let STOCK_MODAL_ROW_SEQ = 1;
 
+/** Contexto ?resaltarTipo=… desde Stock (historial por ítem) — remarca fila en grilla detalle. */
+let STOCK_RESALTAR_CTX = null;
+
+function parseStockResaltarDesdeUrl() {
+    const p = new URLSearchParams(window.location.search);
+    const tipo = (p.get("resaltarTipo") || "").toUpperCase();
+    if (tipo !== "P" && tipo !== "I") return null;
+    const idP = p.has("resaltarProducto") ? Number(p.get("resaltarProducto")) : null;
+    const idI = p.has("resaltarInsumo") ? Number(p.get("resaltarInsumo")) : null;
+    if (tipo === "P" && (!idP || Number.isNaN(idP))) return null;
+    if (tipo === "I" && (!idI || Number.isNaN(idI))) return null;
+    let idCol = null;
+    if (p.has("resaltarColor")) {
+        const n = Number(p.get("resaltarColor"));
+        if (!Number.isNaN(n) && n > 0) idCol = n;
+    }
+    return { tipo, idProducto: idP, idInsumo: idI, idColor: idCol };
+}
+
+function detalleCoincideResaltar(d, ctx) {
+    if (!ctx) return false;
+    const tipo = (d.TipoItem || "").toUpperCase();
+    if (tipo !== ctx.tipo) return false;
+    if (tipo === "P") {
+        if (Number(d.IdProducto || 0) !== Number(ctx.idProducto)) return false;
+    } else {
+        if (Number(d.IdInsumo || 0) !== Number(ctx.idInsumo)) return false;
+    }
+    if (ctx.idColor == null) return true;
+    const c = d.IdColor == null || Number(d.IdColor) === 0 ? 0 : Number(d.IdColor);
+    return c === ctx.idColor;
+}
+
+function stockLimpiarResaltarEnUrl() {
+    if (!STOCK_RESALTAR_CTX) return;
+    try {
+        const path = window.location.pathname + (window.location.hash || "");
+        window.history.replaceState({}, "", path);
+    } catch (_) { /* ignore */ }
+}
+
+function stockScrollAFilaResaltarDetalle() {
+    if (!STOCK_RESALTAR_CTX) return;
+    setTimeout(() => {
+        const el = document.querySelector("#grd_Detalle tbody tr.stock-detalle-row--resaltar");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+}
+
 /** Select2 dentro de modales: anclar al body evita saltos de scroll y recortes. */
 function stockModalSelect2Parent() {
     return $(document.body);
@@ -199,6 +248,16 @@ if (typeof window.formatMoneda !== "function") {
    ARRANQUE
 ======================================================================== */
 $(document).ready(async () => {
+    STOCK_RESALTAR_CTX = parseStockResaltarDesdeUrl();
+
+    // Enter en modal ítems: quita selección múltiple verde (BOM) sin cerrar el modal
+    $("#modalItems").on("keydown.stockBomClearSel", function (e) {
+        if (e.key !== "Enter") return;
+        const $t = $(e.target);
+        if (!$t.closest(".stock-bom-wrap").length) return;
+        const $row = $t.closest(".stock-modal-fila");
+        if ($row.length) limpiarSeleccionBomLineas($row);
+    });
 
     await cargarTiposMovimiento();
     await cargarCatalogos();
@@ -216,6 +275,8 @@ $(document).ready(async () => {
         $("#tituloMovimiento").text("Editar movimiento");
         $("#btnGuardarMovimiento").html('<i class="fa fa-save me-2"></i> Guardar cambios');
         await cargarMovimiento(id);
+        stockScrollAFilaResaltarDetalle();
+        stockLimpiarResaltarEnUrl();
     } else {
         $("#tituloMovimiento").text("Nuevo movimiento");
         $("#btnGuardarMovimiento").html('<i class="fa fa-save me-2"></i> Registrar');
@@ -307,8 +368,11 @@ async function cargarMovimiento(id) {
         const json = await resp.json();
         if (!json) return;
 
-        const mov = json.Movimiento;
-        let detalles = json.Detalles || [];
+        // Obtener devuelve cabecera plana (Id, IdTipoMovimiento, Detalles, …), no { Movimiento: … }
+        const mov = json.Movimiento ?? json;
+        const detalles = Array.isArray(json.Detalles)
+            ? json.Detalles
+            : (Array.isArray(mov?.Detalles) ? mov.Detalles : []);
 
         $("#IdTipoMovimiento").val(mov.IdTipoMovimiento).trigger("change");
         $("#Comentario").val(mov.Comentario || "");
@@ -439,6 +503,9 @@ function configurarTablaDetalle() {
                 $(row).addClass("stock-row-producto");
             } else if (data.TipoItem === "I") {
                 $(row).addClass("stock-row-insumo");
+            }
+            if (STOCK_RESALTAR_CTX && detalleCoincideResaltar(data, STOCK_RESALTAR_CTX)) {
+                $(row).addClass("stock-detalle-row--resaltar");
             }
         }
     });
@@ -672,7 +739,33 @@ function enlazarSelect2ColorBomLinea($line, $row) {
         $s.select2("destroy");
     }
     $s.select2(stockColorSelect2BaseOptions());
-    $s.off("change.stockbomcolor").on("change.stockbomcolor", () => actualizarCostoSubFila($row));
+    $s.off("change.stockbomcolor").on("change.stockbomcolor", function () {
+        const nuevoColor = $(this).val() || "";
+        if ($row.data("stock-sync-color")) {
+            actualizarCostoSubFila($row);
+            return;
+        }
+
+        // Cambio masivo: solo sobre líneas seleccionadas con Ctrl+click.
+        const $seleccionadas = $row
+            .find(".stock-bom-line.stock-bom-line--multi-selected")
+            .filter(function () {
+                return $(this).find(".stock-bom-chk").is(":checked");
+            });
+        if ($seleccionadas.length > 0) {
+            $row.data("stock-sync-color", true);
+            $seleccionadas.each(function () {
+                const $sel = $(this).find(".stock-bom-color-select");
+                if ($sel[0] !== $s[0]) {
+                    $sel.val(nuevoColor).trigger("change.select2");
+                }
+            });
+            $row.data("stock-sync-color", false);
+            limpiarSeleccionBomLineas($row);
+        }
+
+        actualizarCostoSubFila($row);
+    });
 }
 
 function actualizarEstadoColorPrincipalEnFila($row) {
@@ -912,7 +1005,34 @@ function syncEstadoCantidadesBom($row) {
         $c.prop("disabled", !on);
         enlazarSelect2ColorBomLinea($line, $row);
         $line.toggleClass("stock-bom-line--off", !on);
+        if (!on) {
+            $line.removeClass("stock-bom-line--multi-selected");
+        }
     });
+}
+
+function toggleRangoBomChecks($row, idxDesde, idxHasta, checked) {
+    const $lines = $row.find(".stock-bom-line");
+    const ini = Math.min(idxDesde, idxHasta);
+    const fin = Math.max(idxDesde, idxHasta);
+    for (let i = ini; i <= fin; i++) {
+        $lines.eq(i).find(".stock-bom-chk").prop("checked", checked);
+    }
+}
+
+function limpiarSeleccionBomLineas($row) {
+    $row.find(".stock-bom-line").removeClass("stock-bom-line--multi-selected");
+}
+
+function toggleSeleccionBomLineaConCtrl($row, $line, ev) {
+    if (!(ev && (ev.ctrlKey || ev.metaKey))) {
+        return;
+    }
+    // Solo líneas que se van a agregar al movimiento (check marcado)
+    if (!$line.find(".stock-bom-chk").is(":checked")) {
+        return;
+    }
+    $line.toggleClass("stock-bom-line--multi-selected");
 }
 
 function actualizarVisibilidadBom($row) {
@@ -1013,9 +1133,26 @@ function inicializarFilaModal($row) {
                 actualizarCostoSubFila($row);
             });
 
-            $row.off("change.bomchk").on("change.bomchk", ".stock-bom-chk", function () {
+            $row.off("change.bomchk").on("change.bomchk", ".stock-bom-chk", function (e) {
+                const $chk = $(this);
+                const $line = $chk.closest(".stock-bom-line");
+                const idxActual = $line.index();
+                const idxPrev = parseInt($row.data("stock-bom-last-idx"), 10);
+                const shift = !!(e && e.shiftKey);
+
+                if (shift && !isNaN(idxPrev) && idxPrev >= 0) {
+                    toggleRangoBomChecks($row, idxPrev, idxActual, $chk.is(":checked"));
+                }
+                $row.data("stock-bom-last-idx", idxActual);
                 syncEstadoCantidadesBom($row);
                 actualizarCostoSubFila($row);
+            });
+            // Selección múltiple de líneas para edición masiva (separada del check).
+            $row.off("click.bomselect").on("click.bomselect", ".stock-bom-line", function (e) {
+                if ($(e.target).closest(".stock-bom-chk, .stock-bom-qty, .stock-bom-color-wrap, .stock-bom-color-select, .select2-container, .select2-selection").length) {
+                    return;
+                }
+                toggleSeleccionBomLineaConCtrl($row, $(this), e);
             });
             $row.off("input.bomqty").on("input.bomqty", ".stock-bom-qty", () => actualizarCostoSubFila($row));
             $row.off("click.bomall").on("click.bomall", ".stock-bom-marcar-todos", function (e) {

@@ -90,6 +90,36 @@ namespace SistemaBronx.DAL.Repository
             return mov.IdTipoMovimientoNavigation?.EsEntrada ?? false;
         }
 
+        /// <summary>
+        /// Fila de saldo para un detalle: color exacto, o si el movimiento pide color y no hay fila,
+        /// la fila IdColor 0 (stock sin color sirve para cualquier color del pedido).
+        /// </summary>
+        private async Task<StockSaldo?> BuscarSaldoParaDetalleAsync(StockMovimientosDetalle det)
+        {
+            var tipo = (det.TipoItem ?? string.Empty).ToUpper();
+            var colorDet = det.IdColor ?? 0;
+
+            var exact = await _dbcontext.StockSaldos.FirstOrDefaultAsync(s =>
+                s.TipoItem == tipo &&
+                s.IdProducto == det.IdProducto &&
+                s.IdInsumo == det.IdInsumo &&
+                (s.IdColor ?? 0) == colorDet);
+
+            if (exact != null)
+                return exact;
+
+            if (colorDet != 0)
+            {
+                return await _dbcontext.StockSaldos.FirstOrDefaultAsync(s =>
+                    s.TipoItem == tipo &&
+                    s.IdProducto == det.IdProducto &&
+                    s.IdInsumo == det.IdInsumo &&
+                    (s.IdColor ?? 0) == 0);
+            }
+
+            return null;
+        }
+
         private async Task AplicarStockAsync(StockMovimientosDetalle det, bool esEntrada, bool revertir)
         {
             var signo = esEntrada ? 1m : -1m;
@@ -97,12 +127,7 @@ namespace SistemaBronx.DAL.Repository
 
             var delta = det.Cantidad * signo;
 
-            var saldo = await _dbcontext.StockSaldos.FirstOrDefaultAsync(s =>
-                s.TipoItem == det.TipoItem &&
-                s.IdProducto == det.IdProducto &&
-                s.IdInsumo == det.IdInsumo &&
-                (s.IdColor ?? 0) == (det.IdColor ?? 0)
-            );
+            var saldo = await BuscarSaldoParaDetalleAsync(det);
 
             if (saldo == null)
             {
@@ -254,12 +279,16 @@ namespace SistemaBronx.DAL.Repository
             // =========================================================
             foreach (var item in requeridos)
             {
+                var colorReq = item.IdColor ?? 0;
                 decimal disponible = await _dbcontext.StockSaldos
                     .Where(s =>
                         s.TipoItem == item.TipoItem &&
                         s.IdProducto == item.IdProducto &&
                         s.IdInsumo == item.IdInsumo &&
-                        (s.IdColor ?? 0) == (item.IdColor ?? 0))
+                        (
+                            (s.IdColor ?? 0) == colorReq ||
+                            (colorReq != 0 && (s.IdColor ?? 0) == 0)
+                        ))
                     .Select(s => (decimal?)s.CantidadActual)
                     .SumAsync() ?? 0m;
 
@@ -1070,7 +1099,10 @@ namespace SistemaBronx.DAL.Repository
 
                     var c = det.IdColor ?? 0;
                     var qty = saldosStock
-                        .Where(s => s.TipoItem == "P" && s.IdProducto == det.IdProducto && (s.IdColor ?? 0) == c)
+                        .Where(s =>
+                            s.TipoItem == "P" &&
+                            s.IdProducto == det.IdProducto &&
+                            ((s.IdColor ?? 0) == c || (c != 0 && (s.IdColor ?? 0) == 0)))
                         .Sum(s => s.CantidadActual);
 
                     det.StockDisponibleDeposito = qty;
@@ -1083,7 +1115,10 @@ namespace SistemaBronx.DAL.Repository
 
                     var c = proc.IdColor ?? 0;
                     var qty = saldosStock
-                        .Where(s => s.TipoItem == "I" && s.IdInsumo == proc.IdInsumo && (s.IdColor ?? 0) == c)
+                        .Where(s =>
+                            s.TipoItem == "I" &&
+                            s.IdInsumo == proc.IdInsumo &&
+                            ((s.IdColor ?? 0) == c || (c != 0 && (s.IdColor ?? 0) == 0)))
                         .Sum(s => s.CantidadActual);
 
                     proc.StockDisponibleDeposito = qty;
@@ -1292,12 +1327,16 @@ namespace SistemaBronx.DAL.Repository
         {
             tipoItem = (tipoItem ?? string.Empty).ToUpper();
 
+            var colorReq = idColor ?? 0;
             decimal disponible = await _dbcontext.StockSaldos
                 .Where(s =>
                     s.TipoItem == tipoItem &&
                     s.IdProducto == idProducto &&
                     s.IdInsumo == idInsumo &&
-                    (s.IdColor ?? 0) == (idColor ?? 0))
+                    (
+                        (s.IdColor ?? 0) == colorReq ||
+                        (colorReq != 0 && (s.IdColor ?? 0) == 0)
+                    ))
                 .Select(s => (decimal?)s.CantidadActual)
                 .SumAsync() ?? 0m;
 
