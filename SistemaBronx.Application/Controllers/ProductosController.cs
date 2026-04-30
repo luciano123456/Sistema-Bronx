@@ -56,6 +56,24 @@ namespace SistemaBronx.Application.Controllers
             }
         }
 
+        /// <summary>
+        /// Catálogo para el modal de pedidos: con stock = producto×color con stock PT &gt; 0;
+        /// fabricación = un producto por fila si no hay stock PT en ningún color (el color se elige al añadir).
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> CatalogoPedidoModal()
+        {
+            try
+            {
+                var cat = await _ProductosService.ObtenerCatalogoPedidoModalAsync();
+                return Ok(new { lineasConStock = cat.LineasConStock, lineasSinStock = cat.LineasFabricacion });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
+
 
         // ======================================================
         // LISTA CATEGORÍAS
@@ -187,7 +205,7 @@ namespace SistemaBronx.Application.Controllers
         // EDITAR INFO (ACÁ SÍ CALCULA TOTALINSUMOS)
         // ======================================================
         [HttpGet]
-        public async Task<IActionResult> EditarInfo(int id)
+        public async Task<IActionResult> EditarInfo(int id, int? idColor = null)
         {
             Dictionary<string, object> result = new Dictionary<string, object>();
 
@@ -195,12 +213,13 @@ namespace SistemaBronx.Application.Controllers
             {
                 var model = await _ProductosService.Obtener(id);
 
-                // Calcular total insumos SOLO ACÁ
-                var insumos = await _ProductosService.ObtenerInsumos(id);
+                var insumos = await _ProductosService.ObtenerInsumos(id, idColor);
 
                 decimal totalInsumos = insumos.Sum(i =>
                     (decimal)i.IdInsumoNavigation.PrecioVenta * i.Cantidad
                 );
+
+                var stockProductoColor = await _ProductosService.ObtenerStockSaldoProductoAsync(id, idColor);
 
                 var Producto = new VMProducto
                 {
@@ -212,7 +231,7 @@ namespace SistemaBronx.Application.Controllers
                     CostoUnitario = model.CostoUnitario,
                     Categoria = model.IdCategoriaNavigation.Nombre,
                     TotalInsumos = totalInsumos,
-                    Stock = model.Stock
+                    Stock = stockProductoColor
                 };
 
                 var ProductosInsumos = insumos.Select(p => new VMProductoInsumo

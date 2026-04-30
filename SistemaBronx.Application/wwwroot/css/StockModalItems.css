@@ -1,0 +1,589 @@
+/* =============================================================================
+   Stock — Modal “Añadir ítems” (layout premium, scroll estable, Select2 en body)
+   ============================================================================= */
+
+/* Select2 por encima del modal Bootstrap (dropdownParent = body) */
+.select2-container--open {
+    z-index: 2005 !important;
+}
+
+.stock-mx-root .modal-dialog {
+    margin: 0 auto;
+    max-width: min(1180px, calc(100vw - 1.5rem));
+    width: 100%;
+    height: min(92vh, 880px);
+    display: flex;
+    align-items: stretch;
+    padding: 0.75rem 0;
+}
+
+.stock-mx-root .modal-content {
+    border: none;
+    border-radius: 22px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: linear-gradient(165deg, #141c2f 0%, #0b101c 55%, #0a0e18 100%);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.07),
+        0 24px 80px rgba(0, 0, 0, 0.65),
+        0 0 120px rgba(76, 141, 255, 0.06);
+}
+
+.stock-mx-hero {
+    position: relative;
+    padding: 1.35rem 1.5rem 1.1rem;
+    background:
+        radial-gradient(120% 90% at 0% 0%, rgba(76, 141, 255, 0.22), transparent 55%),
+        radial-gradient(80% 70% at 100% 0%, rgba(123, 92, 255, 0.18), transparent 50%),
+        linear-gradient(180deg, rgba(30, 40, 68, 0.95), rgba(18, 24, 40, 0.88));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stock-mx-hero::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(124, 194, 255, 0.35), transparent);
+    opacity: 0.7;
+}
+
+.stock-mx-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #8ab8ff;
+    margin-bottom: 0.35rem;
+}
+
+.stock-mx-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #f4f7ff;
+    margin: 0 0 0.4rem;
+    line-height: 1.2;
+}
+
+.stock-mx-sub {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: #9eb4d8;
+    max-width: 46rem;
+}
+
+.stock-mx-sub strong {
+    color: #dce6ff;
+    font-weight: 700;
+}
+
+.stock-mx-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    opacity: 0.85;
+    filter: brightness(0) invert(1);
+}
+
+.stock-mx-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    padding: 0.85rem 1.25rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.stock-mx-btn-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border-radius: 999px;
+    padding: 0.45rem 1.1rem;
+    font-weight: 700;
+    font-size: 0.82rem;
+    border: 1px solid rgba(124, 194, 255, 0.45);
+    background: linear-gradient(135deg, rgba(76, 141, 255, 0.35), rgba(123, 92, 255, 0.22));
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.stock-mx-btn-add:hover {
+    color: #fff;
+    filter: brightness(1.08);
+    border-color: rgba(124, 194, 255, 0.65);
+}
+
+.stock-mx-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    color: #8a9bb8;
+    max-width: 36rem;
+}
+
+.stock-mx-hint i {
+    color: #66e0b0;
+}
+
+/* Única zona scroll: evita pelear con Select2 y con doble scrollbar */
+.stock-mx-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.5rem 1rem 1rem;
+}
+
+.stock-mx-tablewrap {
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+    /* Tabla ancha: scroll horizontal en pantallas chicas (evita columnas encimadas) */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.stock-mx-table {
+    margin: 0;
+    color: #e8eef7;
+    --mx-th: #5a6a8a;
+    width: 100%;
+    table-layout: fixed;
+}
+
+/* Reparto de columnas estable (misma fila alineada en desktop; en móvil ver min-width abajo) */
+.stock-mx-table thead th:nth-child(1),
+.stock-mx-table tbody td:nth-child(1) {
+    width: 10.5%;
+}
+
+/* Col 2 = ítem (flexible), col 3 = color */
+.stock-mx-table thead th:nth-child(2),
+.stock-mx-table tbody td:nth-child(2) {
+    width: auto;
+    min-width: 0;
+}
+
+.stock-mx-table thead th:nth-child(3),
+.stock-mx-table tbody td:nth-child(3) {
+    width: 11%;
+}
+
+.stock-mx-table thead th:nth-child(4),
+.stock-mx-table tbody td:nth-child(4) {
+    width: 9%;
+}
+
+.stock-mx-table thead th:nth-child(5),
+.stock-mx-table tbody td:nth-child(5) {
+    width: 10%;
+}
+
+.stock-mx-table thead th:nth-child(6),
+.stock-mx-table tbody td:nth-child(6) {
+    width: 10%;
+}
+
+.stock-mx-table thead th:nth-child(7),
+.stock-mx-table tbody td:nth-child(7) {
+    width: 2.75rem;
+}
+
+.stock-mx-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #c5d4f5;
+    background: linear-gradient(180deg, #4a5680, #3d4668);
+    border: none;
+    padding: 0.65rem 0.75rem;
+    white-space: nowrap;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.stock-mx-table tbody td {
+    border-color: rgba(255, 255, 255, 0.06);
+    vertical-align: top;
+    padding: 0.85rem 0.75rem;
+}
+
+.stock-mx-tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.stock-mx-td-color {
+    min-width: 0;
+    max-width: none;
+    vertical-align: middle;
+}
+
+.stock-mx-td-item {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.stock-mx-root .stock-mx-td-color .select2-container,
+.stock-mx-root .stock-mx-color-select + .select2-container {
+    max-width: 100% !important;
+}
+
+.stock-mx-color-select {
+    font-size: 0.8rem;
+}
+
+.stock-mx-td-actions {
+    width: 2.75rem;
+    text-align: center;
+}
+
+.stock-mx-tipo {
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.82rem;
+}
+
+.stock-mx-input {
+    border-radius: 10px;
+    font-size: 0.85rem;
+}
+
+.stock-mx-btn-remove {
+    border-radius: 10px;
+    padding: 0.35rem 0.5rem;
+    color: #ffb4b4;
+    border: 1px solid rgba(255, 90, 106, 0.35);
+    background: rgba(255, 90, 106, 0.1);
+}
+
+.stock-mx-btn-remove:hover {
+    color: #fff;
+    background: rgba(255, 90, 106, 0.35);
+    border-color: rgba(255, 90, 106, 0.55);
+}
+
+.stock-mx-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 1rem 1.25rem 1.15rem;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.35));
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stock-mx-btn-ghost {
+    border-radius: 999px;
+    padding: 0.5rem 1.25rem;
+    font-weight: 700;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #dce6ff;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.stock-mx-btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.stock-mx-btn-primary {
+    border-radius: 999px;
+    padding: 0.55rem 1.35rem;
+    font-weight: 800;
+    border: none;
+    color: #fff;
+    background: linear-gradient(135deg, #1ecf93, #12a876);
+    box-shadow: 0 6px 22px rgba(30, 207, 147, 0.35);
+}
+
+.stock-mx-btn-primary:hover {
+    color: #fff;
+    filter: brightness(1.06);
+}
+
+/* Paneles ítem (insumo / producto) dentro del modal nuevo */
+.stock-mx-root .stock-item-panel {
+    border-radius: 14px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Lista BOM: varios insumos con checkbox */
+.stock-bom-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.stock-bom-actions .btn-link {
+    color: #8ab8ff !important;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.stock-bom-actions .btn-link:hover {
+    color: #c5ddff !important;
+    text-decoration: underline;
+}
+
+.stock-bom-actions-sep {
+    color: #5a6888;
+    user-select: none;
+}
+
+.stock-bom-check-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    max-height: min(42vh, 280px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    padding: 0.35rem 0.25rem 0.15rem;
+    margin: 0;
+    min-width: 0;
+}
+
+.stock-bom-line-controls {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: flex-start;
+    gap: 0.5rem 0.75rem;
+    min-width: 0;
+    flex: 1 1 100%;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.stock-bom-line-color-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1 1 10rem;
+    min-width: 0;
+    max-width: 100%;
+    width: min(100%, 16rem);
+}
+
+.stock-bom-line-color-wrap .select2-container,
+.stock-bom-line-color-wrap select.stock-bom-color-select {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+}
+
+.stock-bom-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.55rem 0.65rem;
+    margin: 0;
+    padding: 0.6rem 0.65rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(145deg, rgba(22, 30, 52, 0.95), rgba(12, 18, 32, 0.88));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    transition: border-color 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+    min-width: 0;
+}
+
+/* Una fila: checkbox | nombre (crece/encoge) | cantidad+color */
+@media (min-width: 520px) {
+    .stock-bom-line {
+        flex-wrap: nowrap;
+    }
+
+    .stock-bom-line-controls {
+        flex: 0 1 auto;
+        width: auto;
+        max-width: min(19rem, 100%);
+        flex-wrap: nowrap;
+    }
+
+    .stock-bom-line-hit {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+}
+
+/* Móvil muy angosto: cantidad y color a ancho completo, debajo del nombre */
+@media (max-width: 519.98px) {
+    .stock-bom-line-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .stock-bom-line-qty-wrap {
+        width: 100%;
+    }
+
+    .stock-bom-line-color-wrap {
+        width: 100%;
+    }
+}
+
+.stock-bom-line:hover {
+    border-color: rgba(124, 194, 255, 0.28);
+}
+
+.stock-bom-line--off {
+    opacity: 0.52;
+}
+
+/* Selección múltiple para edición de color (Ctrl+click), independiente del check */
+.stock-bom-line--multi-selected {
+    border-color: rgba(46, 204, 113, 0.9) !important;
+    background: linear-gradient(145deg, rgba(22, 52, 36, 0.95), rgba(10, 28, 20, 0.9));
+    box-shadow:
+        inset 0 0 0 1px rgba(46, 204, 113, 0.45),
+        0 0 0 1px rgba(46, 204, 113, 0.2);
+}
+
+.stock-bom-line--multi-selected .stock-bom-chk {
+    accent-color: #2ecc71;
+}
+
+.stock-bom-line .stock-bom-chk {
+    margin: 0.35rem 0 0;
+    flex-shrink: 0;
+    accent-color: #5c9dff;
+    width: 1.05rem;
+    height: 1.05rem;
+}
+
+.stock-bom-line-hit {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
+    cursor: pointer;
+    padding: 0.1rem 0;
+}
+
+.stock-bom-line-nom {
+    font-weight: 600;
+    font-size: 0.82rem;
+    color: #f0f4ff;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.stock-bom-line-prov {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #8ab8ff;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stock-bom-line-qty-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: stretch;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    width: 5.25rem;
+    max-width: 100%;
+}
+
+.stock-bom-line-qty-lbl {
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6b7aa0;
+    text-align: center;
+}
+
+.stock-bom-qty {
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+    padding: 0.32rem 0.35rem !important;
+    min-height: 2rem;
+}
+
+.stock-bom-qty:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.stock-mx-cant-bom-hint {
+    line-height: 1.25;
+    color: #8a9bc4 !important;
+    padding: 0.35rem 0.15rem;
+}
+
+.stock-mx-cant-bom-hint-sub {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #a4b8e8;
+}
+
+/* Quitar max-height heredado del wrapper viejo dentro del nuevo layout */
+.stock-mx-root .stock-mx-scroll .stock-modal-table-wrapper,
+.stock-mx-root .stock-mx-scroll .stock-modal-table-shell {
+    max-height: none !important;
+}
+
+@media (max-width: 767.98px) {
+    .stock-mx-root .modal-dialog {
+        height: 100dvh;
+        max-width: 100%;
+        padding: 0;
+    }
+
+    .stock-mx-root .modal-content {
+        border-radius: 0;
+        min-height: 100dvh;
+    }
+
+    .stock-mx-td-tipo {
+        width: auto;
+    }
+
+    /* Tabla no se aplasta a columnas ilegibles: scroll horizontal táctil */
+    .stock-mx-root .stock-mx-table {
+        min-width: 36rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .stock-mx-root .stock-mx-table {
+        min-width: 32rem;
+    }
+}
+
+tbody tr:nth-child(odd) {
+     background-color: transparent; 
+}

@@ -5,7 +5,7 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
 <Project>
   <PropertyGroup>
     <_PublishTargetUrl>D:\Publicaciones Webs\Sistema Bronx</_PublishTargetUrl>
-    <History>True|2026-04-11T06:51:09.5687164Z||;True|2026-04-11T03:47:31.3102736-03:00||;True|2026-04-11T03:47:22.3976285-03:00||;True|2026-03-05T15:48:58.3852939-03:00||;True|2026-03-05T14:45:25.2280335-03:00||;True|2026-03-05T14:38:54.3260441-03:00||;True|2026-02-28T07:20:24.1130822-03:00||;True|2026-02-28T07:20:18.2028399-03:00||;True|2026-02-28T07:15:04.9944472-03:00||;True|2026-02-27T01:20:06.6370652-03:00||;True|2026-02-27T01:00:06.4078569-03:00||;True|2025-11-18T02:21:02.5899952-03:00||;True|2025-11-18T02:18:21.4275298-03:00||;True|2025-11-11T12:20:30.0304515-03:00||;True|2025-11-10T23:36:30.6894928-03:00||;True|2025-11-03T00:43:35.8249426-03:00||;True|2025-10-31T00:15:40.6652659-03:00||;True|2025-10-27T04:42:55.6118975-03:00||;True|2025-10-27T04:38:54.5301860-03:00||;True|2025-10-23T01:44:28.1283593-03:00||;True|2025-10-22T02:15:13.6548501-03:00||;True|2025-10-22T02:09:31.3179585-03:00||;True|2025-10-22T02:09:12.8649263-03:00||;True|2025-10-20T09:53:53.3773873-03:00||;True|2025-10-19T19:02:45.3357604-03:00||;True|2025-10-19T18:57:58.1807578-03:00||;True|2025-10-19T18:57:20.8026279-03:00||;True|2025-10-19T07:11:44.3496395-03:00||;True|2025-10-17T18:19:11.4463236-03:00||;True|2025-10-17T18:18:25.3163413-03:00||;True|2025-10-17T18:17:20.1265575-03:00||;True|2025-10-16T12:23:20.3154566-03:00||;True|2025-10-08T00:05:41.3436593-03:00||;True|2025-09-03T15:35:49.2225949-03:00||;True|2025-09-03T15:35:10.1993378-03:00||;True|2025-08-30T03:42:16.4418518-03:00||;True|2025-08-30T03:42:05.1498194-03:00||;True|2025-08-30T03:35:31.4343354-03:00||;True|2025-08-19T14:45:07.5127571-03:00||;True|2025-08-11T03:48:02.7077842-03:00||;True|2025-08-07T09:44:57.1819644-03:00||;True|2025-07-14T18:24:53.0792426-03:00||;True|2025-06-25T12:32:10.2771955-03:00||;True|2025-06-25T01:42:03.8672272-03:00||;True|2025-06-23T02:01:59.6036892-03:00||;True|2025-06-23T01:54:44.9847689-03:00||;True|2025-06-08T04:33:12.5869947-03:00||;True|2025-05-21T17:55:16.2033098-03:00||;True|2025-05-20T01:12:48.5291901-03:00||;True|2025-05-14T23:27:45.6158505-03:00||;True|2025-05-14T23:20:25.8613164-03:00||;True|2025-04-22T14:17:09.9932714-03:00||;True|2025-04-11T01:10:06.2063283-03:00||;True|2025-04-06T05:15:10.1344079-03:00||;True|2025-04-06T04:31:13.8957138-03:00||;True|2025-03-30T18:07:19.3142418-03:00||;True|2025-03-30T05:04:22.7674761-03:00||;True|2025-03-30T05:04:07.4322000-03:00||;True|2025-03-29T17:16:14.6491950-03:00||;True|2025-03-29T06:34:56.5319754-03:00||;True|2025-03-28T02:27:55.8850020-03:00||;True|2025-03-27T12:35:09.3880334-03:00||;True|2025-03-27T12:34:34.4359288-03:00||;True|2025-03-27T12:22:29.1762264-03:00||;False|2025-03-18T02:14:21.8246161-03:00||;True|2025-02-25T12:05:56.5506464-03:00||;True|2025-02-25T12:05:47.8793822-03:00||;True|2025-02-25T11:53:03.8494958-03:00||;True|2025-01-17T12:45:51.8517617-03:00||;True|2025-01-17T12:45:15.7764735-03:00||;True|2025-01-17T12:45:06.0973551-03:00||;True|2025-01-17T12:42:48.3371628-03:00||;True|2025-01-17T12:42:14.2745244-03:00||;True|2025-01-17T12:34:07.3652822-03:00||;</History>
+    <History>True|2026-04-25T19:20:52.1374737Z||;True|2026-04-23T16:52:08.0980924-03:00||;True|2026-04-23T16:51:29.0998185-03:00||;False|2026-04-23T16:51:19.8805589-03:00||;True|2026-04-23T16:51:07.5534883-03:00||;True|2026-04-23T16:50:57.9600864-03:00||;True|2026-04-23T16:18:54.3997698-03:00||;True|2026-04-23T12:57:25.1187690-03:00||;True|2026-04-23T12:57:09.3912037-03:00||;True|2026-04-20T20:00:48.3321500-03:00||;True|2026-04-20T20:00:43.4151099-03:00||;True|2026-04-11T03:51:09.5687164-03:00||;True|2026-04-11T03:47:31.3102736-03:00||;True|2026-04-11T03:47:22.3976285-03:00||;True|2026-03-05T15:48:58.3852939-03:00||;True|2026-03-05T14:45:25.2280335-03:00||;True|2026-03-05T14:38:54.3260441-03:00||;True|2026-02-28T07:20:24.1130822-03:00||;True|2026-02-28T07:20:18.2028399-03:00||;True|2026-02-28T07:15:04.9944472-03:00||;True|2026-02-27T01:20:06.6370652-03:00||;True|2026-02-27T01:00:06.4078569-03:00||;True|2025-11-18T02:21:02.5899952-03:00||;True|2025-11-18T02:18:21.4275298-03:00||;True|2025-11-11T12:20:30.0304515-03:00||;True|2025-11-10T23:36:30.6894928-03:00||;True|2025-11-03T00:43:35.8249426-03:00||;True|2025-10-31T00:15:40.6652659-03:00||;True|2025-10-27T04:42:55.6118975-03:00||;True|2025-10-27T04:38:54.5301860-03:00||;True|2025-10-23T01:44:28.1283593-03:00||;True|2025-10-22T02:15:13.6548501-03:00||;True|2025-10-22T02:09:31.3179585-03:00||;True|2025-10-22T02:09:12.8649263-03:00||;True|2025-10-20T09:53:53.3773873-03:00||;True|2025-10-19T19:02:45.3357604-03:00||;True|2025-10-19T18:57:58.1807578-03:00||;True|2025-10-19T18:57:20.8026279-03:00||;True|2025-10-19T07:11:44.3496395-03:00||;True|2025-10-17T18:19:11.4463236-03:00||;True|2025-10-17T18:18:25.3163413-03:00||;True|2025-10-17T18:17:20.1265575-03:00||;True|2025-10-16T12:23:20.3154566-03:00||;True|2025-10-08T00:05:41.3436593-03:00||;True|2025-09-03T15:35:49.2225949-03:00||;True|2025-09-03T15:35:10.1993378-03:00||;True|2025-08-30T03:42:16.4418518-03:00||;True|2025-08-30T03:42:05.1498194-03:00||;True|2025-08-30T03:35:31.4343354-03:00||;True|2025-08-19T14:45:07.5127571-03:00||;True|2025-08-11T03:48:02.7077842-03:00||;True|2025-08-07T09:44:57.1819644-03:00||;True|2025-07-14T18:24:53.0792426-03:00||;True|2025-06-25T12:32:10.2771955-03:00||;True|2025-06-25T01:42:03.8672272-03:00||;True|2025-06-23T02:01:59.6036892-03:00||;True|2025-06-23T01:54:44.9847689-03:00||;True|2025-06-08T04:33:12.5869947-03:00||;True|2025-05-21T17:55:16.2033098-03:00||;True|2025-05-20T01:12:48.5291901-03:00||;True|2025-05-14T23:27:45.6158505-03:00||;True|2025-05-14T23:20:25.8613164-03:00||;True|2025-04-22T14:17:09.9932714-03:00||;True|2025-04-11T01:10:06.2063283-03:00||;True|2025-04-06T05:15:10.1344079-03:00||;True|2025-04-06T04:31:13.8957138-03:00||;True|2025-03-30T18:07:19.3142418-03:00||;True|2025-03-30T05:04:22.7674761-03:00||;True|2025-03-30T05:04:07.4322000-03:00||;True|2025-03-29T17:16:14.6491950-03:00||;True|2025-03-29T06:34:56.5319754-03:00||;True|2025-03-28T02:27:55.8850020-03:00||;True|2025-03-27T12:35:09.3880334-03:00||;True|2025-03-27T12:34:34.4359288-03:00||;True|2025-03-27T12:22:29.1762264-03:00||;False|2025-03-18T02:14:21.8246161-03:00||;True|2025-02-25T12:05:56.5506464-03:00||;True|2025-02-25T12:05:47.8793822-03:00||;True|2025-02-25T11:53:03.8494958-03:00||;True|2025-01-17T12:45:51.8517617-03:00||;True|2025-01-17T12:45:15.7764735-03:00||;True|2025-01-17T12:45:06.0973551-03:00||;True|2025-01-17T12:42:48.3371628-03:00||;True|2025-01-17T12:42:14.2745244-03:00||;True|2025-01-17T12:34:07.3652822-03:00||;</History>
     <LastFailureDetails />
   </PropertyGroup>
   <ItemGroup>
@@ -85,7 +85,7 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>02/28/2026 04:21:40</publishTime>
     </File>
     <File Include="Views/Cotizaciones/NuevoModif.cshtml">
-      <publishTime>03/30/2026 21:47:13</publishTime>
+      <publishTime>04/25/2026 15:49:49</publishTime>
     </File>
     <File Include="Views/Fabricaciones/Index.cshtml">
       <publishTime>02/28/2026 04:21:40</publishTime>
@@ -100,10 +100,10 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>03/06/2025 14:33:31</publishTime>
     </File>
     <File Include="Views/Insumos/Index.cshtml">
-      <publishTime>04/11/2026 03:46:01</publishTime>
+      <publishTime>04/20/2026 19:22:29</publishTime>
     </File>
     <File Include="Views/Login/Index.cshtml">
-      <publishTime>10/30/2025 11:39:29</publishTime>
+      <publishTime>04/23/2026 11:31:23</publishTime>
     </File>
     <File Include="Views/Monedas/Index.cshtml">
       <publishTime>03/06/2025 14:33:31</publishTime>
@@ -112,10 +112,10 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>02/28/2026 04:21:40</publishTime>
     </File>
     <File Include="Views/Pedidos/NuevoModif.cshtml">
-      <publishTime>04/11/2026 03:46:13</publishTime>
+      <publishTime>04/25/2026 16:20:06</publishTime>
     </File>
     <File Include="Views/Productos/Index.cshtml">
-      <publishTime>04/11/2026 03:46:25</publishTime>
+      <publishTime>04/20/2026 19:22:29</publishTime>
     </File>
     <File Include="Views/Productos/NuevoModif.cshtml">
       <publishTime>02/28/2026 04:21:40</publishTime>
@@ -127,7 +127,7 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>03/06/2025 14:33:31</publishTime>
     </File>
     <File Include="Views/Shared/Partials/NavBarLogin.cshtml">
-      <publishTime>04/07/2026 21:50:59</publishTime>
+      <publishTime>04/20/2026 19:22:29</publishTime>
     </File>
     <File Include="Views/Shared/_Layout.cshtml">
       <publishTime>10/30/2025 11:39:29</publishTime>
@@ -139,10 +139,10 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>03/06/2025 14:33:31</publishTime>
     </File>
     <File Include="Views/Stock/Index.cshtml">
-      <publishTime>04/11/2026 03:46:34</publishTime>
+      <publishTime>04/25/2026 15:49:49</publishTime>
     </File>
     <File Include="Views/Stock/NuevoModif.cshtml">
-      <publishTime>04/06/2026 01:10:41</publishTime>
+      <publishTime>04/25/2026 15:49:49</publishTime>
     </File>
     <File Include="Views/Usuarios/Configuracion.cshtml">
       <publishTime>03/06/2025 14:33:31</publishTime>
@@ -166,7 +166,7 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/BotonMenu.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/css/Clientes.css">
       <publishTime>01/01/0001 00:00:00</publishTime>
@@ -187,19 +187,19 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/Monedas.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/css/NavBarLogin.css">
-      <publishTime>04/05/2026 23:24:15</publishTime>
+      <publishTime>05/04/2026 23:24:15</publishTime>
     </File>
     <File Include="wwwroot/css/Pedidos.css">
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/PedidosNuevoModif.css">
-      <publishTime>04/08/2026 00:26:54</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/Productos.css">
-      <publishTime>04/08/2026 01:40:10</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/ProductosNuevoModif.css">
       <publishTime>01/01/0001 00:00:00</publishTime>
@@ -214,43 +214,46 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/Stock.css">
-      <publishTime>04/08/2026 23:11:41</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="wwwroot/css/StockModalItems.css">
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/Usuarios.css">
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/favicon.ico">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/agregar.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Barra Lateral.jpg">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/categorias.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/choferes.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Clientes.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/colores.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/configuraciones.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Formasdepago.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/historialprecios.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Logo.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Logo2.png">
       <publishTime>01/01/0001 00:00:00</publishTime>
@@ -262,97 +265,97 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Marcas.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Analisis.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Chofer.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Choferes.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Clientes.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Configuraciones.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/historialprecios.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Lista Productos.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Lista Proveedores.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Logo.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Monedas.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nueva Venta.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nueva Zona.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nuevo Cliente.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nuevo Pedido.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nuevo Usuario.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Pedidos.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Productos.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Proveedor.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Usuarios.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Ventas.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Zonas.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/productos.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/proveedores.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Roles.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/sin-imagen.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/tiposinsumos.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/unidadmedida.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/usuario.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Ventas.png">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/js/AnalisisDatos.js">
       <publishTime>01/01/0001 00:00:00</publishTime>
@@ -373,7 +376,7 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/js/Insumos.js">
-      <publishTime>08/04/2026 01:51:15</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/js/Login.js">
       <publishTime>01/01/0001 00:00:00</publishTime>
@@ -388,10 +391,10 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/js/PedidosNuevoModif.js">
-      <publishTime>11/04/2026 03:36:57</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/js/Productos.js">
-      <publishTime>08/04/2026 01:38:44</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/js/ProductosNuevoModif.js">
       <publishTime>01/01/0001 00:00:00</publishTime>
@@ -400,13 +403,13 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/js/site.js">
-      <publishTime>09/04/2026 01:57:28</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/js/Stock.js">
-      <publishTime>07/04/2026 21:51:09</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/js/StockNuevoModif.js">
-      <publishTime>09/04/2026 02:40:54</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/js/Usuarios.js">
       <publishTime>01/01/0001 00:00:00</publishTime>
@@ -421,175 +424,175 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-grid.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-grid.css.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-grid.min.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-grid.min.css.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-grid.rtl.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-grid.rtl.css.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-grid.rtl.min.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-grid.rtl.min.css.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.css.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.min.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.min.css.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.rtl.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.rtl.css.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.rtl.min.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.rtl.min.css.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.css.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.min.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.min.css.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.rtl.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.rtl.css.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.rtl.min.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.rtl.min.css.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap.css.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap.min.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap.min.css.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap.rtl.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap.rtl.css.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap.rtl.min.css">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap.rtl.min.css.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/js/bootstrap.bundle.js">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/js/bootstrap.bundle.js.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/js/bootstrap.bundle.min.js">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/js/bootstrap.bundle.min.js.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/js/bootstrap.esm.js">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/js/bootstrap.esm.js.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/js/bootstrap.esm.min.js">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/js/bootstrap.esm.min.js.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/js/bootstrap.js">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/js/bootstrap.js.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/js/bootstrap.min.js">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/js/bootstrap.min.js.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/LICENSE">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.js">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/jquery-validation-unobtrusive/LICENSE.txt">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/jquery-validation/dist/additional-methods.js">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/jquery-validation/dist/additional-methods.min.js">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/jquery-validation/dist/jquery.validate.js">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/jquery-validation/dist/jquery.validate.min.js">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/jquery-validation/LICENSE.md">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/jquery/dist/jquery.js">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/jquery/dist/jquery.min.js">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/jquery/dist/jquery.min.map">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
     <File Include="wwwroot/lib/jquery/LICENSE.txt">
-      <publishTime>03/06/2025 14:33:31</publishTime>
+      <publishTime>06/03/2025 14:33:31</publishTime>
     </File>
   </ItemGroup>
 </Project>

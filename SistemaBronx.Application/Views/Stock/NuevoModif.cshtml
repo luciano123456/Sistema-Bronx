@@ -19,7 +19,8 @@
     <link rel="stylesheet" href="~/css/redisenopantallas.css" />
 
     <!-- Estilos específicos de Stock -->
-    <link rel="stylesheet" href="~/css/Stock.css?v=2.0" />
+    <link rel="stylesheet" href="~/css/Stock.css?v=2.4" />
+    <link rel="stylesheet" href="~/css/StockModalItems.css?v=1.6" />
 }
 
 <div class="container page-99" style="margin-top:100px">
@@ -91,8 +92,9 @@
             <table id="grd_Detalle" class="display nowrap compact dt-dark stock-grid" style="width:100%">
                 <thead>
                     <tr>
-                        <th style="width:14%">Tipo</th>
-                        <th>Item</th>
+                        <th style="width:12%">Tipo</th>
+                        <th>Ítem</th>
+                        <th style="width:12%">Color</th>
                         <th style="width:12%">Cantidad</th>
                         <th style="width:14%">Costo</th>
                         <th style="width:14%">Subtotal</th>
@@ -115,54 +117,57 @@
     </div>
 </div>
 
-<!-- MODAL AÑADIR ITEMS -->
-<div class="modal fade" id="modalItems" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content stock-modal">
-            <div class="modal-header stock-modal-header">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="stock-modal-icon"><i class="fa fa-cubes"></i></span>
-                    <div>
-                        <h5 class="modal-title fw-800 mb-0">Añadir ítems</h5>
-                        <small class="text-muted-cc">
-                            La cantidad inicia en 1. El costo se toma del producto / insumo y no se edita.
-                        </small>
-                    </div>
-                </div>
-                <button type="button" class="btn-close stock-btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+<!-- MODAL AÑADIR ITEMS — layout flex + una sola zona de scroll (sin modal-dialog-scrollable) -->
+<div class="modal fade stock-mx-root"
+     id="modalItems"
+     tabindex="-1"
+     aria-labelledby="stockMxTitle"
+     aria-hidden="true"
+     data-bs-focus="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="stock-mx-hero position-relative pe-5">
+                <div class="stock-mx-kicker"><i class="fa fa-exchange"></i> Movimiento de stock</div>
+                <h2 class="stock-mx-title" id="stockMxTitle">Añadir ítems</h2>
+                <p class="stock-mx-sub">
+                    Sumá líneas al detalle: en <strong>Insumo</strong> buscá por nombre o <strong>proveedor</strong>.
+                    En <strong>Producto → Insumos del producto</strong> tildá los insumos de la ficha y cargá la <strong>cantidad de cada uno</strong> en su casillero. El costo y el subtotal de la fila se calculan solos.
+                </p>
+                <button type="button" class="btn-close stock-mx-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
 
-            <div class="modal-body stock-modal-body">
-                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                    <button class="btn btn-outline-light btn-sm stock-btn-outline" type="button" onclick="agregarFilaModal()">
-                        <i class="fa fa-plus"></i> Añadir fila
-                    </button>
+            <div class="stock-mx-toolbar">
+                <button type="button" class="btn stock-mx-btn-add" onclick="agregarFilaModal()">
+                    <i class="fa fa-plus-circle"></i> Nueva fila
+                </button>
+                <div class="stock-mx-hint">
+                    <i class="fa fa-lightbulb-o"></i>
+                    <span>Podés agregar varias filas y confirmar una sola vez. La tabla de abajo hace scroll acá adentro.</span>
                 </div>
+            </div>
 
-                <div class="stock-modal-table-wrapper">
-                    <table class="table table-borderless align-middle stock-modal-table">
+            <div class="stock-mx-scroll">
+                <div class="stock-mx-tablewrap">
+                    <table class="table table-borderless align-middle stock-mx-table mb-0">
                         <thead>
                             <tr>
-                                <th style="width:14%">Tipo</th>
-                                <th>Item</th>
-                                <th style="width:12%">Cantidad</th>
-                                <th style="width:14%">Costo</th>
-                                <th style="width:14%">Subtotal</th>
-                                <th style="width:7%"></th>
+                                <th class="stock-mx-td-tipo">Tipo línea</th>
+                                <th>Ítem</th>
+                                <th class="stock-mx-td-color">Color</th>
+                                <th class="stock-mx-td-qty">Cant.</th>
+                                <th class="stock-mx-td-money">Costo</th>
+                                <th class="stock-mx-td-money">Subtotal</th>
+                                <th class="stock-mx-td-actions"></th>
                             </tr>
                         </thead>
-                        <tbody id="tbodyModalItems">
-                            <!-- filas dinámicas -->
-                        </tbody>
+                        <tbody id="tbodyModalItems"></tbody>
                     </table>
                 </div>
             </div>
 
-            <div class="modal-footer stock-modal-footer">
-                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
-                    Cancelar
-                </button>
-                <button type="button" class="btn btn-success px-4" onclick="confirmarItemsModal()">
+            <div class="stock-mx-footer">
+                <button type="button" class="btn stock-mx-btn-ghost" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn stock-mx-btn-primary" onclick="confirmarItemsModal()">
                     <i class="fa fa-check-circle me-2"></i> Añadir al movimiento
                 </button>
             </div>
@@ -244,5 +249,5 @@
     <script src="~/js/site.js"></script>
 
     <!-- Lógica de Stock -->
-    <script src="~/js/StockNuevoModif.js?v=3.0"></script>
+    <script src="~/js/StockNuevoModif.js?v=3.16"></script>
 }

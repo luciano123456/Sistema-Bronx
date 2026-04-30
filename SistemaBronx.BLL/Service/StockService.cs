@@ -41,10 +41,10 @@ namespace SistemaBronx.BLL.Service
         public Task<List<StockSaldo>> ObtenerSaldos()
             => _repo.ObtenerSaldos();
 
-        public Task<StockSaldo?> ObtenerSaldoItem(string tipoItem, int? idProducto, int? idInsumo)
-            => _repo.ObtenerSaldoItem(tipoItem, idProducto, idInsumo);
+        public Task<StockSaldo?> ObtenerSaldoItem(string tipoItem, int? idProducto, int? idInsumo, int? idColor = null)
+            => _repo.ObtenerSaldoItem(tipoItem, idProducto, idInsumo, idColor);
 
-        public Task<List<StockMovimiento>> ObtenerMovimientosItem(string tipoItem, int? idProducto, int? idInsumo)
-            => _repo.ObtenerMovimientosItem(tipoItem, idProducto, idInsumo);
+        public Task<List<StockMovimiento>> ObtenerMovimientosItem(string tipoItem, int? idProducto, int? idInsumo, int? idColor = null)
+            => _repo.ObtenerMovimientosItem(tipoItem, idProducto, idInsumo, idColor);
     }
 }

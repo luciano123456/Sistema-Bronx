@@ -5,6 +5,217 @@ let TEMP_ID_SEQ = 1;
 
 let CATALOGO_PRODUCTOS = [];
 let CATALOGO_INSUMOS = [];
+let CATALOGO_COLORES = [];
+
+let STOCK_MODAL_ROW_SEQ = 1;
+
+/** Contexto ?resaltarTipo=… desde Stock (historial por ítem) — remarca fila en grilla detalle. */
+let STOCK_RESALTAR_CTX = null;
+
+function parseStockResaltarDesdeUrl() {
+    const p = new URLSearchParams(window.location.search);
+    const tipo = (p.get("resaltarTipo") || "").toUpperCase();
+    if (tipo !== "P" && tipo !== "I") return null;
+    const idP = p.has("resaltarProducto") ? Number(p.get("resaltarProducto")) : null;
+    const idI = p.has("resaltarInsumo") ? Number(p.get("resaltarInsumo")) : null;
+    if (tipo === "P" && (!idP || Number.isNaN(idP))) return null;
+    if (tipo === "I" && (!idI || Number.isNaN(idI))) return null;
+    let idCol = null;
+    if (p.has("resaltarColor")) {
+        const n = Number(p.get("resaltarColor"));
+        if (!Number.isNaN(n) && n > 0) idCol = n;
+    }
+    return { tipo, idProducto: idP, idInsumo: idI, idColor: idCol };
+}
+
+function detalleCoincideResaltar(d, ctx) {
+    if (!ctx) return false;
+    const tipo = (d.TipoItem || "").toUpperCase();
+    if (tipo !== ctx.tipo) return false;
+    if (tipo === "P") {
+        if (Number(d.IdProducto || 0) !== Number(ctx.idProducto)) return false;
+    } else {
+        if (Number(d.IdInsumo || 0) !== Number(ctx.idInsumo)) return false;
+    }
+    if (ctx.idColor == null) return true;
+    const c = d.IdColor == null || Number(d.IdColor) === 0 ? 0 : Number(d.IdColor);
+    return c === ctx.idColor;
+}
+
+function stockLimpiarResaltarEnUrl() {
+    if (!STOCK_RESALTAR_CTX) return;
+    try {
+        const path = window.location.pathname + (window.location.hash || "");
+        window.history.replaceState({}, "", path);
+    } catch (_) { /* ignore */ }
+}
+
+function stockScrollAFilaResaltarDetalle() {
+    if (!STOCK_RESALTAR_CTX) return;
+    setTimeout(() => {
+        const el = document.querySelector("#grd_Detalle tbody tr.stock-detalle-row--resaltar");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+}
+
+/** Select2 dentro de modales: anclar al body evita saltos de scroll y recortes. */
+function stockModalSelect2Parent() {
+    return $(document.body);
+}
+
+function stockSelect2Instancia($select) {
+    return $select.data("select2");
+}
+
+function stockSelect2Dropdown($select) {
+    const inst = stockSelect2Instancia($select);
+    return inst && inst.$dropdown ? inst.$dropdown : $();
+}
+
+/* ========================================================================
+   SELECT2 INSUMOS (proveedor + búsqueda + foco)
+======================================================================== */
+function normalizarTextoBusqueda(s) {
+    return String(s || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+}
+
+function stockFormatInsumoResult(data) {
+    if (data.loading) {
+        return data.text;
+    }
+    if (!data.id) {
+        return data.text;
+    }
+    const prov = (data.element && data.element.getAttribute("data-proveedor")) || "";
+    const row = document.createElement("div");
+    row.className = "stock-s2-ins-row";
+    const nom = document.createElement("span");
+    nom.className = "stock-s2-ins-nom";
+    nom.textContent = data.text || "";
+    const pv = document.createElement("span");
+    pv.className = "stock-s2-ins-prov";
+    pv.textContent = prov || "—";
+    row.appendChild(nom);
+    row.appendChild(pv);
+    return $(row);
+}
+
+function stockFormatInsumoSelection(data) {
+    if (!data.id) {
+        return data.text;
+    }
+    const prov = (data.element && data.element.getAttribute("data-proveedor")) || "";
+    const wrap = document.createElement("span");
+    wrap.className = "stock-s2-ins-sel";
+    wrap.appendChild(document.createTextNode(data.text || ""));
+    if (prov) {
+        const sep = document.createElement("span");
+        sep.className = "stock-s2-ins-sel-sep";
+        sep.textContent = " · ";
+        const p = document.createElement("span");
+        p.className = "stock-s2-ins-sel-prov";
+        p.textContent = prov;
+        wrap.appendChild(sep);
+        wrap.appendChild(p);
+    }
+    return $(wrap);
+}
+
+function stockMatcherInsumo(params, data) {
+    if ($.trim(params.term || "") === "") {
+        return data;
+    }
+    if (typeof data.text === "undefined" || data.text === "") {
+        return null;
+    }
+    const t = normalizarTextoBusqueda(params.term);
+    const nom = normalizarTextoBusqueda(data.text);
+    const prov = normalizarTextoBusqueda(
+        (data.element && data.element.getAttribute("data-proveedor")) || ""
+    );
+    if (!t) {
+        return data;
+    }
+    if (nom.indexOf(t) !== -1 || prov.indexOf(t) !== -1) {
+        return data;
+    }
+    return null;
+}
+
+function stockInsumoDropdownAgregarCabecera() {
+    const $dd = $(".select2-dropdown.stock-s2-ins-dropdown").first();
+    if (!$dd.length) {
+        return;
+    }
+    const $results = $dd.find(".select2-results");
+    if (!$results.length || $results.find(".stock-s2-ins-head").length) {
+        return;
+    }
+    const head = $(`
+        <div class="stock-s2-ins-head">
+            <span class="stock-s2-ins-head-nom">Insumo</span>
+            <span class="stock-s2-ins-head-prov">Proveedor</span>
+        </div>`);
+    $results.prepend(head);
+}
+
+function stockInsumoSelect2Options($row) {
+    /* No usar dropdownCssClass: con select2.min.js (sin .full) Select2 intenta cargar compat/dropdownCss y revienta. */
+    return {
+        dropdownParent: stockModalSelect2Parent(),
+        placeholder: "Buscar insumo o proveedor…",
+        allowClear: true,
+        width: "100%",
+        minimumResultsForSearch: 0,
+        templateResult: stockFormatInsumoResult,
+        templateSelection: stockFormatInsumoSelection,
+        matcher: stockMatcherInsumo,
+        language: {
+            noResults: function () {
+                return "Sin coincidencias";
+            },
+            searching: function () {
+                return "Buscando…";
+            }
+        }
+    };
+}
+
+function enlazarSelect2InsumoStock($select, $row) {
+    $select.off("change.modal").on("change.modal", () => actualizarCostoSubFila($row));
+    $select.off("select2:open.stockins").on("select2:open.stockins", function () {
+        const $self = $(this);
+        setTimeout(function () {
+            stockSelect2Dropdown($self).addClass("stock-s2-ins-dropdown");
+            stockInsumoDropdownAgregarCabecera();
+            const el = document.querySelector(".select2-container--open .select2-search__field");
+            if (el && typeof el.focus === "function") {
+                try {
+                    el.focus({ preventScroll: true });
+                } catch (_e) {
+                    el.focus();
+                }
+            }
+        }, 0);
+    });
+    $select.off("select2:close.stockins").on("select2:close.stockins", function () {
+        stockSelect2Dropdown($(this)).removeClass("stock-s2-ins-dropdown");
+    });
+}
+
+function llenarSelectInsumosConMeta($sel, placeholder) {
+    $sel.empty();
+    $sel.append(new Option(placeholder, ""));
+    (CATALOGO_INSUMOS || []).forEach(x => {
+        const opt = new Option(x.Nombre, x.Id);
+        opt.setAttribute("data-proveedor", x.Proveedor || "");
+        $sel.append(opt);
+    });
+}
 
 /* ========================================================================
    HELPERS NUMÉRICOS / FORMATO
@@ -37,6 +248,16 @@ if (typeof window.formatMoneda !== "function") {
    ARRANQUE
 ======================================================================== */
 $(document).ready(async () => {
+    STOCK_RESALTAR_CTX = parseStockResaltarDesdeUrl();
+
+    // Enter en modal ítems: quita selección múltiple verde (BOM) sin cerrar el modal
+    $("#modalItems").on("keydown.stockBomClearSel", function (e) {
+        if (e.key !== "Enter") return;
+        const $t = $(e.target);
+        if (!$t.closest(".stock-bom-wrap").length) return;
+        const $row = $t.closest(".stock-modal-fila");
+        if ($row.length) limpiarSeleccionBomLineas($row);
+    });
 
     await cargarTiposMovimiento();
     await cargarCatalogos();
@@ -54,6 +275,8 @@ $(document).ready(async () => {
         $("#tituloMovimiento").text("Editar movimiento");
         $("#btnGuardarMovimiento").html('<i class="fa fa-save me-2"></i> Guardar cambios');
         await cargarMovimiento(id);
+        stockScrollAFilaResaltarDetalle();
+        stockLimpiarResaltarEnUrl();
     } else {
         $("#tituloMovimiento").text("Nuevo movimiento");
         $("#btnGuardarMovimiento").html('<i class="fa fa-save me-2"></i> Registrar');
@@ -75,11 +298,20 @@ async function cargarTiposMovimiento() {
         const $sel = $("#IdTipoMovimiento").empty();
         $sel.append(new Option("Seleccione...", ""));
 
-        (data || [])
-            .filter(t => (t.Nombre || "").toUpperCase() !== "PEDIDO") // 🔥 FILTRO
-            .forEach(t => {
-                $sel.append(new Option(t.Nombre, t.Id));
-            });
+        const listaTipos = (data || [])
+            .filter(t => (t.Nombre || "").toUpperCase() !== "PEDIDO"); // 🔥 FILTRO
+
+        listaTipos.forEach(t => {
+            $sel.append(new Option(t.Nombre, t.Id));
+        });
+
+        const idMov = Number($("#IdMovimiento").val() || 0);
+        if (idMov <= 0) {
+            const ingreso = listaTipos.find(t => (t.Nombre || "").toUpperCase().includes("INGRES"));
+            if (ingreso) {
+                $sel.val(String(ingreso.Id)).trigger("change");
+            }
+        }
 
     } catch (e) {
         console.error(e);
@@ -107,7 +339,17 @@ async function cargarCatalogos() {
             CATALOGO_INSUMOS = (dataI || []).map(i => ({
                 Id: i.Id,
                 Nombre: i.Descripcion,
+                Proveedor: (i.Proveedor || "").trim(),
                 CostoUnitario: parseNumeroAR(i.PrecioCosto || 0)
+            }));
+        }
+
+        let rCol = await fetch("/Colores/Lista");
+        if (rCol.ok) {
+            const dataC = await rCol.json();
+            CATALOGO_COLORES = (dataC || []).map(c => ({
+                Id: c.Id,
+                Nombre: c.Nombre
             }));
         }
     } catch (e) {
@@ -126,8 +368,11 @@ async function cargarMovimiento(id) {
         const json = await resp.json();
         if (!json) return;
 
-        const mov = json.Movimiento;
-        let detalles = json.Detalles || [];
+        // Obtener devuelve cabecera plana (Id, IdTipoMovimiento, Detalles, …), no { Movimiento: … }
+        const mov = json.Movimiento ?? json;
+        const detalles = Array.isArray(json.Detalles)
+            ? json.Detalles
+            : (Array.isArray(mov?.Detalles) ? mov.Detalles : []);
 
         $("#IdTipoMovimiento").val(mov.IdTipoMovimiento).trigger("change");
         $("#Comentario").val(mov.Comentario || "");
@@ -135,9 +380,16 @@ async function cargarMovimiento(id) {
         DETALLES = detalles.map(d => {
             const tipo = (d.TipoItem || "").toUpperCase(); // 'P' / 'I'
             const esProducto = tipo === "P";
-            const nombre = esProducto
-                ? (d.IdProductoNavigation?.Nombre || "")
-                : (d.IdInsumoNavigation?.Descripcion || "");
+            const nombre =
+                d.nombreItem ??
+                d.NombreItem ??
+                (esProducto
+                    ? (d.IdProductoNavigation?.Nombre || "")
+                    : (d.IdInsumoNavigation?.Descripcion || ""));
+
+            const idColorRaw = d.idColor ?? d.IdColor;
+            const idColor = normalizarIdColorStock(idColorRaw);
+            const colorNombreApi = d.colorNombre ?? d.ColorNombre ?? "";
 
             const costo = parseNumeroAR(d.CostoUnitario);
             const cantidad = Number(d.Cantidad || 0);
@@ -145,11 +397,13 @@ async function cargarMovimiento(id) {
 
             return {
                 TempId: TEMP_ID_SEQ++,
-                Id: d.Id,
-                IdMovimiento: d.IdMovimiento,
+                Id: d.id ?? d.Id,
+                IdMovimiento: d.idMovimiento ?? d.IdMovimiento,
                 TipoItem: tipo,                 // 'P' / 'I'
-                IdProducto: esProducto ? d.IdProducto : null,
-                IdInsumo: esProducto ? null : d.IdInsumo,
+                IdProducto: esProducto ? (d.idProducto ?? d.IdProducto) : null,
+                IdInsumo: esProducto ? null : (d.idInsumo ?? d.IdInsumo),
+                IdColor: idColor,
+                NombreColor: colorNombreApi || nombreColorEtiqueta(idColor),
                 Cantidad: cantidad,
                 CostoUnitario: costo,
                 SubTotal: subtotal,
@@ -201,6 +455,14 @@ function configurarTablaDetalle() {
                 render: d => d || "-"
             },
             {
+                data: "NombreColor",
+                className: "align-middle stock-col-color",
+                render: function (data, type, row) {
+                    const t = data || row.NombreColor || nombreColorEtiqueta(row.IdColor);
+                    return t && t !== "—" ? t : "—";
+                }
+            },
+            {
                 data: "Cantidad",
                 className: "text-center align-middle stock-cell-cantidad",
                 render: d => formatCantidad(d)  // SIN $
@@ -242,6 +504,9 @@ function configurarTablaDetalle() {
             } else if (data.TipoItem === "I") {
                 $(row).addClass("stock-row-insumo");
             }
+            if (STOCK_RESALTAR_CTX && detalleCoincideResaltar(data, STOCK_RESALTAR_CTX)) {
+                $(row).addClass("stock-detalle-row--resaltar");
+            }
         }
     });
 
@@ -277,47 +542,50 @@ function abrirModalItems() {
     $("#tbodyModalItems").empty();
     agregarFilaModal();
 
-    const modal = new bootstrap.Modal(document.getElementById("modalItems"));
+    const el = document.getElementById("modalItems");
+    const modal = bootstrap.Modal.getOrCreateInstance(el, { focus: false });
     modal.show();
 }
 
 function agregarFilaModal() {
-    const idx = $("#tbodyModalItems tr").length;
+    const rowUid = STOCK_MODAL_ROW_SEQ++;
     const tr = $(`
-        <tr data-row="${idx}">
-            <td>
-                <select class="form-select form-select-sm stock-input stock-tipo-select" data-field="Tipo">
+        <tr class="stock-mx-tr stock-modal-fila" data-stock-row="${rowUid}">
+            <td class="stock-mx-td-tipo">
+                <select class="form-select form-select-sm stock-input stock-tipo-select stock-mx-tipo" data-field="Tipo">
                     <option value="I">Insumo</option>
                     <option value="P">Producto</option>
                 </select>
             </td>
-            <td>
-                <select class="form-select form-select-sm stock-input stock-item-select" data-field="Item">
-                    <option value="">Seleccione...</option>
-                </select>
+            <td class="stock-mx-td-item stock-modal-item-cell"></td>
+            <td class="stock-mx-td-color">
+                <select class="form-select form-select-sm stock-input stock-mx-color-select" title="Color del stock (depósito)"></select>
             </td>
-            <td>
+            <td class="stock-mx-td-qty">
                 <input type="number"
-                       class="form-control form-control-sm stock-input text-center"
+                       class="form-control form-control-sm stock-input stock-mx-input stock-mx-cant-simple text-center"
                        data-field="Cantidad"
                        min="0.001" step="0.001" value="1" />
+                <div class="stock-mx-cant-bom-note d-none small text-center stock-mx-cant-bom-hint">
+                    Cantidad<br /><span class="stock-mx-cant-bom-hint-sub">por insumo →</span>
+                </div>
             </td>
-            <td>
+            <td class="stock-mx-td-money">
                 <input type="text"
-                       class="form-control form-control-sm stock-input text-end"
+                       class="form-control form-control-sm stock-input stock-mx-input text-end"
                        data-field="Costo"
                        readonly />
             </td>
-            <td>
+            <td class="stock-mx-td-money">
                 <input type="text"
-                       class="form-control form-control-sm stock-input text-end"
+                       class="form-control form-control-sm stock-input stock-mx-input text-end"
                        data-field="Subtotal"
                        readonly />
             </td>
-            <td class="text-center">
-                <button type="button" class="btn btn-sm btn-outline-danger stock-btn-icon"
-                        onclick="eliminarFilaModal(this)">
-                    <i class="fa fa-times"></i>
+            <td class="stock-mx-td-actions text-center">
+                <button type="button" class="btn btn-sm stock-mx-btn-remove"
+                        onclick="eliminarFilaModal(this)" title="Quitar fila">
+                    <i class="fa fa-trash"></i>
                 </button>
             </td>
         </tr>`);
@@ -326,71 +594,602 @@ function agregarFilaModal() {
     inicializarFilaModal(tr);
 }
 
-function inicializarFilaModal($row) {
-    const $tipo = $row.find('[data-field="Tipo"]');
-    const $item = $row.find('[data-field="Item"]');
-    const $cant = $row.find('[data-field="Cantidad"]');
-    const $costo = $row.find('[data-field="Costo"]');
-    const $sub = $row.find('[data-field="Subtotal"]');
+function destruirSelect2En($root) {
+    $root.find("select").each(function () {
+        const $s = $(this);
+        if ($s.data("select2")) {
+            $s.select2("destroy");
+        }
+    });
+}
 
-    function llenarItems(tipoChar) {
-        $item.empty();
-        $item.append(new Option("Seleccione...", ""));
-        const lista = tipoChar === "P" ? CATALOGO_PRODUCTOS : CATALOGO_INSUMOS;
-        lista.forEach(x => $item.append(new Option(x.Nombre, x.Id)));
-        $item.val("").trigger("change");
-        $costo.val("");
-        $sub.val("");
+function nombreModoProductoRadio($row) {
+    const uid = $row.data("stock-row") || "0";
+    return `modo_prod_${uid}`;
+}
+
+function renderHtmlCeldaItem(tipoChar, rowUid) {
+    const nameRadio = `modo_prod_${rowUid}`;
+    if (tipoChar === "I") {
+        return `
+            <div class="stock-item-panel stock-item-panel--insumo">
+                <span class="stock-field-label">Insumo</span>
+                <select class="form-select form-select-sm stock-input stock-insumo-item-select stock-select-searchable"
+                        data-field="Item" title="Insumo">
+                    <option value="">Seleccioná o buscá…</option>
+                </select>
+            </div>`;
+    }
+    return `
+        <div class="stock-item-panel stock-item-panel--producto">
+            <span class="stock-field-label">Producto</span>
+            <select class="form-select form-select-sm stock-input stock-prod-select stock-select-prod"
+                    data-field="Producto" title="Producto">
+                <option value="">Seleccioná producto…</option>
+            </select>
+            <div class="stock-prod-modo-block">
+                <span class="stock-field-label stock-field-label--sub">¿Qué stock movés?</span>
+                <div class="stock-modo-segmented" role="radiogroup" aria-label="Tipo de stock del producto">
+                    <div class="stock-modo-slot">
+                        <input class="stock-modo-input stock-modo-prod-radio" type="radio" name="${nameRadio}" id="${nameRadio}_T" value="T" checked />
+                        <label class="stock-modo-pill" for="${nameRadio}_T" title="Stock del producto terminado">
+                            <i class="fa fa-cube"></i> Producto terminado
+                        </label>
+                    </div>
+                    <div class="stock-modo-slot">
+                        <input class="stock-modo-input stock-modo-prod-radio" type="radio" name="${nameRadio}" id="${nameRadio}_B" value="B" />
+                        <label class="stock-modo-pill" for="${nameRadio}_B" title="Uno o varios insumos de la ficha del producto">
+                            <i class="fa fa-wrench"></i> Insumos del producto
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="stock-bom-wrap d-none">
+                <span class="stock-field-label stock-field-label--sub">Insumos de la ficha</span>
+                <div class="stock-bom-actions d-none">
+                    <button type="button" class="btn btn-link btn-sm p-0 stock-bom-marcar-todos">Marcar todos</button>
+                    <span class="stock-bom-actions-sep">·</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 stock-bom-desmarcar-todos">Quitar todos</button>
+                </div>
+                <div class="stock-bom-check-list"></div>
+                <div class="stock-bom-vacio small d-none mt-2">
+                    <i class="fa fa-info-circle me-1"></i> Este producto no tiene insumos cargados en la ficha.
+                </div>
+            </div>
+        </div>`;
+}
+
+function llenarSelectBasico($sel, lista, placeholder) {
+    $sel.empty();
+    $sel.append(new Option(placeholder, ""));
+    lista.forEach(x => $sel.append(new Option(x.Nombre, x.Id)));
+}
+
+function llenarSelectColores($sel, valorSeleccionado) {
+    $sel.empty();
+    $sel.append(new Option("Sin color", ""));
+    (CATALOGO_COLORES || []).forEach(c => {
+        const id = Number(c.Id);
+        $sel.append(new Option(c.Nombre || "", String(id)));
+    });
+    const v =
+        valorSeleccionado != null && Number(valorSeleccionado) > 0
+            ? String(Number(valorSeleccionado))
+            : "";
+    $sel.val(v);
+}
+
+function nombreColorEtiqueta(idColor) {
+    if (idColor == null || idColor === "" || Number(idColor) === 0) {
+        return "—";
+    }
+    const c = CATALOGO_COLORES.find(x => Number(x.Id) === Number(idColor));
+    return c ? (c.Nombre || "—") : "—";
+}
+
+function normalizarIdColorStock(val) {
+    if (val == null || val === "") {
+        return null;
+    }
+    const n = parseInt(val, 10);
+    return isNaN(n) || n === 0 ? null : n;
+}
+
+function leerIdColorFilaModal($row) {
+    return normalizarIdColorStock($row.find(".stock-mx-color-select").val());
+}
+
+function stockColorSelect2BaseOptions() {
+    return {
+        dropdownParent: stockModalSelect2Parent(),
+        placeholder: "Sin color",
+        allowClear: true,
+        width: "100%",
+        minimumResultsForSearch: 0,
+        language: {
+            noResults: function () {
+                return "Sin coincidencias";
+            },
+            searching: function () {
+                return "Buscando…";
+            }
+        }
+    };
+}
+
+/** Color de la fila (producto terminado / insumo suelto). En modo BOM queda deshabilitado. */
+function enlazarSelect2ColorFilaPrincipal($row) {
+    const $colSel = $row.find(".stock-mx-color-select");
+    if (!$colSel.length) {
+        return;
+    }
+    if (!$colSel.data("select2")) {
+        $colSel.select2(stockColorSelect2BaseOptions());
+        $colSel.off("change.stockcolor").on("change.stockcolor", () => actualizarCostoSubFila($row));
+    }
+    actualizarEstadoColorPrincipalEnFila($row);
+}
+
+function enlazarSelect2ColorBomLinea($line, $row) {
+    const $s = $line.find(".stock-bom-color-select");
+    if (!$s.length) {
+        return;
+    }
+    if ($s.data("select2")) {
+        $s.select2("destroy");
+    }
+    $s.select2(stockColorSelect2BaseOptions());
+    $s.off("change.stockbomcolor").on("change.stockbomcolor", function () {
+        const nuevoColor = $(this).val() || "";
+        if ($row.data("stock-sync-color")) {
+            actualizarCostoSubFila($row);
+            return;
+        }
+
+        // Cambio masivo: solo sobre líneas seleccionadas con Ctrl+click.
+        const $seleccionadas = $row
+            .find(".stock-bom-line.stock-bom-line--multi-selected")
+            .filter(function () {
+                return $(this).find(".stock-bom-chk").is(":checked");
+            });
+        if ($seleccionadas.length > 0) {
+            $row.data("stock-sync-color", true);
+            $seleccionadas.each(function () {
+                const $sel = $(this).find(".stock-bom-color-select");
+                if ($sel[0] !== $s[0]) {
+                    $sel.val(nuevoColor).trigger("change.select2");
+                }
+            });
+            $row.data("stock-sync-color", false);
+            limpiarSeleccionBomLineas($row);
+        }
+
+        actualizarCostoSubFila($row);
+    });
+}
+
+function actualizarEstadoColorPrincipalEnFila($row) {
+    const $colSel = $row.find(".stock-mx-color-select");
+    if (!$colSel.length) {
+        return;
+    }
+    const bloquear = esCantidadPorBomInsumos($row);
+    const prev = $colSel.data("stock-bom-block-prev");
+    $colSel.prop("disabled", bloquear);
+    const hadS2 = !!$colSel.data("select2");
+    if (hadS2 && prev !== undefined && prev !== bloquear) {
+        $colSel.select2("destroy");
+        $colSel.select2(stockColorSelect2BaseOptions());
+        $colSel.off("change.stockcolor").on("change.stockcolor", () => actualizarCostoSubFila($row));
+    }
+    $colSel.data("stock-bom-block-prev", bloquear);
+}
+
+function leerIdColorBomLinea($line) {
+    return normalizarIdColorStock($line.find(".stock-bom-color-select").val());
+}
+
+/** Lista de checkboxes: uno o varios insumos de la ficha del producto. */
+async function renderBomCheckList($row, idProducto) {
+    const $list = $row.find(".stock-bom-check-list");
+    const $vacío = $row.find(".stock-bom-vacio");
+    const $actions = $row.find(".stock-bom-actions");
+
+    destruirSelect2En($list);
+    $list.empty();
+    $vacío.addClass("d-none");
+    $actions.addClass("d-none");
+
+    if (!idProducto) {
+        return;
     }
 
-    // Select2 para ITEM
-    $item.select2({
-        dropdownParent: $("#modalItems"),
-        placeholder: "Seleccione...",
-        allowClear: true,
-        width: "100%"
+    try {
+        const resp = await fetch(`/Productos/ListaInsumosProducto?IdProducto=${idProducto}`);
+        if (!resp.ok) {
+            throw new Error("insumos");
+        }
+        const lista = await resp.json();
+        const arr = lista || [];
+        if (!arr.length) {
+            $vacío.removeClass("d-none");
+            return;
+        }
+
+        $actions.removeClass("d-none");
+
+        const uid = String($row.data("stock-row") || "0");
+
+        arr.forEach(x => {
+            const idIns = Number(x.IdInsumo || 0);
+            if (!idIns) {
+                return;
+            }
+            const cat = CATALOGO_INSUMOS.find(c => Number(c.Id) === idIns);
+            const nom = String((x.Nombre || cat?.Nombre || "Insumo")).trim();
+            const prov = (cat && cat.Proveedor) ? String(cat.Proveedor).trim() : "";
+            const chkId = `stock-bom-chk-${uid}-${idIns}`;
+
+            const $line = $("<div>").addClass("stock-bom-line");
+            const $chk = $("<input>", {
+                type: "checkbox",
+                class: "stock-bom-chk",
+                id: chkId,
+                value: String(idIns)
+            });
+            const $hit = $("<label>", { for: chkId, class: "stock-bom-line-hit" });
+            $hit.append(
+                $("<span>").addClass("stock-bom-line-nom").text(nom),
+                $("<span>").addClass("stock-bom-line-prov").text(prov || "—")
+            );
+
+            const $controlsWrap = $("<div>").addClass("stock-bom-line-controls");
+
+            const $qtyWrap = $("<div>").addClass("stock-bom-line-qty-wrap");
+            $qtyWrap.append(
+                $("<span>").addClass("stock-bom-line-qty-lbl").text("Cant."),
+                $("<input>", {
+                    type: "number",
+                    class: "form-control form-control-sm stock-input stock-bom-qty text-center",
+                    min: "0.001",
+                    step: "0.001",
+                    value: "1"
+                })
+            );
+
+            const $colorSel = $("<select>", {
+                class: "form-select form-select-sm stock-input stock-bom-color-select",
+                title: "Color en depósito"
+            });
+            llenarSelectColores($($colorSel), null);
+
+            const $colorWrap = $("<div>").addClass("stock-bom-line-color-wrap");
+            $colorWrap.append(
+                $("<span>").addClass("stock-bom-line-qty-lbl").text("Color"),
+                $colorSel
+            );
+
+            $controlsWrap.append($qtyWrap, $colorWrap);
+            $line.append($chk, $hit, $controlsWrap);
+            $list.append($line);
+        });
+
+        const baseCant = Number($row.find('[data-field="Cantidad"]').val() || 0) || 1;
+        $row.find(".stock-bom-qty").val(String(baseCant));
+        $row.find(".stock-bom-chk").prop("checked", true);
+        $row.find(".stock-bom-line").each(function () {
+            enlazarSelect2ColorBomLinea($(this), $row);
+        });
+        syncEstadoCantidadesBom($row);
+        actualizarEstadoColorPrincipalEnFila($row);
+    } catch (e) {
+        console.error(e);
+        advertenciaModal?.("No se pudieron cargar los insumos del producto.");
+    }
+}
+
+async function prepararBomSegunContexto($row, idProducto) {
+    if (modoProductoSeleccionado($row) === "B" && idProducto > 0) {
+        await renderBomCheckList($row, idProducto);
+    } else {
+        await renderBomCheckList($row, 0);
+    }
+}
+
+/**
+ * Líneas que esta fila del modal aportará al movimiento (BOM: una por insumo tildado, cada uno con su cantidad).
+ */
+function obtenerLineasConfirmacionDesdeFilaModal($row) {
+    const tipoCol = $row.find('[data-field="Tipo"]').val();
+    const idColor = leerIdColorFilaModal($row);
+
+    if (tipoCol === "I") {
+        const cantidad = Number($row.find('[data-field="Cantidad"]').val() || 0);
+        if (cantidad <= 0) {
+            return [];
+        }
+        const id = Number($row.find(".stock-insumo-item-select").val() || 0);
+        const item = CATALOGO_INSUMOS.find(x => x.Id === id);
+        if (!id || !item) {
+            return [];
+        }
+        return [{
+            tipoItem: "I",
+            idProducto: null,
+            idInsumo: id,
+            idColor,
+            costo: item.CostoUnitario,
+            nombre: item.Nombre,
+            cantidad
+        }];
+    }
+
+    const idProd = Number($row.find(".stock-prod-select").val() || 0);
+    const prod = CATALOGO_PRODUCTOS.find(x => x.Id === idProd);
+    if (!idProd || !prod) {
+        return [];
+    }
+
+    if (modoProductoSeleccionado($row) === "T") {
+        const cantidad = Number($row.find('[data-field="Cantidad"]').val() || 0);
+        if (cantidad <= 0) {
+            return [];
+        }
+        return [{
+            tipoItem: "P",
+            idProducto: idProd,
+            idInsumo: null,
+            idColor,
+            costo: prod.CostoUnitario,
+            nombre: prod.Nombre,
+            cantidad
+        }];
+    }
+
+    const lineasBom = [];
+    $row.find(".stock-bom-line").each(function () {
+        const $line = $(this);
+        if (!$line.find(".stock-bom-chk").is(":checked")) {
+            return;
+        }
+        const id = Number($line.find(".stock-bom-chk").val() || 0);
+        const cantidad = Number($line.find(".stock-bom-qty").val() || 0);
+        if (!id || cantidad <= 0) {
+            return;
+        }
+        const cat = CATALOGO_INSUMOS.find(c => Number(c.Id) === id);
+        if (!cat) {
+            return;
+        }
+        lineasBom.push({
+            tipoItem: "I",
+            idProducto: null,
+            idInsumo: id,
+            idColor: leerIdColorBomLinea($line),
+            costo: cat.CostoUnitario,
+            nombre: cat.Nombre,
+            cantidad
+        });
     });
+    return lineasBom;
+}
+
+function modoProductoSeleccionado($row) {
+    const nameRadio = nombreModoProductoRadio($row);
+    const v = $row.find(`input[name="${nameRadio}"]:checked`).val();
+    return v === "B" ? "B" : "T";
+}
+
+function esCantidadPorBomInsumos($row) {
+    return $row.find('[data-field="Tipo"]').val() === "P" && modoProductoSeleccionado($row) === "B";
+}
+
+function actualizarUIModoCantidadColumna($row) {
+    const $inp = $row.find('[data-field="Cantidad"]');
+    const $note = $row.find(".stock-mx-cant-bom-note");
+    if (esCantidadPorBomInsumos($row)) {
+        $inp.addClass("d-none");
+        $note.removeClass("d-none");
+    } else {
+        $inp.removeClass("d-none");
+        $note.addClass("d-none");
+    }
+}
+
+function syncEstadoCantidadesBom($row) {
+    $row.find(".stock-bom-line").each(function () {
+        const $line = $(this);
+        const on = $line.find(".stock-bom-chk").is(":checked");
+        $line.find(".stock-bom-qty").prop("disabled", !on);
+        const $c = $line.find(".stock-bom-color-select");
+        $c.prop("disabled", !on);
+        enlazarSelect2ColorBomLinea($line, $row);
+        $line.toggleClass("stock-bom-line--off", !on);
+        if (!on) {
+            $line.removeClass("stock-bom-line--multi-selected");
+        }
+    });
+}
+
+function toggleRangoBomChecks($row, idxDesde, idxHasta, checked) {
+    const $lines = $row.find(".stock-bom-line");
+    const ini = Math.min(idxDesde, idxHasta);
+    const fin = Math.max(idxDesde, idxHasta);
+    for (let i = ini; i <= fin; i++) {
+        $lines.eq(i).find(".stock-bom-chk").prop("checked", checked);
+    }
+}
+
+function limpiarSeleccionBomLineas($row) {
+    $row.find(".stock-bom-line").removeClass("stock-bom-line--multi-selected");
+}
+
+function toggleSeleccionBomLineaConCtrl($row, $line, ev) {
+    if (!(ev && (ev.ctrlKey || ev.metaKey))) {
+        return;
+    }
+    // Solo líneas que se van a agregar al movimiento (check marcado)
+    if (!$line.find(".stock-bom-chk").is(":checked")) {
+        return;
+    }
+    $line.toggleClass("stock-bom-line--multi-selected");
+}
+
+function actualizarVisibilidadBom($row) {
+    const tipo = $row.find('[data-field="Tipo"]').val();
+    const $wrap = $row.find(".stock-bom-wrap");
+    if (tipo !== "P") {
+        $wrap.addClass("d-none");
+        actualizarUIModoCantidadColumna($row);
+        return;
+    }
+    const modo = modoProductoSeleccionado($row);
+    if (modo === "B") {
+        $wrap.removeClass("d-none");
+    } else {
+        $wrap.addClass("d-none");
+    }
+    actualizarUIModoCantidadColumna($row);
+    syncEstadoCantidadesBom($row);
+    actualizarEstadoColorPrincipalEnFila($row);
+}
+
+function actualizarCostoSubFila($row) {
+    const $costo = $row.find('[data-field="Costo"]');
+    const $sub = $row.find('[data-field="Subtotal"]');
+    const lineas = obtenerLineasConfirmacionDesdeFilaModal($row);
+
+    if (!lineas.length) {
+        $costo.val(formatMoneda(0));
+        $sub.val(formatMoneda(0));
+        return;
+    }
+
+    const total = lineas.reduce((s, L) => s + parseNumeroAR(L.costo) * parseNumeroAR(L.cantidad), 0);
+
+    if (lineas.length === 1) {
+        $costo.val(formatMoneda(lineas[0].costo));
+    } else {
+        $costo.val(`${lineas.length} ítems`);
+    }
+
+    $sub.val(formatMoneda(round2(total)));
+}
+
+function inicializarFilaModal($row) {
+    const $tipo = $row.find('[data-field="Tipo"]');
+    const $cell = $row.find(".stock-modal-item-cell");
+    const $cant = $row.find('[data-field="Cantidad"]');
+    const rowUid = $row.data("stock-row") || STOCK_MODAL_ROW_SEQ++;
+
+    function montarCeldaItem(tipoChar) {
+        destruirSelect2En($cell);
+        $cell.html(renderHtmlCeldaItem(tipoChar, rowUid));
+
+        if (tipoChar === "I") {
+            const $ins = $row.find(".stock-insumo-item-select");
+            llenarSelectInsumosConMeta($ins, "Seleccioná o buscá…");
+            if ($ins.data("select2")) {
+                $ins.select2("destroy");
+            }
+            $ins.select2(stockInsumoSelect2Options($row));
+            enlazarSelect2InsumoStock($ins, $row);
+        } else {
+            const $prod = $row.find(".stock-prod-select");
+            llenarSelectBasico($prod, CATALOGO_PRODUCTOS, "Seleccioná producto…");
+            $prod.select2({
+                dropdownParent: stockModalSelect2Parent(),
+                placeholder: "Buscar producto…",
+                allowClear: true,
+                width: "100%",
+                minimumResultsForSearch: 0
+            });
+            $prod.off("select2:open.stockprod").on("select2:open.stockprod", function () {
+                setTimeout(function () {
+                    const el = document.querySelector(".select2-container--open .select2-search__field");
+                    if (el && typeof el.focus === "function") {
+                        try {
+                            el.focus({ preventScroll: true });
+                        } catch (_e) {
+                            el.focus();
+                        }
+                    }
+                }, 0);
+            });
+
+            void prepararBomSegunContexto($row, 0);
+
+            $prod.off("change.modal").on("change.modal", async function () {
+                const idP = Number($(this).val() || 0);
+                await prepararBomSegunContexto($row, idP);
+                actualizarVisibilidadBom($row);
+                actualizarCostoSubFila($row);
+            });
+
+            $row.find(".stock-modo-prod-radio").off("change.modal").on("change.modal", async function () {
+                actualizarVisibilidadBom($row);
+                const idP = Number($prod.val() || 0);
+                await prepararBomSegunContexto($row, idP);
+                actualizarCostoSubFila($row);
+            });
+
+            $row.off("change.bomchk").on("change.bomchk", ".stock-bom-chk", function (e) {
+                const $chk = $(this);
+                const $line = $chk.closest(".stock-bom-line");
+                const idxActual = $line.index();
+                const idxPrev = parseInt($row.data("stock-bom-last-idx"), 10);
+                const shift = !!(e && e.shiftKey);
+
+                if (shift && !isNaN(idxPrev) && idxPrev >= 0) {
+                    toggleRangoBomChecks($row, idxPrev, idxActual, $chk.is(":checked"));
+                }
+                $row.data("stock-bom-last-idx", idxActual);
+                syncEstadoCantidadesBom($row);
+                actualizarCostoSubFila($row);
+            });
+            // Selección múltiple de líneas para edición masiva (separada del check).
+            $row.off("click.bomselect").on("click.bomselect", ".stock-bom-line", function (e) {
+                if ($(e.target).closest(".stock-bom-chk, .stock-bom-qty, .stock-bom-color-wrap, .stock-bom-color-select, .select2-container, .select2-selection").length) {
+                    return;
+                }
+                toggleSeleccionBomLineaConCtrl($row, $(this), e);
+            });
+            $row.off("input.bomqty").on("input.bomqty", ".stock-bom-qty", () => actualizarCostoSubFila($row));
+            $row.off("click.bomall").on("click.bomall", ".stock-bom-marcar-todos", function (e) {
+                e.preventDefault();
+                $row.find(".stock-bom-chk").prop("checked", true);
+                syncEstadoCantidadesBom($row);
+                actualizarCostoSubFila($row);
+            });
+            $row.off("click.bomnone").on("click.bomnone", ".stock-bom-desmarcar-todos", function (e) {
+                e.preventDefault();
+                $row.find(".stock-bom-chk").prop("checked", false);
+                syncEstadoCantidadesBom($row);
+                actualizarCostoSubFila($row);
+            });
+        }
+
+        actualizarVisibilidadBom($row);
+        actualizarCostoSubFila($row);
+    }
 
     $tipo.off("change.modal").on("change.modal", function () {
-        llenarItems($(this).val());
+        montarCeldaItem($(this).val());
+        enlazarSelect2ColorFilaPrincipal($row);
     });
 
-    $item.off("change.modal").on("change.modal", function () {
-        const tipo = $tipo.val();
-        const id = Number($(this).val() || 0);
-        const catalogo = tipo === "P" ? CATALOGO_PRODUCTOS : CATALOGO_INSUMOS;
-        const item = catalogo.find(x => x.Id === id);
-        const costo = parseNumeroAR(item?.CostoUnitario);
-        $costo.val(formatMoneda(costo));
+    $cant.off("input.modal").on("input.modal", () => actualizarCostoSubFila($row));
 
-        const cant = Number($cant.val() || 0);
-
-        const sub = parseNumeroAR(cant) * parseNumeroAR(costo);
-
-        $sub.val(formatMoneda(sub));
-    });
-
-    $cant.off("input.modal").on("input.modal", function () {
-        const tipo = $tipo.val();
-        const id = Number($item.val() || 0);
-        const catalogo = tipo === "P" ? CATALOGO_PRODUCTOS : CATALOGO_INSUMOS;
-        const item = catalogo.find(x => x.Id === id);
-        const costo = item ? item.CostoUnitario : 0;
-        const cant = Number($(this).val() || 0);
-
-        const sub = round2(parseNumeroAR(costo) * parseNumeroAR(cant));
-
-        $sub.val(formatMoneda(sub));
-    });
-
-    // cargar al inicio (por defecto Insumo)
-    llenarItems($tipo.val());
-    $costo.val("");
-    $sub.val("");
+    const $colSel = $row.find(".stock-mx-color-select");
+    llenarSelectColores($colSel, null);
+    montarCeldaItem($tipo.val());
+    enlazarSelect2ColorFilaPrincipal($row);
 }
 
 function eliminarFilaModal(btn) {
-    $(btn).closest("tr").remove();
+    const $tr = $(btn).closest("tr");
+    destruirSelect2En($tr);
+    $tr.remove();
 }
 
 function round2(n) {
@@ -412,41 +1211,51 @@ function confirmarItemsModal() {
 
     filas.each(function () {
         const $row = $(this);
-        const tipo = $row.find('[data-field="Tipo"]').val(); // 'P' / 'I'
-        const idItem = Number($row.find('[data-field="Item"]').val() || 0);
-        const cantidad = Number($row.find('[data-field="Cantidad"]').val() || 0);
-        if (!idItem || cantidad <= 0) return;
-
-        const catalogo = tipo === "P" ? CATALOGO_PRODUCTOS : CATALOGO_INSUMOS;
-        const item = catalogo.find(x => x.Id === idItem);
-        const costo = item ? item.CostoUnitario : 0;
-
-        // Buscar si ya existe
-        let existente = DETALLES.find(d =>
-            d.TipoItem === tipo &&
-            ((tipo === "P" && d.IdProducto === idItem) ||
-                (tipo === "I" && d.IdInsumo === idItem))
-        );
-
-        if (existente) {
-            existente.Cantidad = Number(existente.Cantidad || 0) + cantidad;
-            existente.SubTotal = round2(parseNumeroAR(existente.CostoUnitario) * parseNumeroAR(existente.Cantidad))
-        } else {
-            DETALLES.push({
-                TempId: TEMP_ID_SEQ++,
-                Id: 0,
-                IdMovimiento: Number($("#IdMovimiento").val() || 0),
-                TipoItem: tipo, // 'P' / 'I'
-                IdProducto: tipo === "P" ? idItem : null,
-                IdInsumo: tipo === "I" ? idItem : null,
-                Cantidad: cantidad,
-                CostoUnitario: costo,
-                SubTotal: round2(parseNumeroAR(cantidad) * parseNumeroAR(costo)),
-                NombreItem: item ? item.Nombre : ""
-            });
+        const lineas = obtenerLineasConfirmacionDesdeFilaModal($row);
+        if (!lineas.length) {
+            return;
         }
 
-        agregados++;
+        lineas.forEach(function (L) {
+            const tipoItem = L.tipoItem;
+            const cantidad = L.cantidad;
+            const costo = L.costo;
+
+            const cNew = L.idColor == null ? null : Number(L.idColor);
+            let existente = DETALLES.find(d => {
+                const cEx = d.IdColor == null ? null : Number(d.IdColor);
+                return (
+                    d.TipoItem === tipoItem &&
+                    cEx === cNew &&
+                    ((tipoItem === "P" && d.IdProducto === L.idProducto) ||
+                        (tipoItem === "I" && d.IdInsumo === L.idInsumo))
+                );
+            });
+
+            if (existente) {
+                existente.Cantidad = Number(existente.Cantidad || 0) + cantidad;
+                existente.SubTotal = round2(
+                    parseNumeroAR(existente.CostoUnitario) * parseNumeroAR(existente.Cantidad)
+                );
+            } else {
+                DETALLES.push({
+                    TempId: TEMP_ID_SEQ++,
+                    Id: 0,
+                    IdMovimiento: Number($("#IdMovimiento").val() || 0),
+                    TipoItem: tipoItem,
+                    IdProducto: L.idProducto,
+                    IdInsumo: L.idInsumo,
+                    IdColor: L.idColor == null ? null : Number(L.idColor),
+                    NombreColor: nombreColorEtiqueta(L.idColor),
+                    Cantidad: cantidad,
+                    CostoUnitario: costo,
+                    SubTotal: round2(parseNumeroAR(cantidad) * parseNumeroAR(costo)),
+                    NombreItem: L.nombre || ""
+                });
+            }
+
+            agregados++;
+        });
     });
 
     if (!agregados) {
@@ -542,6 +1351,7 @@ async function guardarMovimiento() {
             TipoItem: d.TipoItem,              // 'P' / 'I'
             IdProducto: d.IdProducto,
             IdInsumo: d.IdInsumo,
+            IdColor: d.IdColor == null || Number(d.IdColor) === 0 ? null : Number(d.IdColor),
             Cantidad: d.Cantidad,
             CostoUnitario: d.CostoUnitario,
             //SubTotal: d.SubTotal

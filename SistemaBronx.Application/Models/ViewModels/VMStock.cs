@@ -48,6 +48,9 @@ namespace SistemaBronx.Application.Models.ViewModels
 
             public string NombreItem { get; set; } // Producto/Insumo
 
+            public int? IdColor { get; set; }
+            public string? NombreColor { get; set; }
+
             // ===== CAMPOS EXTRA PARA HISTORIAL POR ÍTEM =====
             public DateTime Fecha { get; set; }
             public string TipoMovimiento { get; set; }
