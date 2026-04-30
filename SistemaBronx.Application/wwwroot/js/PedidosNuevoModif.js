@@ -73,6 +73,34 @@ function stockInsumoDeposito(row) {
     return parseFloat(row?.Stock ?? row?.StockDisponible ?? 0) || 0;
 }
 
+function estadoStockProductoSegunInsumos(rowProducto) {
+    if (!gridInsumos || !rowProducto) return null;
+
+    const detalleIdPrimario = parseInt(rowProducto.Id, 10) || 0;
+    const detalleIdAlterno = parseInt(rowProducto.IdDetalle, 10) || 0;
+    const idsDetalle = new Set([detalleIdPrimario, detalleIdAlterno].filter(x => x > 0));
+    if (idsDetalle.size === 0) return null;
+
+    let total = 0;
+    let conStock = 0;
+
+    gridInsumos.rows().every(function () {
+        const ins = this.data();
+        const idInsumoDetalle = parseInt(ins?.IdDetalle, 10) || 0;
+        if (!idsDetalle.has(idInsumoDetalle)) return;
+
+        total++;
+        if (stockInsumoDeposito(ins) > 0) {
+            conStock++;
+        }
+    });
+
+    if (total <= 0) return null;
+    if (conStock <= 0) return "sin";
+    if (conStock >= total) return "ok";
+    return "parcial";
+}
+
 function actualizarPedidoModalTabsEdicionBloqueo() {
     const dis = !!isEditingProducto;
     document.querySelectorAll('.ped-modal-seg[data-ped-modal-pane="pt"], .ped-modal-seg[data-ped-modal-pane="fab"]').forEach(b => {
@@ -1009,13 +1037,17 @@ async function configurarDataTableInsumosModal(data, editando) {
                     data: 'Stock',
                     render: function (data, type, row) {
                         const stock = stockInsumoDeposito(row);
+                        const usaStockProducto = productoTerminadoUsaStockEnModal();
                         const usa = Number(row.UsaStock) === 1;
-                        const cantidad = parseFloat(row.CantidadStock || 0);
+
+                        if (usaStockProducto) {
+                            return `<span class="badge bg-success">USA STOCK</span>`;
+                        }
 
                         if (stock <= 0) {
                             return `<span class="badge bg-danger">SIN STOCK</span>`;
                         }
-                        if (usa && cantidad > 0) {
+                        if (usa) {
                             return `<span class="badge bg-success">USA STOCK</span>`;
                         }
                         return `<span class="badge bg-success">TIENE STOCK</span>`;
@@ -1050,7 +1082,7 @@ async function configurarDataTableInsumosModal(data, editando) {
                         const stockDisponible = parseFloat(row.Stock ?? row.StockDisponible ?? 0) || 0;
                         const cantidad = parseFloat(row.Cantidad || 0) || 0;
                         const maximo = Math.min(stockDisponible, cantidad);
-                        const disabled = Number(row.UsaStock) === 1 ? '' : 'disabled';
+                        const disabled = 'disabled';
 
                         return `
                             <input type="number"
@@ -1199,7 +1231,7 @@ async function configurarDataTableInsumosModal(data, editando) {
                                 return;
                             }
                             rowData.CantidadStock = necesario;
-                            input.prop('disabled', false);
+                            input.prop('disabled', true);
                             input.attr('max', maximo);
                             input.val(necesario);
                             if (_listaEstadosPedidoCache) {
@@ -1277,6 +1309,13 @@ async function configurarDataTableInsumosModal(data, editando) {
                         }
 
                         const rowData = gridInsumosModal.row($td.closest('tr')).data();
+                        if (insumoUsaStock(rowData)) {
+                            isEditing = false;
+                            if (typeof advertenciaModal === 'function') {
+                                advertenciaModal('Este insumo usa stock y no permite edición manual.');
+                            }
+                            return;
+                        }
 
                         async function saveEdit(newText, newValue) {
                             const idCelda = parseIdInsumoModal(rowData);
@@ -1400,6 +1439,18 @@ $('#ProductoModalCantidad').off('keyup input').on('keyup input', function () {
         if (cantidad <= 0) {
             cantidad = 1;
             $(this).val(1);
+        }
+
+        if (!_pedModalLineaEsFabricacion) {
+            const productoSel = obtenerFilaProductoModalSeleccionadaData();
+            const stockDisponible = parseFloat(productoSel?.Stock) || 0;
+            if (stockDisponible > 0 && cantidad > stockDisponible) {
+                cantidad = stockDisponible;
+                $(this).val(cantidad);
+                if (typeof advertenciaModal === 'function') {
+                    advertenciaModal(`No tenés stock suficiente del producto terminado. Stock disponible: ${formatCantidadPedido(stockDisponible)}.`);
+                }
+            }
         }
 
         // 🔥 1. RECALCULAR INSUMOS
@@ -1530,20 +1581,32 @@ async function configurarDataTableProductos(data) {
                 {
                     data: 'UsaStockProducto',
                     render: function (data, type, row) {
+                        const estadoInsumos = estadoStockProductoSegunInsumos(row);
 
-                        const stock = parseFloat(row.Stock) || 0;
-                        const usa = Number(data) === 1;
-                        const cantidad = parseFloat(row.CantidadStockProducto || 0);
+                        if (estadoInsumos === "ok") {
+                            return `<span class="badge bg-success">USA STOCK</span>`;
+                        }
 
-                        if (stock <= 0) {
+                        if (estadoInsumos === "parcial") {
+                            return `<span class="badge bg-warning text-dark">STOCK PARCIAL</span>`;
+                        }
+
+                        if (estadoInsumos === "sin") {
                             return `<span class="badge bg-danger">SIN STOCK</span>`;
                         }
+
+                        // Fallback defensivo si aún no hay insumos cargados para el detalle.
+                        const stock = parseFloat(row.Stock) || 0;
+                        const usa = Number(data) === 1;
+                        const cantidad = parseFloat(row.CantidadStockProducto || 0) || 0;
 
                         if (usa && cantidad > 0) {
                             return `<span class="badge bg-success">USA STOCK</span>`;
                         }
-
-                        return `<span class="badge bg-success">TIENE STOCK</span>`;
+                        if (stock <= 0) {
+                            return `<span class="badge bg-danger">SIN STOCK</span>`;
+                        }
+                        return `<span class="badge bg-warning text-dark">STOCK PARCIAL</span>`;
                     }
                 },
 
@@ -1652,14 +1715,13 @@ async function configurarDataTableInsumos(data) {
 
                         const stockDep = stockInsumoDeposito(row);
                         const usa = Number(data) === 1;
-                        const cantidadStock = parseFloat(row.CantidadStock || 0) || 0;
+
+                        if (usa) {
+                            return `<span class="badge bg-success">USA STOCK</span>`;
+                        }
 
                         if (stockDep <= 0) {
                             return `<span class="badge bg-danger">SIN STOCK</span>`;
-                        }
-
-                        if (usa && cantidadStock > 0) {
-                            return `<span class="badge bg-success">USA STOCK</span>`;
                         }
 
                         return `<span class="badge bg-success">TIENE STOCK</span>`;
@@ -1976,6 +2038,11 @@ async function guardarProducto() {
         if (rowProducto) {
             stockDisponibleProducto = parseFloat(rowProducto.Stock) || 0;
 
+            if (!_pedModalLineaEsFabricacion && Cantidad > stockDisponibleProducto) {
+                errorModal(`No tenés stock suficiente del producto terminado. Stock disponible: ${formatCantidadPedido(stockDisponibleProducto)}.`);
+                return false;
+            }
+
             if (_pedModalLineaEsFabricacion) {
                 usaStockProducto = 0;
                 cantidadStockProducto = 0;
@@ -2020,6 +2087,7 @@ async function guardarProducto() {
 
     if (gridInsumosModal) {
         let errorStockInsumo = false;
+        const usaStockProductoModal = productoTerminadoUsaStockEnModal();
 
         gridInsumosModal.rows().every(function () {
 
@@ -2032,8 +2100,11 @@ async function guardarProducto() {
             const cantInsumo = parseFloat(insumoData.Cantidad || 0) || 0;
             const cantStockInsumo = parseFloat(insumoData.CantidadStock || 0) || 0;
 
-            // 🔥 SOLO VALIDAMOS CUANDO USA STOCK
-            if (cantStockInsumo > stockInsumo || cantStockInsumo > cantInsumo) {
+            // Si el stock viene del producto terminado, no validamos contra stock de depósito de insumo.
+            if (!usaStockProductoModal && cantStockInsumo > stockInsumo) {
+                errorStockInsumo = true;
+            }
+            if (cantStockInsumo > cantInsumo) {
                 errorStockInsumo = true;
             }
         });
@@ -2161,6 +2232,9 @@ async function guardarProducto() {
     await limpiarInformacionProducto();
     $('#Colores').val('-1').trigger('change');
     $('#productoModal').modal('hide');
+    if (gridProductos) {
+        gridProductos.draw(false);
+    }
     calcularDatosPedido();
 
     return true;
@@ -2981,6 +3055,15 @@ async function guardarCambios(redirecciona = true) {
         function obtenerInsumos() {
             const insumos = [];
             let invalido = false;
+            const usaStockProductoPorDetalle = new Map();
+
+            gridProductos.rows().every(function () {
+                const p = this.data();
+                usaStockProductoPorDetalle.set(
+                    parseInt(p.Id, 10),
+                    (parseFloat(p.CantidadStockProducto || 0) || 0) > 0
+                );
+            });
 
             gridInsumos.rows().every(function () {
                 const i = this.data();
@@ -2991,11 +3074,16 @@ async function guardarCambios(redirecciona = true) {
 
                 const cantidad = parseFloat(i.Cantidad || 0) || 0;
                 const stockDisponible = parseFloat(i.Stock ?? i.StockDisponible ?? 0) || 0;
+                const detalleId = parseInt(i.IdDetalle, 10);
+                const insumoCubiertoPorStockProducto = usaStockProductoPorDetalle.get(detalleId) === true;
 
                 const cantidadStock = parseFloat(i.CantidadStock || 0) || 0;
                 const usaStock = cantidadStock > 0;
 
-                if (cantidadStock > stockDisponible || cantidadStock > cantidad) {
+                if (!insumoCubiertoPorStockProducto && cantidadStock > stockDisponible) {
+                    invalido = true;
+                }
+                if (cantidadStock > cantidad) {
                     invalido = true;
                 }
 
@@ -4258,6 +4346,7 @@ function controlarUsoStockInsumos() {
 
     const usaStockProducto = _pedModalLineaEsFabricacion ? false : controles.chk.is(':checked');
     const cantidadStockProducto = usaStockProducto ? (parseFloat(controles.txt.val()) || 0) : 0;
+    const productoUsaStock = usaStockProducto && cantidadStockProducto > 0;
 
     const cantidadAFabricar = Math.max(0, cantidadProducto - cantidadStockProducto);
 
@@ -4269,19 +4358,25 @@ function controlarUsoStockInsumos() {
 
         const stockDisponible = parseFloat(rowData.Stock ?? rowData.StockDisponible ?? 0) || 0;
         const cantidadInicial = parseFloat(rowData.CantidadInicial || 0) || 0;
+        const cantidadTotalInsumo = parseFloat(rowData.Cantidad || 0) || 0;
 
         const cantidadNecesaria = cantidadInicial * cantidadAFabricar;
+        const cantidadCubiertaPorStockProducto = cantidadInicial * cantidadStockProducto;
         const maximo = Math.min(stockDisponible, cantidadNecesaria);
 
         let nuevaCantidadStock = parseFloat(rowData.CantidadStock || 0) || 0;
 
-        if (cantidadAFabricar <= 0 || stockDisponible <= 0) {
+        if (productoUsaStock) {
+            // Si se usa stock de producto terminado, la parte de insumo cubierta
+            // viene dada por esa cantidad de producto, no por stock de depósito.
+            nuevaCantidadStock = Math.min(cantidadCubiertaPorStockProducto, cantidadTotalInsumo);
+        } else if (cantidadAFabricar <= 0 || stockDisponible <= 0) {
             nuevaCantidadStock = 0;
         } else {
             nuevaCantidadStock = Math.min(nuevaCantidadStock, maximo);
         }
 
-        const nuevoUsaStock = nuevaCantidadStock > 0 ? 1 : 0;
+        const nuevoUsaStock = productoUsaStock ? 1 : (nuevaCantidadStock > 0 ? 1 : 0);
 
         // 🔥 SOLO actualiza si cambia (clave para performance y bugs)
         if (
@@ -4410,6 +4505,19 @@ function getCantidadStockFila(row) {
 
 function getCantidadFila(row) {
     return parseFloat(row.Cantidad || 0) || 0;
+}
+
+function productoTerminadoUsaStockEnModal() {
+    if (_pedModalLineaEsFabricacion) return false;
+    const controles = obtenerControlesStockProductoFilaSeleccionada();
+    if (!controles || !controles.chk?.length) return false;
+    if (!controles.chk.is(':checked')) return false;
+    const cantidadStock = parseFloat(controles.txt?.val()) || 0;
+    return cantidadStock > 0;
+}
+
+function insumoUsaStock(row) {
+    return Number(row?.UsaStock) === 1;
 }
 
 
