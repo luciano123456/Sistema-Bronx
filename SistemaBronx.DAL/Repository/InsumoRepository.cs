@@ -79,11 +79,9 @@ namespace SistemaBronx.DAL.Repository
                 if (model == null)
                     return null;
 
-                // 🔥 TRAER STOCK
                 var stock = await _dbcontext.StockSaldos
                     .Where(s => s.TipoItem == "I" && s.IdInsumo == id)
-                    .Select(s => s.CantidadActual)
-                    .FirstOrDefaultAsync();
+                    .SumAsync(s => (decimal?)s.CantidadActual) ?? 0m;
 
                 model.Stock = stock;
 
@@ -108,10 +106,11 @@ namespace SistemaBronx.DAL.Repository
                     .Include(c => c.IdCategoriaNavigation)
                     .ToListAsync();
 
-                // 🔥 TRAER STOCK DE UNA
                 var stocks = await _dbcontext.StockSaldos
                     .Where(s => s.TipoItem == "I")
-                    .ToDictionaryAsync(s => s.IdInsumo, s => s.CantidadActual);
+                    .GroupBy(s => s.IdInsumo!.Value)
+                    .Select(g => new { IdInsumo = g.Key, Total = g.Sum(x => x.CantidadActual) })
+                    .ToDictionaryAsync(x => x.IdInsumo, x => x.Total);
 
                 foreach (var insumo in insumos)
                 {

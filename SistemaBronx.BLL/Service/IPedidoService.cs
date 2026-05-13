@@ -37,6 +37,7 @@ namespace SistemaBronx.BLL.Service
             string tipoItem,
             int? idProducto,
             int? idInsumo,
-            decimal cantidad);
+            decimal cantidad,
+            int? idColor = null);
     }
 }

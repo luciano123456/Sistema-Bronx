@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
     <!-- SKIN NUEVO XL -->
-    <link href="~/css/PedidosNuevoModif.css" rel="stylesheet" />
+    <link href="~/css/PedidosNuevoModif.css?v=6.6" rel="stylesheet" />
     <link href="~/css/RedisenoPantallas.css" rel="stylesheet" />
 }
 
@@ -330,24 +330,38 @@
 
 <div class="modal fade" id="productoModal" tabindex="-1" aria-labelledby="productoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xxl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content cc-modal">
-            <div class="modal-header cc-modal-header">
-                <h5 class="modal-title" id="productoModalLabel">Añadir Producto</h5>
+        <div class="modal-content cc-modal ped-modal-shell">
+            <div class="modal-header cc-modal-header ped-modal-header">
+                <div class="ped-modal-header-main">
+                    <div class="ped-modal-kicker"><i class="fa fa-shopping-basket me-1"></i>Pedido</div>
+                    <h5 class="modal-title" id="productoModalLabel">Añadir Producto</h5>
+                    <p class="ped-modal-subtitle mb-0">Elegí una línea, ajustá costos, cantidad y color; después confirmá para agregarla al pedido.</p>
+                </div>
                 <button type="button" class="btn-close custom-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <div class="modal-body">
-                <div class="cc-modal-top">
+            <div class="modal-body d-flex flex-column ped-modal-body ped-modal-layout">
+                <div class="ped-modal-segments ped-modal-segments-pro" role="tablist">
+                    <button type="button" class="ped-modal-seg active" id="pedModalSegPT" data-ped-modal-pane="pt" role="tab" aria-selected="true">
+                        <i class="fa fa-cube me-1"></i> Productos terminados
+                    </button>
+                    <button type="button" class="ped-modal-seg" id="pedModalSegFab" data-ped-modal-pane="fab" role="tab" aria-selected="false">
+                        <i class="fa fa-industry me-1"></i> Fabricación
+                    </button>
+                </div>
+
+                <div id="pedModalAreaProducto" class="ped-modal-area ped-modal-main flex-grow-1 d-flex flex-column" style="min-height:0;">
+                <div class="cc-modal-top ped-modal-top">
 
                     <!-- IZQUIERDA -->
-                    <div class="cc-left" id="listaProductos">
+                    <div class="cc-left ped-modal-card ped-modal-left" id="listaProductos">
                         <div class="cc-titlebar mb-3">
-                            <h6 class="m-0">Búsqueda de productos</h6>
+                            <h6 class="m-0" id="pedModalListaTitulo">Búsqueda de productos</h6>
                         </div>
 
                         <div class="row g-2 mb-2">
                             <div class="col-12 col-lg-7">
-                                <input type="text" id="busqueda" class="form-control" placeholder="Buscar producto">
+                                <input type="text" id="busqueda" class="form-control" placeholder="Buscar producto o color">
                             </div>
                             <div class="col-12 col-lg-5">
                                 <select id="Categorias" class="form-select"></select>
@@ -359,19 +373,21 @@
                                 <thead>
                                     <tr>
                                         <th>Descripción</th>
+                                        <th>Color</th>
                                         <th>Categoría</th>
                                         <th>Stock</th>
-                                        <th>Usar stock</th>
-                                        <th>Cant. stock</th>
+                                        <th>Usar stock PT</th>
+                                        <th>Cant. stock PT</th>
                                         <th>Precio venta</th>
                                         <th hidden>Id</th>
+                                        <th hidden>IdColor</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
                             </table>
                         </div>
 
-                        <div class="cc-actions-below-list">
+                        <div class="cc-actions-below-list ped-modal-actions-left">
                             <div class="d-flex justify-content-end gap-2 flex-wrap">
                                 <button class="btn btn-success" id="btnGuardarProducto" onclick="guardarProducto()">
                                     <i class="fa fa-check me-1"></i> Añadir
@@ -384,7 +400,7 @@
                     </div>
 
                     <!-- DERECHA -->
-                    <div class="cc-right" id="columnaProductoSeleccionado">
+                    <div class="cc-right ped-modal-card ped-modal-right" id="columnaProductoSeleccionado">
                         <div class="cc-titlebar mb-3">
                             <h6 class="m-0">Producto seleccionado</h6>
                         </div>
@@ -447,52 +463,55 @@
                     </div>
                 </div>
 
-                <!-- INSUMOS -->
-                <div class="cc-insumos mt-3">
-                    <div class="cc-titlebar mb-2">
-                        <h6 class="m-0">Insumos del producto</h6>
-                    </div>
+                <div id="pedModalInlineInsumos" class="w-100 mt-3 d-flex flex-column ped-modal-bottom">
+                    <div class="cc-insumos mt-0 d-flex flex-column">
+                        <div class="cc-titlebar mb-2">
+                            <h6 class="m-0">Insumos del producto</h6>
+                        </div>
 
-                    <div class="cc-tablewrap lista-insumos-height">
-                        <table class="table table-hover w-100 mb-0" id="grd_Insumos_Modal">
-                            <thead>
-                                <tr>
-                                    <th>Descripción</th>
-                                    <th>Cantidad</th>
-                                    <th>Stock</th>
-                                    <th>Usar stock</th>
-                                    <th>Cant. stock</th>
-                                    <th>PrecioUnitario</th>
-                                    <th>SubTotal</th>
-                                    <th hidden>IdCategoria</th>
-                                    <th>Categoría</th>
-                                    <th hidden>IdColor</th>
-                                    <th>Color</th>
-                                    <th hidden>IdEstado</th>
-                                    <th>Estado</th>
-                                    <th hidden>IdTipo</th>
-                                    <th>Tipo</th>
-                                    <th>Especificacion</th>
-                                    <th>Proveedor</th>
-                                    <th>Comentarios</th>
-                                    <th hidden>IdUnidadMedida</th>
-                                    <th hidden>IdProveedor</th>
-                                    <th hidden>IdProducto</th>
-                                    <th hidden>IdInsumo</th>
-                                    <th hidden>Id</th>
-                                    <th hidden>CantidadInicial</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
+                        <div class="cc-tablewrap lista-insumos-height flex-grow-1" style="min-height:0;">
+                            <table class="table table-hover w-100 mb-0" id="grd_Insumos_Modal">
+                                <thead>
+                                    <tr>
+                                        <th>Descripción</th>
+                                        <th>Cantidad</th>
+                                        <th>Stock</th>
+                                        <th>Usar stock</th>
+                                        <th>Cant. stock</th>
+                                        <th>PrecioUnitario</th>
+                                        <th>SubTotal</th>
+                                        <th hidden>IdCategoria</th>
+                                        <th>Categoría</th>
+                                        <th hidden>IdColor</th>
+                                        <th>Color</th>
+                                        <th hidden>IdEstado</th>
+                                        <th>Estado</th>
+                                        <th hidden>IdTipo</th>
+                                        <th>Tipo</th>
+                                        <th>Especificacion</th>
+                                        <th>Proveedor</th>
+                                        <th>Comentarios</th>
+                                        <th hidden>IdUnidadMedida</th>
+                                        <th hidden>IdProveedor</th>
+                                        <th hidden>IdProducto</th>
+                                        <th hidden>IdInsumo</th>
+                                        <th hidden>Id</th>
+                                        <th hidden>CantidadInicial</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
 
-                    <div class="d-flex justify-content-end mt-2">
-                        <button id="btnEliminarInsumo" class="btn btn-danger">
-                            <span aria-hidden="true">❌</span> Eliminar
-                        </button>
+                        <div class="d-flex justify-content-end mt-2 flex-shrink-0">
+                            <button id="btnEliminarInsumo" class="btn btn-danger">
+                                <span aria-hidden="true">❌</span> Eliminar
+                            </button>
+                        </div>
                     </div>
                 </div>
+
+                </div><!-- /#pedModalAreaProducto -->
             </div>
 
             <div class="modal-footer d-none"></div>
@@ -558,7 +577,7 @@
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
     <script src="~/js/utils/moment.js"></script>
-    <script src="~/js/pedidosnuevomodif.js?v=4.8"></script>
+    <script src="~/js/pedidosnuevomodif.js?v=6.7"></script>
     <script src="~/js/site.js"></script>
 }
 

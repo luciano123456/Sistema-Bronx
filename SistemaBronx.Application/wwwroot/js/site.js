@@ -161,11 +161,13 @@ function mostrarModalConContadorHtml(modal, texto, tiempo) {
     }, tiempo);
 }
 
-const formatoMoneda = new Intl.NumberFormat('es-AR', {
+// window.* permite cargar site.js más de una vez sin error (p. ej. layout + vista).
+window.formatoMoneda = window.formatoMoneda || new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency: 'ARS', // Cambia "ARS" por el código de moneda que necesites
     minimumFractionDigits: 2
 });
+var formatoMoneda = window.formatoMoneda;
 
 function convertirMonedaAFloat(moneda) {
     // Eliminar el símbolo de la moneda y otros caracteres no numéricos

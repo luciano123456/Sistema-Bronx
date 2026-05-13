@@ -83,9 +83,10 @@ namespace SistemaBronx.BLL.Service
             string tipoItem,
             int? idProducto,
             int? idInsumo,
-            decimal cantidad)
+            decimal cantidad,
+            int? idColor = null)
         {
-            return await _contactRepo.ObtenerDisponibilidadStock(tipoItem, idProducto, idInsumo, cantidad);
+            return await _contactRepo.ObtenerDisponibilidadStock(tipoItem, idProducto, idInsumo, cantidad, idColor);
         }
     }
 }

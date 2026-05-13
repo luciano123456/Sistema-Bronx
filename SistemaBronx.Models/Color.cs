@@ -16,4 +16,8 @@ public partial class Color
     public virtual ICollection<PedidosDetalleProceso> PedidosDetalleProcesos { get; set; } = new List<PedidosDetalleProceso>();
 
     public virtual ICollection<PedidosDetalle> PedidosDetalles { get; set; } = new List<PedidosDetalle>();
+
+    public virtual ICollection<StockSaldo> StockSaldos { get; set; } = new List<StockSaldo>();
+
+    public virtual ICollection<StockMovimientosDetalle> StockMovimientosDetalles { get; set; } = new List<StockMovimientosDetalle>();
 }

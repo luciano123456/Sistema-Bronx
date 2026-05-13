@@ -15,6 +15,8 @@ public partial class StockMovimientosDetalle
 
     public int? IdInsumo { get; set; }
 
+    public int? IdColor { get; set; }
+
     public decimal Cantidad { get; set; }
 
     public decimal? CostoUnitario { get; set; }
@@ -24,6 +26,8 @@ public partial class StockMovimientosDetalle
     public DateTime FechaCreado { get; set; }
 
     public virtual Insumo? IdInsumoNavigation { get; set; }
+
+    public virtual Color? IdColorNavigation { get; set; }
 
     public virtual StockMovimiento IdMovimientoNavigation { get; set; } = null!;
 

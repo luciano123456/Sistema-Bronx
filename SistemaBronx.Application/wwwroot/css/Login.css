@@ -105,6 +105,20 @@ body {
     padding: 10px;
 }
 
+#btnLoginSubmit .login-btn-default,
+#btnLoginSubmit .login-btn-loading {
+    min-height: 1.25rem;
+}
+
+#btnLoginSubmit .login-btn-loading {
+    gap: 0.35rem;
+}
+
+#btnLoginSubmit:disabled {
+    cursor: wait;
+    opacity: 0.92;
+}
+
     .btn-primary:hover {
         background-color: #173b63;
         border-color: #173b63;

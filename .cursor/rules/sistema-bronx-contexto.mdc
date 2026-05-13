@@ -1,0 +1,9 @@
+---
+description: Contexto y convenciones del proyecto Sistema Bronx
+globs:
+alwaysApply: true
+---
+
+Antes de cambios importantes en este repo, leé y tené en cuenta **[docs/CONTEXTO-SISTEMA-BRONX.md](docs/CONTEXTO-SISTEMA-BRONX.md)** (arquitectura .NET 6, capas, Pedidos, JS, trampas como `site.js` duplicado y `CantidadInicial`).
+
+Ampliá ese documento cuando introduzcas patrones nuevos o decisiones de diseño relevantes.

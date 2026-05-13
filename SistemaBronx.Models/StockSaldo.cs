@@ -17,6 +17,10 @@ public partial class StockSaldo
 
     public DateTime FechaUltMovimiento { get; set; }
 
+    public int? IdColor { get; set; }
+
+    public virtual Color? IdColorNavigation { get; set; }
+
     public virtual Insumo? IdInsumoNavigation { get; set; }
 
     public virtual Producto? IdProductoNavigation { get; set; }

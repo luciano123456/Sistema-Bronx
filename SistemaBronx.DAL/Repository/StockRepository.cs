@@ -39,6 +39,47 @@ namespace SistemaBronx.DAL.Repository
         /// esEntrada = true => suma stock, false => resta
         /// revertir = true => invierte el signo (deshacer)
         /// </summary>
+        private async Task EliminarRelacionesPedidoPorDetalleStockAsync(int idStockMovimientoDetalle)
+        {
+            var relDet = await _db.PedidosDetalleStocks
+                .Where(x => x.IdStockMovimientoDetalle == idStockMovimientoDetalle)
+                .ToListAsync();
+            if (relDet.Count > 0)
+                _db.PedidosDetalleStocks.RemoveRange(relDet);
+
+            var relProc = await _db.PedidosDetalleProcesosStocks
+                .Where(x => x.IdStockMovimientoDetalle == idStockMovimientoDetalle)
+                .ToListAsync();
+            if (relProc.Count > 0)
+                _db.PedidosDetalleProcesosStocks.RemoveRange(relProc);
+        }
+
+        private async Task<StockSaldo?> BuscarSaldoParaDetalleAsync(StockMovimientosDetalle det)
+        {
+            var tipo = (det.TipoItem ?? string.Empty).ToUpper();
+            var colorDet = det.IdColor ?? 0;
+
+            var exact = await _db.StockSaldos.FirstOrDefaultAsync(s =>
+                s.TipoItem == tipo &&
+                s.IdProducto == det.IdProducto &&
+                s.IdInsumo == det.IdInsumo &&
+                (s.IdColor ?? 0) == colorDet);
+
+            if (exact != null)
+                return exact;
+
+            if (colorDet != 0)
+            {
+                return await _db.StockSaldos.FirstOrDefaultAsync(s =>
+                    s.TipoItem == tipo &&
+                    s.IdProducto == det.IdProducto &&
+                    s.IdInsumo == det.IdInsumo &&
+                    (s.IdColor ?? 0) == 0);
+            }
+
+            return null;
+        }
+
         private async Task AplicarStock(StockMovimientosDetalle det, bool esEntrada, bool revertir)
         {
             var signo = esEntrada ? 1m : -1m;
@@ -46,11 +87,7 @@ namespace SistemaBronx.DAL.Repository
 
             var delta = det.Cantidad * signo;
 
-            var saldo = await _db.StockSaldos.FirstOrDefaultAsync(s =>
-                s.TipoItem == det.TipoItem &&
-                s.IdProducto == det.IdProducto &&
-                s.IdInsumo == det.IdInsumo
-            );
+            var saldo = await BuscarSaldoParaDetalleAsync(det);
 
             if (saldo == null)
             {
@@ -59,6 +96,7 @@ namespace SistemaBronx.DAL.Repository
                     TipoItem = det.TipoItem,
                     IdProducto = det.IdProducto,
                     IdInsumo = det.IdInsumo,
+                    IdColor = det.IdColor,
                     CantidadActual = 0,
                     FechaUltMovimiento = DateTime.Now
                 };
@@ -99,6 +137,7 @@ namespace SistemaBronx.DAL.Repository
                         TipoItem = (det.TipoItem ?? "").ToUpper(),
                         IdProducto = det.IdProducto,
                         IdInsumo = det.IdInsumo,
+                        IdColor = det.IdColor,
                         Cantidad = det.Cantidad,
                         CostoUnitario = det.CostoUnitario,
                         FechaCreado = DateTime.Now
@@ -150,34 +189,73 @@ namespace SistemaBronx.DAL.Repository
                 }
 
                 // 2) Actualizar cabecera (mantengo FechaAlta)
-                existente.Fecha = mov.Fecha;
+                if (mov.Fecha != default)
+                    existente.Fecha = mov.Fecha;
                 existente.IdTipoMovimiento = mov.IdTipoMovimiento;
                 existente.Comentario = mov.Comentario;
                 existente.IdUsuario = mov.IdUsuario;
                 existente.EsAnulado = false;    // al modificar, queda activo
 
-                // 3) Borrar detalles viejos
-                _db.StockMovimientosDetalles.RemoveRange(existente.StockMovimientosDetalles);
-
-                // 4) Insertar nuevos detalles y aplicar stock
+                // 3–5) Sincronizar detalles sin borrar siempre todas las filas: PedidosDetalleStock /
+                //     PedidosDetalleProcesosStock referencian IdStockMovimientoDetalle; el borrado masivo
+                //     fallaba por FK. Se actualizan filas existentes (mismo Id), se insertan nuevas y solo
+                //     se eliminan las que ya no vienen (limpiando FK en ese caso).
                 var esEntradaNuevo = await GetEsEntradaAsync(mov.IdTipoMovimiento);
+
+                var idsIncoming = nuevosDetalles
+                    .Where(d => d.Id > 0)
+                    .Select(d => d.Id)
+                    .ToHashSet();
+
+                foreach (var viejo in existente.StockMovimientosDetalles.ToList())
+                {
+                    if (idsIncoming.Contains(viejo.Id))
+                        continue;
+
+                    await EliminarRelacionesPedidoPorDetalleStockAsync(viejo.Id);
+                    _db.StockMovimientosDetalles.Remove(viejo);
+                }
+
+                var detallesParaAplicar = new List<StockMovimientosDetalle>();
 
                 foreach (var det in nuevosDetalles)
                 {
+                    var tipo = (det.TipoItem ?? "").ToUpper();
+
+                    if (det.Id > 0)
+                    {
+                        var tracked = existente.StockMovimientosDetalles.FirstOrDefault(d => d.Id == det.Id);
+                        if (tracked != null)
+                        {
+                            tracked.TipoItem = tipo;
+                            tracked.IdProducto = det.IdProducto;
+                            tracked.IdInsumo = det.IdInsumo;
+                            tracked.IdColor = det.IdColor;
+                            tracked.Cantidad = det.Cantidad;
+                            tracked.CostoUnitario = det.CostoUnitario;
+                            detallesParaAplicar.Add(tracked);
+                            continue;
+                        }
+                    }
+
                     var nuevoDet = new StockMovimientosDetalle
                     {
                         IdMovimiento = existente.Id,
-                        TipoItem = (det.TipoItem ?? "").ToUpper(),
+                        TipoItem = tipo,
                         IdProducto = det.IdProducto,
                         IdInsumo = det.IdInsumo,
+                        IdColor = det.IdColor,
                         Cantidad = det.Cantidad,
                         CostoUnitario = det.CostoUnitario,
                         FechaCreado = DateTime.Now
                     };
 
                     _db.StockMovimientosDetalles.Add(nuevoDet);
-                    await AplicarStock(nuevoDet, esEntradaNuevo, revertir: false);
+                    detallesParaAplicar.Add(nuevoDet);
                 }
+
+                foreach (var det in detallesParaAplicar)
+                    await AplicarStock(det, esEntradaNuevo, revertir: false);
 
                 await _db.SaveChangesAsync();
                 await tx.CommitAsync();
@@ -385,6 +463,9 @@ namespace SistemaBronx.DAL.Repository
                 .Include(m => m.StockMovimientosDetalles)
                     .ThenInclude(d => d.IdInsumoNavigation)
 
+                .Include(m => m.StockMovimientosDetalles)
+                    .ThenInclude(d => d.IdColorNavigation)
+
                 .FirstOrDefaultAsync();
         }
 
@@ -395,8 +476,10 @@ namespace SistemaBronx.DAL.Repository
                 return await _db.StockSaldos
                     .Include(s => s.IdProductoNavigation)
                     .Include(s => s.IdInsumoNavigation)
+                    .Include(s => s.IdColorNavigation)
                     .OrderBy(s => s.TipoItem)
                     .ThenBy(s => s.IdProducto ?? s.IdInsumo)
+                    .ThenBy(s => s.IdColor ?? 0)
                     .ToListAsync();
             } catch (Exception ex)
             {
@@ -404,23 +487,40 @@ namespace SistemaBronx.DAL.Repository
             }
         }
 
-        public async Task<StockSaldo?> ObtenerSaldoItem(string tipoItem, int? idProducto, int? idInsumo)
+        public async Task<StockSaldo?> ObtenerSaldoItem(string tipoItem, int? idProducto, int? idInsumo, int? idColor = null)
         {
             tipoItem = (tipoItem ?? "").ToUpper();
 
-            return await _db.StockSaldos.FirstOrDefaultAsync(s =>
+            var colorReq = idColor ?? 0;
+            var exact = await _db.StockSaldos.FirstOrDefaultAsync(s =>
                 s.TipoItem == tipoItem &&
                 s.IdProducto == idProducto &&
-                s.IdInsumo == idInsumo
-            );
+                s.IdInsumo == idInsumo &&
+                (s.IdColor ?? 0) == colorReq);
+            if (exact != null)
+                return exact;
+            if (colorReq != 0)
+            {
+                return await _db.StockSaldos.FirstOrDefaultAsync(s =>
+                    s.TipoItem == tipoItem &&
+                    s.IdProducto == idProducto &&
+                    s.IdInsumo == idInsumo &&
+                    (s.IdColor ?? 0) == 0);
+            }
+            return null;
         }
 
-        public async Task<List<StockMovimiento>> ObtenerMovimientosItem(string tipoItem, int? idProducto, int? idInsumo)
+        public async Task<List<StockMovimiento>> ObtenerMovimientosItem(string tipoItem, int? idProducto, int? idInsumo, int? idColor = null)
         {
             tipoItem = (tipoItem ?? "").ToUpper();
 
             var query = _db.StockMovimientos
                 .Include(m => m.StockMovimientosDetalles)
+                    .ThenInclude(d => d.IdProductoNavigation)
+                .Include(m => m.StockMovimientosDetalles)
+                    .ThenInclude(d => d.IdInsumoNavigation)
+                .Include(m => m.StockMovimientosDetalles)
+                    .ThenInclude(d => d.IdColorNavigation)
                 .Include(m => m.IdTipoMovimientoNavigation)
                 .AsQueryable();
 
@@ -428,7 +528,8 @@ namespace SistemaBronx.DAL.Repository
                 m.StockMovimientosDetalles.Any(d =>
                     d.TipoItem == tipoItem &&
                     d.IdProducto == idProducto &&
-                    d.IdInsumo == idInsumo
+                    d.IdInsumo == idInsumo &&
+                    (d.IdColor ?? 0) == (idColor ?? 0)
                 ));
 
             return await query

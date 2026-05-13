@@ -61,6 +61,14 @@ namespace SistemaBronx.Application.Controllers
             return detalle.CantidadUsadaStock ?? 0;
         }
 
+        private static decimal ObtenerCantidadUsadaStockInsumoEntity(PedidosDetalleProceso detalle)
+        {
+            if (detalle == null)
+                return 0;
+
+            return detalle.CantidadUsadaStock ?? 0;
+        }
+
         private static List<PedidosDetalle> MapearDetallesProductoDesdeVm(VMPedido model)
         {
             var pedidoDetalle = new List<PedidosDetalle>();
@@ -89,14 +97,6 @@ namespace SistemaBronx.Application.Controllers
             }
 
             return pedidoDetalle;
-        }
-
-        private static decimal ObtenerCantidadUsadaStockInsumoEntity(PedidosDetalleProceso detalle)
-        {
-            if (detalle == null)
-                return 0;
-
-            return detalle.CantidadUsadaStock ?? 0;
         }
 
         private static List<PedidosDetalleProceso> MapearDetallesProcesoDesdeVm(VMPedido model)
@@ -334,11 +334,11 @@ namespace SistemaBronx.Application.Controllers
         ============================================================ */
 
         [HttpGet]
-        public async Task<IActionResult> DisponibilidadStock(string tipoItem, int? idProducto, int? idInsumo, decimal cantidad)
+        public async Task<IActionResult> DisponibilidadStock(string tipoItem, int? idProducto, int? idInsumo, decimal cantidad, int? idColor = null)
         {
             try
             {
-                var resp = await _PedidosService.ObtenerDisponibilidadStock(tipoItem, idProducto, idInsumo, cantidad);
+                var resp = await _PedidosService.ObtenerDisponibilidadStock(tipoItem, idProducto, idInsumo, cantidad, idColor);
 
                 return Ok(new
                 {
@@ -467,7 +467,7 @@ namespace SistemaBronx.Application.Controllers
                     pedidoDetalle = pedido.PedidosDetalles.Select(detalle =>
                     {
                         var cantidadUsadaStock = detalle.CantidadUsadaStock ?? 0;
-                        var stockProducto = detalle.IdProductoNavigation?.Stock ?? 0;
+                        var stockProducto = detalle.StockDisponibleDeposito;
 
                         return new VMPedidoDetalle
                         {
@@ -510,10 +510,23 @@ namespace SistemaBronx.Application.Controllers
 
                 if (pedido.PedidosDetalleProcesos != null && pedido.PedidosDetalleProcesos.Any())
                 {
+                    var cantidadProductoPorDetalle = (pedido.PedidosDetalles ?? Enumerable.Empty<PedidosDetalle>())
+                        .Where(d => d.Id > 0)
+                        .ToDictionary(d => d.Id, d => (decimal)Math.Max(1m, d.Cantidad ?? 1m));
+
                     pedidoDetalleProceso = pedido.PedidosDetalleProcesos.Select(detalleProceso =>
                     {
                         var cantidadUsadaStock = detalleProceso.CantidadUsadaStock ?? 0;
-                        var stockInsumo = detalleProceso.IdInsumoNavigation?.Stock ?? 0;
+                        var stockInsumo = detalleProceso.StockDisponibleDeposito;
+                        var cantLinea = detalleProceso.Cantidad ?? 0m;
+                        decimal qProd = 1m;
+                        if (detalleProceso.IdDetalle.HasValue &&
+                            cantidadProductoPorDetalle.TryGetValue(detalleProceso.IdDetalle.Value, out var qDet))
+                        {
+                            qProd = qDet;
+                        }
+
+                        var cantidadInicial = qProd > 0 ? cantLinea / qProd : cantLinea;
 
                         return new VMPedidoDetalleProceso
                         {
@@ -523,6 +536,7 @@ namespace SistemaBronx.Application.Controllers
                             IdProducto = detalleProceso.IdProducto,
                             IdInsumo = detalleProceso.IdInsumo,
                             Cantidad = detalleProceso.Cantidad,
+                            CantidadInicial = cantidadInicial,
                             IdCategoria = detalleProceso.IdCategoria,
                             Comentarios = detalleProceso.Comentarios,
                             Descripcion = detalleProceso.Descripcion,

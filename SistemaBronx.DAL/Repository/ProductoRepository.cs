@@ -22,7 +22,16 @@ namespace SistemaBronx.DAL.Repository
         {
             _dbcontext = context;
         }
-     
+
+        public async Task<decimal> ObtenerStockSaldoProductoAsync(int idProducto, int? idColorFiltro = null)
+        {
+            var q = _dbcontext.StockSaldos.Where(s => s.TipoItem == "P" && s.IdProducto == idProducto);
+            if (idColorFiltro.HasValue && idColorFiltro.Value != 0)
+                q = q.Where(s => (s.IdColor ?? 0) == idColorFiltro.Value || (s.IdColor ?? 0) == 0);
+            else if (idColorFiltro.HasValue && idColorFiltro.Value == 0)
+                q = q.Where(s => (s.IdColor ?? 0) == 0);
+            return await q.SumAsync(s => (decimal?)s.CantidadActual) ?? 0m;
+        }
 
         public async Task<bool> Eliminar(int id)
         {
@@ -210,6 +219,9 @@ namespace SistemaBronx.DAL.Repository
                     }
                 }
 
+                if (producto != null)
+                    producto.Stock = await ObtenerStockSaldoProductoAsync(producto.Id, null);
+
                 return producto;
             }
             catch (Exception ex)
@@ -265,6 +277,18 @@ namespace SistemaBronx.DAL.Repository
                     }
                 }
 
+                if (productos.Count > 0)
+                {
+                    var ids = productos.Select(p => p.Id).ToList();
+                    var sums = await _dbcontext.StockSaldos
+                        .Where(s => s.TipoItem == "P" && s.IdProducto.HasValue && ids.Contains(s.IdProducto.Value))
+                        .GroupBy(s => s.IdProducto!.Value)
+                        .Select(g => new { Id = g.Key, Total = g.Sum(x => x.CantidadActual) })
+                        .ToDictionaryAsync(x => x.Id, x => x.Total);
+                    foreach (var p in productos)
+                        p.Stock = sums.TryGetValue(p.Id, out var t) ? t : 0m;
+                }
+
                 return productos;
             }
             catch (Exception ex)
@@ -312,7 +336,7 @@ namespace SistemaBronx.DAL.Repository
         }
 
 
-        public async Task<List<ProductosInsumo>> ObtenerInsumos(int idProducto)
+        public async Task<List<ProductosInsumo>> ObtenerInsumos(int idProducto, int? idColorFiltro = null)
         {
             try
             {
@@ -326,26 +350,41 @@ namespace SistemaBronx.DAL.Repository
                     .Where(c => c.IdProducto == idProducto)
                     .ToListAsync();
 
-                // 🔥 TRAER STOCK DE TODOS LOS INSUMOS DE UNA
                 var idsInsumos = productos
                     .Where(x => x.IdInsumoNavigation != null)
                     .Select(x => x.IdInsumoNavigation.Id)
                     .Distinct()
                     .ToList();
 
-                var stocks = await _dbcontext.StockSaldos
-                    .Where(s => s.TipoItem == "I" && idsInsumos.Contains(s.IdInsumo.Value))
-                    .ToDictionaryAsync(s => s.IdInsumo, s => s.CantidadActual);
+                var qSaldo = _dbcontext.StockSaldos
+                    .Where(s =>
+                        s.TipoItem != null &&
+                        s.TipoItem.Trim().ToUpper() == "I" &&
+                        s.IdInsumo.HasValue &&
+                        idsInsumos.Contains(s.IdInsumo.Value));
 
-                // 🔥 ASIGNAR STOCK
+                if (idColorFiltro.HasValue && idColorFiltro.Value != 0)
+                {
+                    var color = idColorFiltro.Value;
+                    // Pedidos: stock sin color (0/null) cuenta para cualquier color pedido;
+                    // stock coloreado solo suma si coincide con el color pedido.
+                    qSaldo = qSaldo.Where(s => (s.IdColor ?? 0) == color || (s.IdColor ?? 0) == 0);
+                }
+                else if (idColorFiltro.HasValue && idColorFiltro.Value == 0)
+                {
+                    qSaldo = qSaldo.Where(s => (s.IdColor ?? 0) == 0);
+                }
+
+                var stocksPorInsumo = await qSaldo
+                    .GroupBy(s => s.IdInsumo!.Value)
+                    .Select(g => new { IdInsumo = g.Key, Total = g.Sum(x => x.CantidadActual) })
+                    .ToDictionaryAsync(x => x.IdInsumo, x => x.Total);
+
                 foreach (var item in productos)
                 {
                     var insumo = item.IdInsumoNavigation;
-
-                    if (insumo != null && stocks.TryGetValue(insumo.Id, out var stock))
-                        insumo.Stock = stock;
-                    else if (insumo != null)
-                        insumo.Stock = 0;
+                    if (insumo == null) continue;
+                    insumo.Stock = stocksPorInsumo.TryGetValue(insumo.Id, out var st) ? st : 0m;
                 }
 
                 return productos;
@@ -384,6 +423,95 @@ namespace SistemaBronx.DAL.Repository
             {
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Catálogo modal pedidos: PT por producto×color con saldo tipo P &gt; 0; fabricación = una fila por producto
+        /// cuya suma de saldos PT en todos los colores es 0 (el color no va en el listado).
+        /// </summary>
+        public async Task<CatalogoPedidoModalResult> ObtenerCatalogoPedidoModalAsync()
+        {
+            var productosRaw = await ObtenerTodos();
+            var productos = productosRaw
+                .GroupBy(p => p.Id)
+                .Select(g => g.First())
+                .ToList();
+
+            var colores = (await _dbcontext.Colores
+                .AsNoTracking()
+                .Where(c => c.Id > 0)
+                .OrderBy(c => c.Nombre)
+                .ToListAsync())
+                .GroupBy(c => c.Id)
+                .Select(g => g.First())
+                .ToList();
+
+            var saldos = await _dbcontext.StockSaldos
+                .AsNoTracking()
+                .Where(s => s.TipoItem == "P" && s.IdProducto != null)
+                .Select(s => new { IdProducto = s.IdProducto!.Value, IdColor = s.IdColor ?? 0, s.CantidadActual })
+                .ToListAsync();
+
+            var map = saldos
+                .GroupBy(x => (x.IdProducto, x.IdColor))
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.CantidadActual));
+
+            var conStock = new List<ProductoCatalogoPedidoLinea>();
+            var fabricacion = new List<ProductoCatalogoPedidoLinea>();
+
+            foreach (var p in productos)
+            {
+                decimal sumaPt = 0m;
+                foreach (var c in colores)
+                {
+                    var st = map.TryGetValue((p.Id, c.Id), out var v) ? v : 0m;
+                    sumaPt += st;
+                    if (st > 0m)
+                    {
+                        conStock.Add(new ProductoCatalogoPedidoLinea
+                        {
+                            Id = p.Id,
+                            Nombre = p.Nombre,
+                            IdCategoria = p.IdCategoria ?? 0,
+                            Categoria = p.IdCategoriaNavigation?.Nombre ?? "",
+                            PorcGanancia = p.PorcGanancia ?? 0m,
+                            PorcIva = p.PorcIva,
+                            CostoUnitario = p.CostoUnitario,
+                            IdColor = c.Id,
+                            Color = c.Nombre,
+                            Stock = st
+                        });
+                    }
+                }
+
+                if (sumaPt <= 0m)
+                {
+                    fabricacion.Add(new ProductoCatalogoPedidoLinea
+                    {
+                        Id = p.Id,
+                        Nombre = p.Nombre,
+                        IdCategoria = p.IdCategoria ?? 0,
+                        Categoria = p.IdCategoriaNavigation?.Nombre ?? "",
+                        PorcGanancia = p.PorcGanancia ?? 0m,
+                        PorcIva = p.PorcIva,
+                        CostoUnitario = p.CostoUnitario,
+                        IdColor = 0,
+                        Color = "\u2014",
+                        Stock = 0m
+                    });
+                }
+            }
+
+            var conStockDistinct = conStock
+                .GroupBy(x => new { x.Id, x.IdColor })
+                .Select(g => g.First())
+                .ToList();
+
+            return new CatalogoPedidoModalResult
+            {
+                LineasConStock = conStockDistinct,
+                LineasFabricacion = fabricacion
+            };
         }
 
 

@@ -17,17 +17,9 @@ public partial class SistemaBronxContext : DbContext
     {
     }
 
+
     private readonly IConfiguration _configuration;
 
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured)
-        {
-            var connectionString = _configuration.GetConnectionString("SistemaDB");
-            optionsBuilder.UseSqlServer(connectionString);
-        }
-    }
 
     public virtual DbSet<Cliente> Clientes { get; set; }
 
@@ -98,6 +90,16 @@ public partial class SistemaBronxContext : DbContext
     public virtual DbSet<UnidadesDeMedida> UnidadesDeMedida { get; set; }
 
     public virtual DbSet<User> Usuarios { get; set; }
+
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            var connectionString = _configuration.GetConnectionString("SistemaDB");
+            optionsBuilder.UseSqlServer(connectionString);
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -647,6 +649,10 @@ public partial class SistemaBronxContext : DbContext
                 .IsUnicode(false)
                 .IsFixedLength();
 
+            entity.HasOne(d => d.IdColorNavigation).WithMany(p => p.StockMovimientosDetalles)
+                .HasForeignKey(d => d.IdColor)
+                .HasConstraintName("FK_StockMovimientosDetalle_Colores");
+
             entity.HasOne(d => d.IdInsumoNavigation).WithMany(p => p.StockMovimientosDetalles)
                 .HasForeignKey(d => d.IdInsumo)
                 .HasConstraintName("FK_StockMov_Detalle_Insumo");
@@ -674,6 +680,10 @@ public partial class SistemaBronxContext : DbContext
                 .HasMaxLength(1)
                 .IsUnicode(false)
                 .IsFixedLength();
+
+            entity.HasOne(d => d.IdColorNavigation).WithMany(p => p.StockSaldos)
+                .HasForeignKey(d => d.IdColor)
+                .HasConstraintName("FK_StockSaldos_Colores");
 
             entity.HasOne(d => d.IdInsumoNavigation).WithMany(p => p.StockSaldos)
                 .HasForeignKey(d => d.IdInsumo)

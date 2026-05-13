@@ -11,9 +11,14 @@ namespace SistemaBronx.BLL.Service
         Task<List<Producto>> ObtenerTodos();
         Task<IQueryable<ProductosCategoria>> ObtenerCategorias();
 
-        Task<List<ProductosInsumo>> ObtenerInsumos(int idProducto);
+        Task<List<ProductosInsumo>> ObtenerInsumos(int idProducto, int? idColorFiltro = null);
+
+        Task<decimal> ObtenerStockSaldoProductoAsync(int idProducto, int? idColorFiltro = null);
+
         Task<bool> ActualizarInsumos(List<ProductosInsumo> insumos);
 
         Task<bool> ActualizarSoloProducto(Producto model);
+
+        Task<CatalogoPedidoModalResult> ObtenerCatalogoPedidoModalAsync();
     }
 }

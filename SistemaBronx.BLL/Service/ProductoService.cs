@@ -47,15 +47,21 @@ namespace SistemaBronx.BLL.Service
             return await _contactRepo.ActualizarInsumos(productos);
         }
 
-        public async Task<List<ProductosInsumo>> ObtenerInsumos(int idProducto)
+        public async Task<List<ProductosInsumo>> ObtenerInsumos(int idProducto, int? idColorFiltro = null)
         {
-            return await _contactRepo.ObtenerInsumos(idProducto);
+            return await _contactRepo.ObtenerInsumos(idProducto, idColorFiltro);
         }
+
+        public Task<decimal> ObtenerStockSaldoProductoAsync(int idProducto, int? idColorFiltro = null)
+            => _contactRepo.ObtenerStockSaldoProductoAsync(idProducto, idColorFiltro);
 
         // ⬇⬇⬇ NUEVO
         public async Task<bool> ActualizarSoloProducto(Producto model)
         {
             return await _contactRepo.ActualizarSoloProducto(model);
         }
+
+        public Task<CatalogoPedidoModalResult> ObtenerCatalogoPedidoModalAsync()
+            => _contactRepo.ObtenerCatalogoPedidoModalAsync();
     }
 }
