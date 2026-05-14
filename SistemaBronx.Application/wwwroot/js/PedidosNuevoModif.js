@@ -318,7 +318,7 @@ function setPedidoModalPane(pane, opts) {
     const tituloLista = document.getElementById("pedModalListaTitulo");
     if (tituloLista) {
         if (p === "fab") {
-            tituloLista.textContent = "Productos sin stock terminado (elegí el color al añadir)";
+            tituloLista.textContent = "Todos los productos — fabricación con insumos (elegí el color al añadir)";
         } else if (p === "pt") {
             tituloLista.textContent = "Productos con stock (terminados)";
         }
@@ -890,7 +890,8 @@ async function configurarDataTableProductosModal(data) {
 
                             $(this).addClass('selected');
                             $('td', this).addClass('selected');
-                            _pedModalLineaEsFabricacion = (parseFloat(data.Stock) || 0) <= 0;
+                            _pedModalLineaEsFabricacion =
+                                pedidoModalPaneActivo === "fab" || (parseFloat(data.Stock) || 0) <= 0;
 
                             if (!isEditingProducto) {
                                 await cargarInformacionProducto(data.Id, data.IdColor, data.Color);
@@ -2087,7 +2088,6 @@ async function guardarProducto() {
 
     if (gridInsumosModal) {
         let errorStockInsumo = false;
-        const usaStockProductoModal = productoTerminadoUsaStockEnModal();
 
         gridInsumosModal.rows().every(function () {
 
@@ -2096,14 +2096,9 @@ async function guardarProducto() {
             const usaStock = Number(insumoData.UsaStock) === 1;
             if (!usaStock) return; // 🔥 SI NO USA STOCK → IGNORAR
 
-            const stockInsumo = parseFloat(insumoData.Stock ?? insumoData.StockDisponible ?? 0) || 0;
             const cantInsumo = parseFloat(insumoData.Cantidad || 0) || 0;
             const cantStockInsumo = parseFloat(insumoData.CantidadStock || 0) || 0;
 
-            // Si el stock viene del producto terminado, no validamos contra stock de depósito de insumo.
-            if (!usaStockProductoModal && cantStockInsumo > stockInsumo) {
-                errorStockInsumo = true;
-            }
             if (cantStockInsumo > cantInsumo) {
                 errorStockInsumo = true;
             }
@@ -2263,11 +2258,13 @@ async function ObtenerDatosCliente(id) {
 }
 
 async function ObtenerInsumosProducto(id, idColor) {
-    const idColorNum = idColor == null || idColor === '' ? NaN : Number(idColor);
+    const esFab = pedidoModalPaneActivo === "fab";
+    const idColorEfectivo = esFab ? null : idColor;
+    const idColorNum = idColorEfectivo == null || idColorEfectivo === '' ? NaN : Number(idColorEfectivo);
     const colorQ =
-        idColor == null || idColor === undefined || idColor === '' || idColorNum === 0 || Number.isNaN(idColorNum)
+        idColorEfectivo == null || idColorEfectivo === undefined || idColorEfectivo === '' || idColorNum === 0 || Number.isNaN(idColorNum)
             ? ''
-            : `&idColor=${encodeURIComponent(idColor)}`;
+            : `&idColor=${encodeURIComponent(idColorEfectivo)}`;
     const url = `/Productos/EditarInfo?Id=${id}${colorQ}`;
     const response = await fetch(url);
     const data = await response.json();
@@ -2306,7 +2303,7 @@ async function limpiarInformacionProducto() {
 
 async function cargarInformacionProducto(id, idColor, colorTextoProducto) {
     const miToken = ++tokenCargaProducto;
-    const cacheKey = claveCacheInsumosProducto(id, idColor);
+    const cacheKey = claveCacheInsumosProducto(id, pedidoModalPaneActivo === "fab" ? 0 : idColor);
 
     try {
         let data = null;
@@ -2340,7 +2337,8 @@ async function cargarInformacionProducto(id, idColor, colorTextoProducto) {
 async function procesarProducto(insumosProducto, idColorSeleccionado, colorTextoProducto) {
     if (!insumosProducto) return;
 
-    const insumos = normalizarArrayDataTable(insumosProducto.Insumos).map(i => ({
+    const rawInsumos = insumosProducto.Insumos ?? insumosProducto.insumos;
+    const insumos = normalizarArrayDataTable(rawInsumos).map(i => ({
         ...i,
         Stock: getStockDisponibleFila(i),
         StockDisponible: getStockDisponibleFila(i),
@@ -2355,17 +2353,7 @@ async function procesarProducto(insumosProducto, idColorSeleccionado, colorTexto
     if (gridInsumosModal == null) {
         configurarDataTableInsumosModal(insumos, false);
     } else {
-        const dt = gridInsumosModal;
-
-        // si cambia cantidad de filas → recién ahí rebuild
-        if (dt.rows().count() !== insumos.length) {
-            dt.clear().rows.add(insumos).draw(false);
-        } else {
-            dt.rows().every(function (i) {
-                this.data(insumos[i]);
-            });
-            dt.draw(false);
-        }
+        gridInsumosModal.clear().rows.add(insumos).draw(false);
     }
 
     let totalInsumos = 0;
@@ -3055,15 +3043,6 @@ async function guardarCambios(redirecciona = true) {
         function obtenerInsumos() {
             const insumos = [];
             let invalido = false;
-            const usaStockProductoPorDetalle = new Map();
-
-            gridProductos.rows().every(function () {
-                const p = this.data();
-                usaStockProductoPorDetalle.set(
-                    parseInt(p.Id, 10),
-                    (parseFloat(p.CantidadStockProducto || 0) || 0) > 0
-                );
-            });
 
             gridInsumos.rows().every(function () {
                 const i = this.data();
@@ -3073,16 +3052,10 @@ async function guardarCambios(redirecciona = true) {
                 }
 
                 const cantidad = parseFloat(i.Cantidad || 0) || 0;
-                const stockDisponible = parseFloat(i.Stock ?? i.StockDisponible ?? 0) || 0;
-                const detalleId = parseInt(i.IdDetalle, 10);
-                const insumoCubiertoPorStockProducto = usaStockProductoPorDetalle.get(detalleId) === true;
 
                 const cantidadStock = parseFloat(i.CantidadStock || 0) || 0;
                 const usaStock = cantidadStock > 0;
 
-                if (!insumoCubiertoPorStockProducto && cantidadStock > stockDisponible) {
-                    invalido = true;
-                }
                 if (cantidadStock > cantidad) {
                     invalido = true;
                 }
@@ -3277,11 +3250,10 @@ function isValidPedido() {
         const p = this.data();
 
         const cantidad = parseFloat(p.Cantidad || 0) || 0;
-        const stockDisponible = parseFloat(p.Stock || 0) || 0;
         const usaStockProducto = Number(p.UsaStockProducto || 0) === 1;
         const cantidadStockProducto = usaStockProducto ? (parseFloat(p.CantidadStockProducto || 0) || 0) : 0;
 
-        if (cantidadStockProducto > stockDisponible || cantidadStockProducto > cantidad) {
+        if (cantidadStockProducto > cantidad) {
             errorStockProducto = true;
         }
     });
@@ -3297,11 +3269,10 @@ function isValidPedido() {
         const i = this.data();
 
         const cantidad = parseFloat(i.Cantidad || 0) || 0;
-        const stockDisponible = parseFloat(i.Stock ?? i.StockDisponible ?? 0) || 0;
         const usaStock = Number(i.UsaStock || 0) === 1;
         const cantidadStock = usaStock ? (parseFloat(i.CantidadStock || 0) || 0) : 0;
 
-        if (cantidadStock > stockDisponible || cantidadStock > cantidad) {
+        if (cantidadStock > cantidad) {
             errorStockInsumo = true;
         }
 

@@ -426,8 +426,9 @@ namespace SistemaBronx.DAL.Repository
         }
 
         /// <summary>
-        /// Catálogo modal pedidos: PT por producto×color con saldo tipo P &gt; 0; fabricación = una fila por producto
-        /// cuya suma de saldos PT en todos los colores es 0 (el color no va en el listado).
+        /// Catálogo modal pedidos: PT = producto×color con saldo tipo P &gt; 0 en ese color;
+        /// fabricación = **un producto por fila** (todos los productos) con Stock = suma PT en todos los colores
+        /// (IdColor 0); permite armar pedido por insumos aunque exista stock terminado.
         /// </summary>
         public async Task<CatalogoPedidoModalResult> ObtenerCatalogoPedidoModalAsync()
         {
@@ -484,22 +485,20 @@ namespace SistemaBronx.DAL.Repository
                     }
                 }
 
-                if (sumaPt <= 0m)
+                // Siempre listado fabricación: todos los productos (una fila; color se elige al añadir).
+                fabricacion.Add(new ProductoCatalogoPedidoLinea
                 {
-                    fabricacion.Add(new ProductoCatalogoPedidoLinea
-                    {
-                        Id = p.Id,
-                        Nombre = p.Nombre,
-                        IdCategoria = p.IdCategoria ?? 0,
-                        Categoria = p.IdCategoriaNavigation?.Nombre ?? "",
-                        PorcGanancia = p.PorcGanancia ?? 0m,
-                        PorcIva = p.PorcIva,
-                        CostoUnitario = p.CostoUnitario,
-                        IdColor = 0,
-                        Color = "\u2014",
-                        Stock = 0m
-                    });
-                }
+                    Id = p.Id,
+                    Nombre = p.Nombre,
+                    IdCategoria = p.IdCategoria ?? 0,
+                    Categoria = p.IdCategoriaNavigation?.Nombre ?? "",
+                    PorcGanancia = p.PorcGanancia ?? 0m,
+                    PorcIva = p.PorcIva,
+                    CostoUnitario = p.CostoUnitario,
+                    IdColor = 0,
+                    Color = "\u2014",
+                    Stock = sumaPt
+                });
             }
 
             var conStockDistinct = conStock

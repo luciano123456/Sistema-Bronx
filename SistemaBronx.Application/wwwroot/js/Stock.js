@@ -1,6 +1,11 @@
-﻿// ============================== Stock.js (v5.3 con filtros + color) ==============================
+﻿// ============================== Stock.js (v5.6 con stock / agotados + filtros) ==============================
 let gridStock = null;
 let gridHistorial = null;
+
+/** Todos los saldos devueltos por el servidor (solo ítems con al menos un movimiento en StockSaldos). */
+let stockSaldosCompleto = [];
+/** Si es true, la grilla incluye saldo ≤ 0; si false, solo CantidadActual > 0. */
+let stockMostrarAgotados = false;
 
 // contexto actual del historial (para recargar después de anular/restaurar/eliminar)
 let histContext = {
@@ -54,6 +59,10 @@ function formatDateTimeAR(value) {
    ON LOAD
 ============================================================ */
 $(document).ready(async () => {
+    $("#stockToggleAgotados").on("change", function () {
+        stockMostrarAgotados = $(this).prop("checked");
+        refrescarVistaStockPrincipal();
+    });
     await cargarStock();
 });
 
@@ -97,16 +106,61 @@ function editarMovimientoConContexto(idMovimiento, tipoItem, idProducto, idInsum
 
 /* ============================================================
    LISTA STOCK (Saldos)
+   El servidor solo devuelve filas de StockSaldos → siempre hubo al menos un movimiento.
 ============================================================ */
+function stockSaldoConCantidadPositiva(row) {
+    return Number(row.CantidadActual || 0) > 0;
+}
+
+function stockFiltrarSaldosVista(rows) {
+    if (!Array.isArray(rows)) return [];
+    if (stockMostrarAgotados) return rows.slice();
+    return rows.filter(stockSaldoConCantidadPositiva);
+}
+
+function actualizarKpiStock(countVisible, totalConHistorial) {
+    $("#kpiItemsStock").text(countVisible.toLocaleString("es-AR"));
+    const $lbl = $("#kpiItemsStockLabel");
+    if ($lbl.length) {
+        $lbl.text(stockMostrarAgotados ? "Con historial (todos)" : "Con stock (> 0)");
+    }
+    const $sub = $("#kpiItemsStockSub");
+    if ($sub.length) {
+        if (stockMostrarAgotados) {
+            $sub.text(
+                totalConHistorial > 0
+                    ? `Incluye agotados y saldo cero · ${totalConHistorial.toLocaleString("es-AR")} líneas de saldo`
+                    : ""
+            );
+        } else {
+            const agot = totalConHistorial - countVisible;
+            $sub.text(
+                agot > 0
+                    ? `${agot.toLocaleString("es-AR")} sin stock ahora · activá «Ver agotados»`
+                    : "Todo lo que tuvo movimientos tiene stock > 0"
+            );
+        }
+    }
+}
+
+function refrescarVistaStockPrincipal() {
+    const visible = stockFiltrarSaldosVista(stockSaldosCompleto);
+    if (gridStock) {
+        gridStock.clear().rows.add(visible).draw(false);
+    } else {
+        renderTablaStock(visible);
+    }
+    actualizarKpiStock(visible.length, stockSaldosCompleto.length);
+}
+
 async function cargarStock() {
     try {
         const resp = await fetch("/Stock/Saldos");
         if (!resp.ok) throw new Error("Error HTTP en Saldos");
 
-        const data = await resp.json() || [];
-        renderTablaStock(data);
-
-        $("#kpiItemsStock").text(data.length.toLocaleString("es-AR"));
+        const data = (await resp.json()) || [];
+        stockSaldosCompleto = Array.isArray(data) ? data : [];
+        refrescarVistaStockPrincipal();
     } catch (e) {
         console.error(e);
         if (typeof errorModal === "function") errorModal("No se pudo cargar el stock.");

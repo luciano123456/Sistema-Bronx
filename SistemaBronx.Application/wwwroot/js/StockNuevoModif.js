@@ -646,6 +646,16 @@ function renderHtmlCeldaItem(tipoChar, rowUid) {
             </div>
             <div class="stock-bom-wrap d-none">
                 <span class="stock-field-label stock-field-label--sub">Insumos de la ficha</span>
+                <div class="stock-bom-factor-row">
+                    <div class="stock-bom-factor-field">
+                        <label class="stock-field-label stock-field-label--sub mb-1" for="stock_bom_fac_${rowUid}">Cantidad de producto</label>
+                        <input id="stock_bom_fac_${rowUid}" type="number"
+                               class="form-control form-control-sm stock-input stock-bom-factor-cantidad text-center"
+                               min="0.001" step="any" value="1"
+                               title="Multiplica la cantidad de cada insumo según la ficha (ej.: insumo 4 en ficha × 3 aquí = 12)" />
+                    </div>
+                    <p class="stock-bom-factor-hint small mb-0">Cada insumo = cantidad en ficha × este valor.</p>
+                </div>
                 <div class="stock-bom-actions d-none">
                     <button type="button" class="btn btn-link btn-sm p-0 stock-bom-marcar-todos">Marcar todos</button>
                     <span class="stock-bom-actions-sep">·</span>
@@ -789,6 +799,30 @@ function leerIdColorBomLinea($line) {
     return normalizarIdColorStock($line.find(".stock-bom-color-select").val());
 }
 
+/** Unidades de producto en modo BOM: cantidad por insumo = cantidad en ficha × factor. */
+function leerFactorCantidadBomProducto($row) {
+    const n = Number($row.find(".stock-bom-factor-cantidad").val() || 0);
+    return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
+function aplicarFactorCantidadBom($row) {
+    if (!esCantidadPorBomInsumos($row)) {
+        return;
+    }
+    const factor = leerFactorCantidadBomProducto($row);
+    $row.find('[data-field="Cantidad"]').val(String(factor));
+
+    $row.find(".stock-bom-line").each(function () {
+        const $line = $(this);
+        const base = parseFloat($line.attr("data-stock-cant-ficha") || "0") || 0;
+        const b = base > 0 ? base : 1;
+        const qty = b * factor;
+        $line.find(".stock-bom-qty").val(String(qty));
+    });
+    syncEstadoCantidadesBom($row);
+    actualizarCostoSubFila($row);
+}
+
 /** Lista de checkboxes: uno o varios insumos de la ficha del producto. */
 async function renderBomCheckList($row, idProducto) {
     const $list = $row.find(".stock-bom-check-list");
@@ -818,19 +852,29 @@ async function renderBomCheckList($row, idProducto) {
 
         $actions.removeClass("d-none");
 
+        const $facInp = $row.find(".stock-bom-factor-cantidad");
+        const mainQ = Number($row.find('[data-field="Cantidad"]').val() || 0);
+        $facInp.val(String(Number.isFinite(mainQ) && mainQ > 0 ? mainQ : 1));
+
         const uid = String($row.data("stock-row") || "0");
 
         arr.forEach(x => {
-            const idIns = Number(x.IdInsumo || 0);
+            const idIns = Number(x.idInsumo ?? x.IdInsumo ?? 0);
             if (!idIns) {
                 return;
             }
             const cat = CATALOGO_INSUMOS.find(c => Number(c.Id) === idIns);
-            const nom = String((x.Nombre || cat?.Nombre || "Insumo")).trim();
+            const nom = String(x.nombre ?? x.Nombre ?? cat?.Nombre ?? "Insumo").trim();
             const prov = (cat && cat.Proveedor) ? String(cat.Proveedor).trim() : "";
             const chkId = `stock-bom-chk-${uid}-${idIns}`;
 
-            const $line = $("<div>").addClass("stock-bom-line");
+            const cantidadFicha = Number(x.cantidad ?? x.Cantidad ?? 0);
+            const cantidadDefecto =
+                Number.isFinite(cantidadFicha) && cantidadFicha > 0 ? cantidadFicha : 1;
+
+            const $line = $("<div>")
+                .addClass("stock-bom-line")
+                .attr("data-stock-cant-ficha", String(cantidadDefecto));
             const $chk = $("<input>", {
                 type: "checkbox",
                 class: "stock-bom-chk",
@@ -852,7 +896,7 @@ async function renderBomCheckList($row, idProducto) {
                     type: "number",
                     class: "form-control form-control-sm stock-input stock-bom-qty text-center",
                     min: "0.001",
-                    step: "0.001",
+                    step: "any",
                     value: "1"
                 })
             );
@@ -874,13 +918,15 @@ async function renderBomCheckList($row, idProducto) {
             $list.append($line);
         });
 
-        const baseCant = Number($row.find('[data-field="Cantidad"]').val() || 0) || 1;
-        $row.find(".stock-bom-qty").val(String(baseCant));
+        $row.find(".stock-bom-factor-cantidad")
+            .off("input.stockbomfac change.stockbomfac")
+            .on("input.stockbomfac change.stockbomfac", () => aplicarFactorCantidadBom($row));
+
         $row.find(".stock-bom-chk").prop("checked", true);
         $row.find(".stock-bom-line").each(function () {
             enlazarSelect2ColorBomLinea($(this), $row);
         });
-        syncEstadoCantidadesBom($row);
+        aplicarFactorCantidadBom($row);
         actualizarEstadoColorPrincipalEnFila($row);
     } catch (e) {
         console.error(e);
@@ -1149,7 +1195,7 @@ function inicializarFilaModal($row) {
             });
             // Selección múltiple de líneas para edición masiva (separada del check).
             $row.off("click.bomselect").on("click.bomselect", ".stock-bom-line", function (e) {
-                if ($(e.target).closest(".stock-bom-chk, .stock-bom-qty, .stock-bom-color-wrap, .stock-bom-color-select, .select2-container, .select2-selection").length) {
+                if ($(e.target).closest(".stock-bom-chk, .stock-bom-qty, .stock-bom-color-wrap, .stock-bom-color-select, .stock-bom-factor-row, .select2-container, .select2-selection").length) {
                     return;
                 }
                 toggleSeleccionBomLineaConCtrl($row, $(this), e);

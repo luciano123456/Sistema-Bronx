@@ -162,22 +162,6 @@ namespace SistemaBronx.Application.Controllers
                 var pedidoDetalle = MapearDetallesProductoDesdeVm(model);
                 var pedidoDetalleProceso = MapearDetallesProcesoDesdeVm(model);
 
-                var validacion = await _PedidosService.ValidarStockPedido(
-                    pedidoDetalle.AsQueryable(),
-                    pedidoDetalleProceso.AsQueryable()
-                );
-
-                if (!validacion.ok)
-                {
-                    return BadRequest(new
-                    {
-                        valor = false,
-                        stock = false,
-                        errores = validacion.errores,
-                        msg = "Stock insuficiente para registrar el pedido."
-                    });
-                }
-
                 var resultado = await _PedidosService.Insertar(
                     pedido,
                     pedidoDetalle.AsQueryable(),
@@ -204,7 +188,7 @@ namespace SistemaBronx.Application.Controllers
         {
             try
             {
-                var pedido = await _PedidosService.ObtenerPedido(model.Id);
+                var (pedido, _, _) = await _PedidosService.ObtenerPedido(model.Id);
                 if (pedido == null)
                     return NotFound(new { valor = false, msg = "El pedido no existe." });
 
@@ -224,22 +208,6 @@ namespace SistemaBronx.Application.Controllers
 
                 var pedidoDetalle = MapearDetallesProductoDesdeVm(model);
                 var pedidoDetalleProceso = MapearDetallesProcesoDesdeVm(model);
-
-                var validacion = await _PedidosService.ValidarStockPedido(
-                    pedidoDetalle.AsQueryable(),
-                    pedidoDetalleProceso.AsQueryable()
-                );
-
-                if (!validacion.ok)
-                {
-                    return BadRequest(new
-                    {
-                        valor = false,
-                        stock = false,
-                        errores = validacion.errores,
-                        msg = "Stock insuficiente para actualizar el pedido."
-                    });
-                }
 
                 var resultado = await _PedidosService.Actualizar(
                     pedido,
@@ -270,6 +238,12 @@ namespace SistemaBronx.Application.Controllers
                 if (model == null)
                     return BadRequest(new { valor = false, msg = "No se recibieron datos del detalle." });
 
+                // Stock usado: primero por flags UsaStock/CantidadStock; si da 0 pero el cliente envía CantidadUsadaStock (p. ej. Fabricaciones), conservar ese valor.
+                var cantidadUsadaDesdeFlags = ObtenerCantidadUsadaStockInsumo(model);
+                var cantidadUsadaStock = cantidadUsadaDesdeFlags;
+                if (cantidadUsadaStock <= 0 && model.CantidadUsadaStock.HasValue && model.CantidadUsadaStock.Value > 0)
+                    cantidadUsadaStock = model.CantidadUsadaStock.Value;
+
                 var pedidoDetalleProceso = new PedidosDetalleProceso
                 {
                     Id = model.Id,
@@ -280,7 +254,7 @@ namespace SistemaBronx.Application.Controllers
                     IdColor = model.IdColor,
                     FechaActualizacion = DateTime.Now,
                     IdEstado = model.IdEstado,
-                    CantidadUsadaStock = ObtenerCantidadUsadaStockInsumo(model)
+                    CantidadUsadaStock = cantidadUsadaStock
                 };
 
                 var resultado = await _PedidosService.ActualizarDetalleProceso(pedidoDetalleProceso);
@@ -426,7 +400,7 @@ namespace SistemaBronx.Application.Controllers
                 if (idPedido <= 0)
                     return Ok(new { });
 
-                var pedido = await _PedidosService.ObtenerPedido(idPedido);
+                var (pedido, stockDepositoPorIdDetalle, stockDepositoPorIdProceso) = await _PedidosService.ObtenerPedido(idPedido);
 
                 if (pedido == null)
                     return NotFound(new { valor = false, msg = "No se encontró el pedido." });
@@ -467,7 +441,7 @@ namespace SistemaBronx.Application.Controllers
                     pedidoDetalle = pedido.PedidosDetalles.Select(detalle =>
                     {
                         var cantidadUsadaStock = detalle.CantidadUsadaStock ?? 0;
-                        var stockProducto = detalle.StockDisponibleDeposito;
+                        var stockProducto = stockDepositoPorIdDetalle.TryGetValue(detalle.Id, out var sp) ? sp : 0m;
 
                         return new VMPedidoDetalle
                         {
@@ -517,7 +491,7 @@ namespace SistemaBronx.Application.Controllers
                     pedidoDetalleProceso = pedido.PedidosDetalleProcesos.Select(detalleProceso =>
                     {
                         var cantidadUsadaStock = detalleProceso.CantidadUsadaStock ?? 0;
-                        var stockInsumo = detalleProceso.StockDisponibleDeposito;
+                        var stockInsumo = stockDepositoPorIdProceso.TryGetValue(detalleProceso.Id, out var si) ? si : 0m;
                         var cantLinea = detalleProceso.Cantidad ?? 0m;
                         decimal qProd = 1m;
                         if (detalleProceso.IdDetalle.HasValue &&

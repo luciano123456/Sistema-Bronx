@@ -1,5 +1,6 @@
 ﻿using SistemaBronx.DAL.Repository;
 using SistemaBronx.Models;
+using System.Collections.Generic;
 
 namespace SistemaBronx.BLL.Service
 {
@@ -17,9 +18,9 @@ namespace SistemaBronx.BLL.Service
             return await _contactRepo.Actualizar(pedido, pedidosDetalle, pedidosDetalleProceso);
         }
 
-        public async Task<bool> ActualizarDetalleProceso(PedidosDetalleProceso pedidosDetalleProceso)
+        public async Task<bool> ActualizarDetalleProceso(PedidosDetalleProceso pedidosDetalleProceso, bool resincronizarStockPedido = true)
         {
-            return await _contactRepo.ActualizarDetalleProceso(pedidosDetalleProceso);
+            return await _contactRepo.ActualizarDetalleProceso(pedidosDetalleProceso, resincronizarStockPedido);
         }
 
         public async Task<bool> EliminarInsumo(int IdPedido, int IdInsumo)
@@ -57,7 +58,7 @@ namespace SistemaBronx.BLL.Service
             return await _contactRepo.ObtenerDetalleProcesosFiltrado(incluirFinalizados);
         }
 
-        public async Task<Pedido> ObtenerPedido(int pedidoId)
+        public async Task<(Pedido Pedido, Dictionary<int, decimal> StockDepositoPorIdDetalle, Dictionary<int, decimal> StockDepositoPorIdProceso)> ObtenerPedido(int pedidoId)
         {
             return await _contactRepo.ObtenerPedido(pedidoId);
         }

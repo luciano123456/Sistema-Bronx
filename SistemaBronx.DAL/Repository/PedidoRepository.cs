@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SistemaBronx.DAL.DataContext;
 using SistemaBronx.Models;
+using System.Collections.Generic;
 
 namespace SistemaBronx.DAL.Repository
 {
@@ -223,7 +224,8 @@ namespace SistemaBronx.DAL.Repository
         private async Task<(bool ok, List<string> errores)> ValidarStockInternoAsync(
      List<PedidosDetalle> pedidosDetalle,
      List<PedidosDetalleProceso> pedidosDetalleProceso,
-     int? idPedidoActual = null)
+     int? idPedidoActual = null,
+     bool exigirSaldoSuficiente = false)
         {
             var errores = new List<string>();
 
@@ -315,7 +317,7 @@ namespace SistemaBronx.DAL.Repository
                         .FirstOrDefaultAsync() ?? $"Insumo #{item.IdInsumo.Value}";
                 }
 
-                if (disponible < item.Cantidad)
+                if (exigirSaldoSuficiente && disponible < item.Cantidad)
                 {
                     var faltante = item.Cantidad - disponible;
 
@@ -516,7 +518,8 @@ namespace SistemaBronx.DAL.Repository
             var validacion = await ValidarStockInternoAsync(
      detalles,
      procesos,
-     idPedido
+     idPedido,
+     exigirSaldoSuficiente: false
  );
 
             if (!validacion.ok)
@@ -537,8 +540,8 @@ namespace SistemaBronx.DAL.Repository
                 var detalles = pedidosDetalle?.ToList() ?? new List<PedidosDetalle>();
                 var procesos = pedidosDetalleProceso?.ToList() ?? new List<PedidosDetalleProceso>();
 
-                // 🔥 VALIDAR STOCK
-                var validacion = await ValidarStockInternoAsync(detalles, procesos);
+                // Stock: no se bloquea el alta por saldo insuficiente (saldo puede quedar negativo).
+                var validacion = await ValidarStockInternoAsync(detalles, procesos, null, exigirSaldoSuficiente: false);
                 if (!validacion.ok)
                     throw new Exception(string.Join(" | ", validacion.errores));
 
@@ -656,7 +659,7 @@ namespace SistemaBronx.DAL.Repository
                 /* ============================================================
                    2) VALIDAR STOCK (teniendo en cuenta lo ya consumido)
                 ============================================================ */
-                var validacion = await ValidarStockInternoAsync(detalles, procesos, pedido.Id);
+                var validacion = await ValidarStockInternoAsync(detalles, procesos, pedido.Id, exigirSaldoSuficiente: false);
 
                 if (!validacion.ok)
                     throw new Exception(string.Join(" | ", validacion.errores));
@@ -855,7 +858,7 @@ namespace SistemaBronx.DAL.Repository
         /* ============================================================
            ACTUALIZAR DETALLE PROCESO
         ============================================================ */
-        public async Task<bool> ActualizarDetalleProceso(PedidosDetalleProceso pedidosDetalleProceso)
+        public async Task<bool> ActualizarDetalleProceso(PedidosDetalleProceso pedidosDetalleProceso, bool resincronizarStockPedido = true)
         {
             using var transaction = await _dbcontext.Database.BeginTransactionAsync();
             try
@@ -866,7 +869,7 @@ namespace SistemaBronx.DAL.Repository
                 if (pedidoDetalleExistente == null)
                     return false;
 
-                pedidoDetalleExistente.Cantidad = pedidosDetalleProceso.Cantidad;
+                pedidoDetalleExistente.Cantidad = pedidosDetalleProceso.Cantidad ?? pedidoDetalleExistente.Cantidad;
                 pedidoDetalleExistente.Comentarios = pedidosDetalleProceso.Comentarios;
                 pedidoDetalleExistente.Descripcion = pedidosDetalleProceso.Descripcion;
                 pedidoDetalleExistente.Especificacion = pedidosDetalleProceso.Especificacion;
@@ -878,9 +881,12 @@ namespace SistemaBronx.DAL.Repository
                 _dbcontext.Entry(pedidoDetalleExistente).CurrentValues.SetValues(pedidoDetalleExistente);
                 await _dbcontext.SaveChangesAsync();
 
-                await ResincronizarStockPedidoDesdeDbAsync(pedidoDetalleExistente.IdPedido ?? 0);
+                if (resincronizarStockPedido)
+                {
+                    await ResincronizarStockPedidoDesdeDbAsync(pedidoDetalleExistente.IdPedido ?? 0);
+                    await _dbcontext.SaveChangesAsync();
+                }
 
-                await _dbcontext.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return true;
             }
@@ -1033,8 +1039,11 @@ namespace SistemaBronx.DAL.Repository
             }
         }
 
-        public async Task<Pedido> ObtenerPedido(int pedidoId)
+        public async Task<(Pedido Pedido, Dictionary<int, decimal> StockDepositoPorIdDetalle, Dictionary<int, decimal> StockDepositoPorIdProceso)> ObtenerPedido(int pedidoId)
         {
+            var emptyStockDet = new Dictionary<int, decimal>();
+            var emptyStockProc = new Dictionary<int, decimal>();
+
             try
             {
                 var pedido = await _dbcontext.Pedidos
@@ -1069,10 +1078,14 @@ namespace SistemaBronx.DAL.Repository
                     .FirstOrDefaultAsync(p => p.Id == pedidoId);
 
                 if (pedido == null)
-                    return null;
+                    return (null, emptyStockDet, emptyStockProc);
+
+                var stockPorIdDetalle = new Dictionary<int, decimal>();
+                var stockPorIdProceso = new Dictionary<int, decimal>();
 
                 /* ============================================================
                    STOCK POR COLOR (saldos reales por línea de detalle / proceso)
+                   — no se persiste en la entidad; solo diccionarios para la capa de presentación.
                 ============================================================ */
                 var productosIds = pedido.PedidosDetalles
                     .Where(x => x.IdProducto.HasValue)
@@ -1105,7 +1118,7 @@ namespace SistemaBronx.DAL.Repository
                             ((s.IdColor ?? 0) == c || (c != 0 && (s.IdColor ?? 0) == 0)))
                         .Sum(s => s.CantidadActual);
 
-                    det.StockDisponibleDeposito = qty;
+                    stockPorIdDetalle[det.Id] = qty;
                 }
 
                 foreach (var proc in pedido.PedidosDetalleProcesos)
@@ -1121,14 +1134,14 @@ namespace SistemaBronx.DAL.Repository
                             ((s.IdColor ?? 0) == c || (c != 0 && (s.IdColor ?? 0) == 0)))
                         .Sum(s => s.CantidadActual);
 
-                    proc.StockDisponibleDeposito = qty;
+                    stockPorIdProceso[proc.Id] = qty;
                 }
 
-                return pedido;
+                return (pedido, stockPorIdDetalle, stockPorIdProceso);
             }
             catch
             {
-                return null;
+                return (null, emptyStockDet, emptyStockProc);
             }
         }
 
@@ -1315,7 +1328,7 @@ namespace SistemaBronx.DAL.Repository
             var detallesList = pedidosDetalle?.ToList() ?? new List<PedidosDetalle>();
             var procesosList = pedidosDetalleProceso?.ToList() ?? new List<PedidosDetalleProceso>();
 
-            return await ValidarStockInternoAsync(detallesList, procesosList);
+            return await ValidarStockInternoAsync(detallesList, procesosList, idPedidoActual: null, exigirSaldoSuficiente: true);
         }
 
         public async Task<(bool ok, decimal disponible, decimal faltante, string nombre)> ObtenerDisponibilidadStock(

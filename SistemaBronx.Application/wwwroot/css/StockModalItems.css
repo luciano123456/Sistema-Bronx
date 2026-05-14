@@ -330,6 +330,34 @@
 }
 
 /* Lista BOM: varios insumos con checkbox */
+.stock-bom-factor-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.65rem 1rem;
+    margin: 0.35rem 0 0.65rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.stock-bom-factor-field {
+    min-width: 6.5rem;
+    max-width: 10rem;
+}
+
+.stock-bom-factor-field .stock-bom-factor-cantidad {
+    max-width: 8rem;
+}
+
+.stock-bom-factor-hint {
+    color: #7a8bad;
+    flex: 1 1 12rem;
+    line-height: 1.35;
+    align-self: center;
+}
+
 .stock-bom-actions {
     display: flex;
     align-items: center;

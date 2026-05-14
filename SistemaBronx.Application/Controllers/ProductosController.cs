@@ -58,7 +58,7 @@ namespace SistemaBronx.Application.Controllers
 
         /// <summary>
         /// Catálogo para el modal de pedidos: con stock = producto×color con stock PT &gt; 0;
-        /// fabricación = un producto por fila si no hay stock PT en ningún color (el color se elige al añadir).
+        /// fabricación = todos los productos (una fila c/u; Stock = suma PT; color al añadir).
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> CatalogoPedidoModal()

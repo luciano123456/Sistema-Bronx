@@ -48,9 +48,12 @@ namespace SistemaBronx.Application.Models.ViewModels
 
         public bool UsaStock { get; set; }
         public decimal? CantidadStock { get; set; }
+
+        /// <summary>Stock de insumo ya consumido en esta línea (persistido en DB). Incluido en listados p. ej. Fabricaciones para no pisar el valor al guardar en línea.</summary>
+        public decimal? CantidadUsadaStock { get; set; }
         public decimal? Stock { get; set; }
         public decimal? StockDisponible { get; set; }
-        public string Nombre { get; set; }
+        public string? Nombre { get; set; }
 
 
         public int? IdEstado { get; set; }

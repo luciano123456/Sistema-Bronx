@@ -1,6 +1,23 @@
 ﻿let gridFabricaciones;
 let isEditing = false;
 let filasSeleccionadas = []; // Array para almacenar las filas seleccionadas
+/** Ancla para selección con Shift (misma grilla). */
+let ultimaFilaSeleccionadaFabricaciones = null;
+
+function fabricacionesLimpiarSeleccionVisual() {
+    filasSeleccionadas = [];
+    ultimaFilaSeleccionadaFabricaciones = null;
+    $('#grd_Fabricaciones tbody tr').removeClass('seleccionada');
+    $('#grd_Fabricaciones tbody tr td').removeClass('seleccionada');
+}
+
+/** Caché de catálogos para edición en línea (evita un fetch por doble clic). */
+let _fabCacheColoresLista = null;
+let _fabCacheEstadosLista = null;
+function fabricacionesInvalidarCachesCatalogos() {
+    _fabCacheColoresLista = null;
+    _fabCacheEstadosLista = null;
+}
 
 const columnConfig = [
     { index: 0, filterType: 'text' },
@@ -51,6 +68,7 @@ $(document).ready(() => {
 async function listaFabricaciones(incluirFinalizados) {
     const url = `/Fabricaciones/Lista?incluirFinalizados=${incluirFinalizados ? 'true' : 'false'}`;
     try {
+        fabricacionesInvalidarCachesCatalogos();
         mostrarOverlay(true);
         const response = await fetch(url, { cache: 'no-store' });
         const data = await response.json();
@@ -145,8 +163,6 @@ async function configurarDataTable(data, incluirFinalizados) {
             ],
 
             orderCellsTop: true,
-            fixedHeader: false,
-
             fixedHeader: false,
 
             initComplete: async function () {
@@ -280,7 +296,6 @@ async function configurarDataTable(data, incluirFinalizados) {
         });
 
         // ===== eventos de grilla (tu código tal cual) =====
-        var ultimaFilaSeleccionada = null;
         var dobleclick = false;
 
         gridFabricaciones.on('draw', function () {
@@ -310,10 +325,10 @@ async function configurarDataTable(data, incluirFinalizados) {
                     fila.removeClass('seleccionada');
                     $('td', fila).removeClass('seleccionada');
                 }
-            } else if (shiftPresionado && ultimaFilaSeleccionada) {
+            } else if (shiftPresionado && ultimaFilaSeleccionadaFabricaciones) {
                 var filas = $('#grd_Fabricaciones tbody tr');
                 var indexActual = filas.index(fila);
-                var indexUltima = filas.index(ultimaFilaSeleccionada);
+                var indexUltima = filas.index(ultimaFilaSeleccionadaFabricaciones);
                 var inicio = Math.min(indexActual, indexUltima);
                 var fin = Math.max(indexActual, indexUltima);
 
@@ -334,7 +349,7 @@ async function configurarDataTable(data, incluirFinalizados) {
                     $('td', fila).addClass('seleccionada');
                 }
             }
-            ultimaFilaSeleccionada = fila[0];
+            ultimaFilaSeleccionadaFabricaciones = fila[0];
         });
 
         $('#grd_Fabricaciones tbody').on('dblclick', 'tr', function () {
@@ -350,22 +365,33 @@ async function configurarDataTable(data, incluirFinalizados) {
             var colIndex = cell.index().column;
             var rowData = gridFabricaciones.row($(this).closest('tr')).data();
 
-            if (colIndex == 0 || colIndex == 1 || colIndex == 2 || colIndex == 3 || colIndex == 4 || colIndex == 9 || colIndex == 10 || colIndex == 12) {
+            // No editar: acciones, pedido, detalle, producto, insumo, descripción, categoría, fecha, proveedor, cliente
+            if (
+                colIndex === 0 ||
+                colIndex === 1 ||
+                colIndex === 2 ||
+                colIndex === 3 ||
+                colIndex === 4 ||
+                colIndex === 9 ||
+                colIndex === 10 ||
+                colIndex === 11 ||
+                colIndex === 12 ||
+                colIndex === 13
+            ) {
                 return;
-            }
-
-            if (isEditing == true) {
-                return;
-            } else {
-                isEditing = true;
-            }
-
-            if ($(this).hasClass('blinking')) {
-                $(this).removeClass('blinking');
             }
 
             if ($(this).find('input').length > 0 || $(this).find('select').length > 0) {
                 return;
+            }
+
+            if (isEditing === true) {
+                return;
+            }
+            isEditing = true;
+
+            if ($(this).hasClass('blinking')) {
+                $(this).removeClass('blinking');
             }
 
             if (colIndex === 6 || colIndex == 7) {
@@ -397,9 +423,9 @@ async function configurarDataTable(data, incluirFinalizados) {
                 });
 
                 if (colIndex == 6) {
-                    select.val(rowData.IdColor);
+                    select.val(rowData.IdColor != null ? rowData.IdColor : rowData.idColor);
                 } else if (colIndex == 7) {
-                    select.val(rowData.IdEstado);
+                    select.val(rowData.IdEstado != null ? rowData.IdEstado : rowData.idEstado);
                 }
 
                 var saveButton = $('<i class="fa fa-check text-success"></i>').on('click', function () {
@@ -460,103 +486,88 @@ async function configurarDataTable(data, incluirFinalizados) {
                 return [trActual];
             }
 
-            // === Reemplazo de saveEdit/cancelEdit ===
+            // === saveEdit / cancelEdit (edición en línea) ===
             async function saveEdit(colIndex, newText, newValue) {
                 const dt = gridFabricaciones;
-
-                // 1) Guardar estado de filtros ANTES de tocar datos
-                guardarFiltrosPantalla("#grd_Fabricaciones", "filtrosFabricaciones", true);
-
-                // 2) Calcular el índice visible de la columna editada
-                const visibleIndex = dt.column(colIndex).index('visible');
-
-                // 3) Determinar filas objetivo (multi-selección o fila actual)
                 const trActual = $(cell.node()).closest('tr')[0];
                 const filas = getFilasObjetivo(dt, typeof filasSeleccionadas !== 'undefined' ? filasSeleccionadas : [], trActual);
 
-                // 4) Edición en lote sin draw por cada fila
+                const peticiones = [];
+
                 for (let i = 0; i < filas.length; i++) {
                     const rowNode = filas[i];
                     const rowData = dt.row($(rowNode)).data();
+                    if (!rowData) continue;
 
-                    // Tomo el texto original (para evitar re-escrituras innecesarias)
-                    let originalText = dt.cell(rowNode, colIndex).data();
-                    // Si venía con HTML, me quedo con el texto plano
-                    if (typeof originalText === 'string') {
-                        const tmp = document.createElement('div');
-                        tmp.innerHTML = originalText;
-                        originalText = tmp.textContent.trim();
-                    }
+                    let changed = false;
 
-                    // Si no cambió, sigo con la próxima
-                    if (String(originalText) === String(newText)) {
-                        continue;
-                    }
-
-                    // 4.a) Actualizar el modelo según la columna
                     if (colIndex === 6) {
-                        // Color
-                        rowData.IdColor = (newValue === '' || newValue == null) ? null : parseInt(newValue, 10);
+                        const nv = newValue === '' || newValue == null ? null : parseInt(newValue, 10);
+                        const actual = rowData.IdColor != null ? rowData.IdColor : rowData.idColor;
+                        if (Number(actual ?? 0) === Number(nv ?? 0)) continue;
+                        rowData.IdColor = nv;
+                        rowData.idColor = nv;
                         rowData.Color = newText;
+                        changed = true;
                     } else if (colIndex === 7) {
-                        // Estado
-                        rowData.IdEstado = (newValue === '' || newValue == null) ? null : parseInt(newValue, 10);
+                        const nv = newValue === '' || newValue == null ? null : parseInt(newValue, 10);
+                        const actual = rowData.IdEstado != null ? rowData.IdEstado : rowData.idEstado;
+                        if (Number(actual ?? 0) === Number(nv ?? 0)) continue;
+                        rowData.IdEstado = nv;
+                        rowData.idEstado = nv;
                         rowData.Estado = newText;
+                        changed = true;
+                    } else if (colIndex === 5) {
+                        const nuevo = parseFloat(String(newText).replace(/\./g, '').replace(',', '.'));
+                        if (!Number.isFinite(nuevo)) continue;
+                        const actual = parseFloat(rowData.Cantidad);
+                        if (Number(actual) === nuevo) continue;
+                        rowData.Cantidad = nuevo;
+                        changed = true;
+                    } else if (colIndex === 8) {
+                        const orig = rowData.Comentarios != null ? String(rowData.Comentarios) : '';
+                        if (orig === String(newText)) continue;
+                        rowData.Comentarios = newText;
+                        changed = true;
                     } else {
-                        // Resto de columnas: asigno por cabecera visible (como fallback seguro)
-                        // Si tenés un map dataSrc por columna, podés usarlo acá.
                         const headerText = dt.column(colIndex).header().textContent.trim();
+                        let originalText = dt.cell(rowNode, colIndex).data();
+                        if (typeof originalText === 'string') {
+                            const tmp = document.createElement('div');
+                            tmp.innerHTML = originalText;
+                            originalText = tmp.textContent.trim();
+                        }
+                        if (String(originalText) === String(newText)) continue;
                         if (headerText && Object.prototype.hasOwnProperty.call(rowData, headerText)) {
                             rowData[headerText] = newText;
-                        } else {
-                            // Si la propiedad no existe, no ensucio el modelo.
-                            // (Si querés forzar, podés crear un map ColIndex->Propiedad)
+                            changed = true;
                         }
                     }
 
-                    // 4.b) Actualizar solo esa fila sin redibujar toda la tabla
+                    if (!changed) continue;
+
                     dt.row($(rowNode)).data(rowData);
-
-                    // 4.c) Feedback visual en la celda correcta (por índice visible)
-                    // OJO: si la columna está oculta, no existe el TD visual; chequeo primero:
-                    const $tds = $(rowNode).find('td');
-                    if (visibleIndex != null && visibleIndex >= 0 && visibleIndex < $tds.length) {
-                        const $celda = $tds.eq(visibleIndex);
-                        $celda.addClass('blinking');
-                        setTimeout(() => $celda.removeClass('blinking'), 3000);
+                    const nodoCelda = dt.cell(rowNode, colIndex).node();
+                    if (nodoCelda) {
+                        $(nodoCelda).addClass('blinking');
+                        setTimeout(() => $(nodoCelda).removeClass('blinking'), 2000);
                     }
 
-                    // 4.d) Persistir cada fila en backend
-                    try {
-                        await guardarCambiosFila(rowData);
-                    } catch (err) {
-                        console.error('Error guardando fila', err);
-                    }
+                    peticiones.push(guardarCambiosFila(rowData));
                 }
 
-                // 5) Un solo draw al final
+                if (peticiones.length > 0) {
+                    await Promise.all(peticiones);
+                }
+
                 dt.draw(false);
-
-                // 6) Reaplicar filtros guardados (como en Insumos)
-                await aplicarFiltrosRestaurados(dt, "#grd_Fabricaciones", "filtrosFabricaciones", true);
-
-                // 7) Limpiar selección y salir de modo edición
-                if (typeof filasSeleccionadas !== 'undefined' && Array.isArray(filasSeleccionadas)) {
-                    $(filasSeleccionadas).each((_, n) => {
-                        $(n).removeClass('selected').find('td').removeClass('selected');
-                    });
-                    filasSeleccionadas = [];
-                }
+                fabricacionesLimpiarSeleccionVisual();
                 isEditing = false;
             }
 
             async function cancelEdit() {
-                // Restaurar el valor original SOLO de la celda actual y redibujar
                 gridFabricaciones.cell(cell.index()).data(originalData).draw(false);
-
-                // Reaplicar filtros como en Insumos (por si la restauración cambió algo visual)
-                await aplicarFiltrosRestaurados(gridFabricaciones, "#grd_Fabricaciones", "filtrosFabricaciones", true);
-
+                fabricacionesLimpiarSeleccionVisual();
                 isEditing = false;
             }
         });
@@ -571,19 +582,76 @@ async function configurarDataTable(data, incluirFinalizados) {
 }
 
 // ======================= RESTO: helpers/servicios =======================
+/**
+ * Payload mínimo para PUT /Pedidos/ActualizarDetalleProceso (camelCase).
+ * Evita enviar props de navegación / basura de DataTables y alinea stock usado con flags.
+ */
+function fabricacionesPayloadActualizarDetalle(row) {
+    const r = row || {};
+    const pick = (a, b) => (a !== undefined && a !== null ? a : b);
+    const toInt = (v) => {
+        if (v === undefined || v === null || v === "") return null;
+        const n = parseInt(String(v), 10);
+        return Number.isFinite(n) ? n : null;
+    };
+    const toDec = (v) => {
+        if (v === undefined || v === null || v === "") return null;
+        if (typeof v === "number") return Number.isFinite(v) ? v : null;
+        const n = parseFloat(String(v).replace(/\./g, "").replace(",", "."));
+        return Number.isFinite(n) ? n : null;
+    };
+
+    const cantUsada = toDec(pick(r.CantidadUsadaStock, r.cantidadUsadaStock)) || 0;
+    const usaStock = Boolean(pick(r.UsaStock, r.usaStock)) || cantUsada > 0;
+    const cantStockRaw = pick(r.CantidadStock, r.cantidadStock);
+    const cantStockParsed = cantStockRaw !== undefined && cantStockRaw !== null && cantStockRaw !== "" ? toDec(cantStockRaw) : null;
+    const cantidadStock = cantStockParsed != null && cantStockParsed > 0 ? cantStockParsed : cantUsada > 0 ? cantUsada : null;
+
+    const cantidad = toDec(pick(r.Cantidad, r.cantidad));
+
+    return {
+        id: toInt(pick(r.Id, r.id)),
+        idPedido: toInt(pick(r.IdPedido, r.idPedido)),
+        idDetalle: toInt(pick(r.IdDetalle, r.idDetalle)),
+        idProducto: toInt(pick(r.IdProducto, r.idProducto)),
+        idInsumo: toInt(pick(r.IdInsumo, r.idInsumo)),
+        cantidad,
+        comentarios: pick(r.Comentarios, r.comentarios) ?? null,
+        descripcion: pick(r.Descripcion, r.descripcion) ?? null,
+        especificacion: pick(r.Especificacion, r.especificacion) ?? null,
+        especificacion: pick(r.Especificacion, r.especificacion) ?? null,
+        idColor: toInt(pick(r.IdColor, r.idColor)),
+        idEstado: toInt(pick(r.IdEstado, r.idEstado)),
+        usaStock: usaStock,
+        cantidadStock: cantidadStock,
+        cantidadUsadaStock: cantUsada > 0 ? cantUsada : null
+    };
+}
+
 async function guardarCambiosFila(rowData) {
     try {
-        const response = await fetch('/Pedidos/ActualizarDetalleProceso', {
+        const payload = fabricacionesPayloadActualizarDetalle(rowData);
+        const response = await fetch('/Fabricaciones/ActualizarLinea', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(rowData)
+            body: JSON.stringify(payload)
         });
         if (response.ok) return true;
-        errorModal('Ha ocurrido un error al guardar los datos...');
+        let msg = 'Ha ocurrido un error al guardar los datos...';
+        try {
+            const body = await response.json();
+            if (body && typeof body.msg === 'string' && body.msg.length) msg = body.msg;
+            else if (body && typeof body.message === 'string' && body.message.length) msg = body.message;
+        } catch (_) {
+            /* cuerpo no JSON */
+        }
+        if (typeof errorModal === 'function') errorModal(msg);
         return false;
     } catch (error) {
         console.error('Error de red:', error);
+        if (typeof errorModal === 'function') errorModal('Error de red al guardar.');
     }
+    return false;
 }
 
 $(document).on('click', function (e) {
@@ -652,9 +720,11 @@ function editarPedido(id) {
 
 // ---- catálogos ----
 async function listaEstadosFilter() {
+    if (_fabCacheEstadosLista) return _fabCacheEstadosLista;
     const response = await fetch(`/PedidosEstados/Lista`);
     const data = await response.json();
-    return data.map(x => ({ Id: x.Id, Nombre: x.Nombre }));
+    _fabCacheEstadosLista = data.map(x => ({ Id: x.Id, Nombre: x.Nombre }));
+    return _fabCacheEstadosLista;
 }
 async function listaProductosFilter() {
     const response = await fetch(`/Productos/Lista`);
@@ -662,9 +732,11 @@ async function listaProductosFilter() {
     return data.map(x => ({ Id: x.Id, Nombre: x.Nombre }));
 }
 async function listaColoresFilter() {
+    if (_fabCacheColoresLista) return _fabCacheColoresLista;
     const response = await fetch(`/Colores/Lista`);
     const data = await response.json();
-    return data.map(x => ({ Id: x.Id, Nombre: x.Nombre }));
+    _fabCacheColoresLista = data.map(x => ({ Id: x.Id, Nombre: x.Nombre }));
+    return _fabCacheColoresLista;
 }
 async function listaColores() {
     const data = await listaColoresFilter();
