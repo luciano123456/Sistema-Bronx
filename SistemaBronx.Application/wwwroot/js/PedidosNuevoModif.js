@@ -19,6 +19,57 @@ function claveCacheInsumosProducto(idProducto, idColor) {
     const c = idColor == null || idColor === undefined || idColor === '' ? 0 : (parseInt(idColor, 10) || 0);
     return `${idProducto}_${c}`;
 }
+
+/** Cache insumos modal: distingue “sin parámetro idColor” (suma colores en servidor) de idColor=0 (solo sin color). */
+function claveCacheInsumosPedidoModal(idProducto, idColorParam) {
+    const f = idColorFiltroStockInsumosModal(idColorParam);
+    if (f === null || f === undefined) return `${idProducto}_sinFiltroColor`;
+    return `${idProducto}_${f}`;
+}
+
+/**
+ * Filtro de color para saldos de insumo (`StockSaldos` tipo I) vía `GET /Productos/EditarInfo`.
+ * - `null`: no se envía `idColor` → el servidor **no** filtra por color (suma todos los saldos del insumo).
+ * - `0`: **solo sin color** (`IdColor` null/0 en `StockSaldos`), alineado con insumo “sin color”.
+ * - `> 0`: saldo de ese color.
+ * `-1` / vacío / no numérico → `null`.
+ */
+function idColorFiltroStockInsumosModal(idColor) {
+    if (idColor == null || idColor === undefined || idColor === "") return null;
+    const n = parseInt(String(idColor), 10);
+    if (Number.isNaN(n) || n < 0) return null;
+    return n;
+}
+
+async function parseRespuestaEditarInfoProducto(response) {
+    let data = await response.json();
+    if (typeof data === "string") {
+        return intentarParsearJson(data);
+    }
+    return data;
+}
+
+/** Mapa IdInsumo → stock depósito según color (sin query = suma colores; idColor=0 = solo sin color). */
+async function obtenerMapaStockInsumosPorColorProducto(idProducto, idColorRaw) {
+    const pid = parseInt(idProducto, 10) || 0;
+    if (pid <= 0) return null;
+    const idc = idColorFiltroStockInsumosModal(idColorRaw);
+    const colorQ =
+        idc === null || idc === undefined ? "" : `&idColor=${encodeURIComponent(idc)}`;
+    const response = await fetch(`/Productos/EditarInfo?Id=${pid}${colorQ}`);
+    if (!response.ok) return null;
+    const data = await parseRespuestaEditarInfoProducto(response);
+    if (!data) return null;
+    const rawInsumos = data.Insumos ?? data.insumos;
+    const arr = normalizarArrayDataTable(rawInsumos);
+    const map = {};
+    arr.forEach(i => {
+        const idIns = parseInt(i.IdInsumo ?? i.Id, 10) || 0;
+        if (!idIns) return;
+        map[idIns] = getStockDisponibleFila(i);
+    });
+    return map;
+}
 let tokenCargaProducto = 0;
 let timeoutSeleccionProducto = null;
 let lastCantidadAFabricar = null;
@@ -30,12 +81,27 @@ let _pedModalLineasSinStock = [];
 let pedidoModalPaneActivo = "pt";
 /** True si la línea elegida es de fabricación (sin stock de producto terminado para ese color). */
 let _pedModalLineaEsFabricacion = false;
+/** Línea del pedido que ya salió del depósito como PT (no editable; solo eliminar y volver a agregar). */
+let _pedModalStockPtPersistido = { activo: false, cantidad: 0 };
 
 function parseIdInsumoModal(rowData) {
     if (!rowData) return 0;
-    const id = rowData.IdInsumo != null ? rowData.IdInsumo : rowData.Id;
+    const id = rowData.IdInsumo ?? rowData.idInsumo ?? rowData.Id ?? rowData.id;
     const n = parseInt(id, 10);
     return isNaN(n) ? 0 : n;
+}
+
+/** FK a `PedidosDetalle` en filas de insumo (JSON puede venir `IdDetalle` o `idDetalle`). */
+function insumoIdDetallePadre(ins) {
+    if (!ins) return 0;
+    const raw = ins.IdDetalle != null && ins.IdDetalle !== "" ? ins.IdDetalle : ins.idDetalle;
+    return parseInt(raw, 10) || 0;
+}
+
+function idsDetalleProductoPedido(rowProducto) {
+    const a = parseInt(rowProducto?.Id ?? rowProducto?.id, 10) || 0;
+    const b = parseInt(rowProducto?.IdDetalle ?? rowProducto?.idDetalle, 10) || 0;
+    return new Set([a, b].filter(x => x > 0));
 }
 
 function aplicarSeleccionVisualInsumosModal() {
@@ -69,36 +135,382 @@ function formatCantidadPedido(val) {
     return n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 }
 
+/** Número desde API o string (coma decimal es-AR, punto miles). */
+function parseNumeroFlexible(val) {
+    if (val == null || val === "") return 0;
+    if (typeof val === "number") return Number.isFinite(val) ? val : 0;
+    const s = String(val).trim().replace(/\./g, "").replace(",", ".");
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * Respuestas `ObtenerDatosPedido` con System.Text.Json usan camelCase en propiedades;
+ * el grid y `JSON.stringify(row)` conservan esas claves.
+ */
+function cantidadStockProductoDesdeFilaPedido(p) {
+    if (!p) return 0;
+    return parseNumeroFlexible(
+        p.CantidadStockProducto ?? p.cantidadStockProducto ?? p.CantidadUsadaStock ?? p.cantidadUsadaStock ?? 0
+    );
+}
+
+function usaStockProductoDesdeFilaPedido(p) {
+    if (!p) return false;
+    const cant = cantidadStockProductoDesdeFilaPedido(p);
+    if (cant > 0) return true;
+    return (
+        p.UsaStockProducto === true ||
+        p.usaStockProducto === true ||
+        Number(p.UsaStockProducto) === 1 ||
+        Number(p.usaStockProducto) === 1
+    );
+}
+
+function idProductoDetallePedido(p) {
+    return parseInt(p?.IdProducto ?? p?.idProducto, 10) || 0;
+}
+
+function idColorDetallePedido(p) {
+    const raw = p?.IdColor ?? p?.idColor;
+    if (raw == null || raw === "") return 0;
+    const n = parseInt(String(raw), 10);
+    return Number.isNaN(n) ? 0 : n;
+}
+
+function usaStockInsumoProcesoPedido(r) {
+    if (!r) return false;
+    return (
+        r.UsaStock === true ||
+        r.usaStock === true ||
+        Number(r.UsaStock) === 1 ||
+        Number(r.usaStock) === 1
+    );
+}
+
+function cantidadStockInsumoProcesoPedido(r) {
+    if (!r) return 0;
+    return parseNumeroFlexible(
+        r.CantidadStock ??
+            r.cantidadStock ??
+            r.CantidadStockInsumo ??
+            r.cantidadStockInsumo ??
+            r.CantidadUsadaStock ??
+            r.cantidadUsadaStock ??
+            0
+    );
+}
+
+/** Cantidad de insumo por 1 unidad de producto a fabricar (modal pedido). */
+function cantidadInicialInsumoPedidoModal(rowData, cantidadAFabricar) {
+    let ci = parseNumeroFlexible(rowData?.CantidadInicial);
+    if (ci > 0) return ci;
+    const qFab = cantidadAFabricar > 0 ? cantidadAFabricar : (parseFloat($('#ProductoModalCantidad').val()) || 0);
+    const cantLinea = parseNumeroFlexible(rowData?.Cantidad);
+    if (qFab > 0 && cantLinea > 0) return cantLinea / qFab;
+    return 0;
+}
+
 function stockInsumoDeposito(row) {
-    return parseFloat(row?.Stock ?? row?.StockDisponible ?? 0) || 0;
+    return parseNumeroFlexible(row?.Stock ?? row?.StockDisponible);
+}
+
+/** True si la línea de proceso consume cantidad desde depósito de insumos. */
+function insumoUsaDepositoEnPedido(row) {
+    if (!row) return false;
+    const cant = cantidadStockInsumoProcesoPedido(row);
+    const usa = usaStockInsumoProcesoPedido(row);
+    return usa && cant > 0;
+}
+
+/**
+ * Stock de insumo **ya guardado** en el pedido al abrir «Editar producto».
+ * No confundir con tildar «usar stock» antes de guardar: ahí `_insumoCantidadStockDesdeDb` sigue en 0.
+ */
+function insumoStockDepositoYaPersistidoEnPedido(row) {
+    if (!row || !isEditingProducto) return false;
+    return parseNumeroFlexible(row._insumoCantidadStockDesdeDb) > 0;
+}
+
+/**
+ * Columna "stock" del modal de insumos:
+ * - **Agregar** (`!isEditingProducto`): si usás stock de **producto terminado**, badge informativo **USA STOCK PRODUCTO**
+ *   (no se descuentan insumos del depósito); si no, STOCK DISPONIBLE / SIN STOCK o USA STOCK del insumo.
+ * - **Editar** (`isEditingProducto`): USA STOCK insumo; con PT del depósito **USA STOCK PRODUCTO**; HAY STOCK / NO USA STOCK.
+ */
+function modalInsumoBadgeStockResumen(row) {
+    const tituloPt =
+        "La salida de depósito es por producto terminado; este insumo no descuenta stock del depósito (solo informativo).";
+
+    if (!isEditingProducto) {
+        if (insumoUsaDepositoEnPedido(row)) {
+            return `<span class="badge bg-success">USA STOCK</span>`;
+        }
+        if (productoTerminadoUsaStockEnModal()) {
+            return `<span class="badge bg-primary" title="${tituloPt}">USA STOCK PRODUCTO</span>`;
+        }
+        const dep = stockInsumoDeposito(row);
+        if (dep > 0) {
+            return `<span class="badge bg-info text-dark">STOCK DISPONIBLE</span>`;
+        }
+        return `<span class="badge bg-secondary">SIN STOCK</span>`;
+    }
+
+    if (insumoUsaDepositoEnPedido(row)) {
+        return `<span class="badge bg-success">USA STOCK</span>`;
+    }
+
+    if (productoTerminadoUsaStockEnModal()) {
+        return `<span class="badge bg-primary" title="${tituloPt}">USA STOCK PRODUCTO</span>`;
+    }
+
+    const dep = stockInsumoDeposito(row);
+    if (dep > 0) {
+        return `<span class="badge bg-success" title="Hay saldo en depósito; podés marcar «Usar stock»."><i class="fa fa-check me-1" aria-hidden="true"></i>HAY STOCK</span>`;
+    }
+    return `<span class="badge bg-secondary" title="Esta línea no está tomando stock del depósito.">NO USA STOCK</span>`;
+}
+
+/** Campos alineados con ProcesoDetalleCambioSignificativo (servidor): si cambian, se renueva la fecha del proceso. */
+function insumoSnapshotCamposFecha(d) {
+    if (!d) return {};
+    return {
+        IdEstado: d.IdEstado,
+        IdColor: idColorDetallePedido(d),
+        Cantidad: parseFloat(d.Cantidad ?? d.cantidad ?? 0) || 0,
+        Especificacion: d.Especificacion ?? '',
+        Comentarios: d.Comentarios ?? '',
+        CantidadStock: parseNumeroFlexible(d.CantidadStock ?? d.cantidadStock ?? d.CantidadStockInsumo ?? d.cantidadStockInsumo ?? d.CantidadUsadaStock ?? d.cantidadUsadaStock ?? 0),
+        UsaStock: usaStockInsumoProcesoPedido(d) ? 1 : 0,
+        PrecioUnitario: parseFloat(d.PrecioUnitario || 0) || 0,
+        SubTotal: parseFloat(d.SubTotal || 0) || 0
+    };
+}
+
+function insumoCambioParaFecha(prev, d) {
+    const n = insumoSnapshotCamposFecha(d);
+    return (prev.IdEstado ?? 0) !== (n.IdEstado ?? 0)
+        || (prev.IdColor ?? 0) !== (n.IdColor ?? 0)
+        || prev.Cantidad !== n.Cantidad
+        || (prev.Especificacion || '') !== (n.Especificacion || '')
+        || (prev.Comentarios || '') !== (n.Comentarios || '')
+        || prev.CantidadStock !== n.CantidadStock
+        || prev.UsaStock !== n.UsaStock
+        || prev.PrecioUnitario !== n.PrecioUnitario
+        || prev.SubTotal !== n.SubTotal;
+}
+
+function tocarFechaActualizacionInsumoSiCambio(d, prev) {
+    if (!d || !prev) return;
+    if (insumoCambioParaFecha(prev, d))
+        d.FechaActualizacion = new Date().toISOString();
 }
 
 function estadoStockProductoSegunInsumos(rowProducto) {
     if (!gridInsumos || !rowProducto) return null;
 
-    const detalleIdPrimario = parseInt(rowProducto.Id, 10) || 0;
-    const detalleIdAlterno = parseInt(rowProducto.IdDetalle, 10) || 0;
-    const idsDetalle = new Set([detalleIdPrimario, detalleIdAlterno].filter(x => x > 0));
+    const idsDetalle = idsDetalleProductoPedido(rowProducto);
     if (idsDetalle.size === 0) return null;
 
     let total = 0;
-    let conStock = 0;
+    let conUsoDeposito = 0;
 
     gridInsumos.rows().every(function () {
         const ins = this.data();
-        const idInsumoDetalle = parseInt(ins?.IdDetalle, 10) || 0;
+        const idInsumoDetalle = insumoIdDetallePadre(ins);
         if (!idsDetalle.has(idInsumoDetalle)) return;
 
         total++;
-        if (stockInsumoDeposito(ins) > 0) {
-            conStock++;
+        if (insumoUsaDepositoEnPedido(ins)) {
+            conUsoDeposito++;
         }
     });
 
     if (total <= 0) return null;
-    if (conStock <= 0) return "sin";
-    if (conStock >= total) return "ok";
+    if (conUsoDeposito <= 0) return "sin";
+    if (conUsoDeposito >= total) return "ok";
     return "parcial";
+}
+
+/** True si la línea de producto toma producto terminado desde depósito. */
+function productoUsaStockTerminadoEnPedido(row) {
+    return usaStockProductoDesdeFilaPedido(row);
+}
+
+function pedidoLineaUsaStockProductoTerminado(cantidadStockProducto, usaStockProducto) {
+    const cant = parseFloat(cantidadStockProducto ?? 0) || 0;
+    if (cant <= 0) return false;
+    return usaStockProducto === true || Number(usaStockProducto) === 1;
+}
+
+/** Línea de pedido con salida de depósito por producto terminado ya guardada (no se edita en modal). */
+function pedidoLineaUsaStockPtGuardado(row) {
+    if (!row) return false;
+    const cant = cantidadStockProductoDesdeFilaPedido(row);
+    return pedidoLineaUsaStockProductoTerminado(cant, usaStockProductoDesdeFilaPedido(row));
+}
+
+function resetPedModalStockPtPersistido() {
+    _pedModalStockPtPersistido = { activo: false, cantidad: 0 };
+}
+
+/** Checkbox «Usar stock PT» en grilla modal de producto (lee fila + edición persistida). */
+function usaStockPtFilaModalProducto(row) {
+    if (!row) return false;
+    if (_pedModalStockPtPersistido.activo && isEditingProducto) {
+        return parseNumeroFlexible(_pedModalStockPtPersistido.cantidad) > 0;
+    }
+    const cant = cantidadStockProductoDesdeFilaPedido(row);
+    return pedidoLineaUsaStockProductoTerminado(cant, usaStockProductoDesdeFilaPedido(row));
+}
+
+function cantidadStockPtFilaModalProducto(row) {
+    if (!row) return 0;
+    if (_pedModalStockPtPersistido.activo && isEditingProducto) {
+        return parseNumeroFlexible(_pedModalStockPtPersistido.cantidad);
+    }
+    return cantidadStockProductoDesdeFilaPedido(row);
+}
+
+/** Tras cada draw de `grd_Productos_Modal`, sincroniza checkbox/cant. PT con datos de fila. */
+function maximoCantidadStockPtModal(cantidadPedido, stockDisponible) {
+    const qPed = parseFloat(cantidadPedido) || 0;
+    const st = parseFloat(stockDisponible) || 0;
+    if (_pedModalStockPtPersistido.activo && isEditingProducto) {
+        const guardada = parseNumeroFlexible(_pedModalStockPtPersistido.cantidad);
+        return qPed > 0 ? qPed : (guardada > 0 ? guardada : 0);
+    }
+    if (st <= 0) return 0;
+    return Math.min(st, qPed > 0 ? qPed : st);
+}
+
+function aplicarControlesStockPtGrillaModalProducto() {
+    if (!gridProductosModal) return;
+    gridProductosModal.rows().every(function () {
+        const row = this.data();
+        const node = this.node();
+        if (!row || !node) return;
+        const usa = usaStockPtFilaModalProducto(row);
+        const cant = cantidadStockPtFilaModalProducto(row);
+        const $tr = $(node);
+        $tr.find(".chk-usa-stock-producto").prop("checked", usa);
+        const $txt = $tr.find(".txt-cantidad-stock-producto");
+        $txt.val(cant);
+        $txt.prop("disabled", !usa);
+        if (usa) {
+            const cantPed = parseFloat($("#ProductoModalCantidad").val()) || parseFloat(row.Cantidad ?? row.cantidad) || 0;
+            const stockDisp = parseFloat(row.Stock ?? row.stock ?? 0) || 0;
+            $txt.attr("max", maximoCantidadStockPtModal(cantPed, stockDisp));
+        }
+        row.UsaStockProducto = usa;
+        row.CantidadStockProducto = cant;
+    });
+}
+
+/** Si el detalle de producto del pedido usa stock PT guardado (para insumos hijos). */
+function infoStockPtDetallePedido(idDetalle) {
+    const id = parseInt(idDetalle, 10) || 0;
+    if (!id || !gridProductos) return null;
+    let info = null;
+    gridProductos.rows().every(function () {
+        const p = this.data();
+        if (!idsDetalleProductoPedido(p).has(id)) return;
+        if (!pedidoLineaUsaStockPtGuardado(p)) return;
+        info = {
+            cantPt: cantidadStockProductoDesdeFilaPedido(p),
+            cantPed: parseFloat(p.Cantidad ?? p.cantidad) || 0
+        };
+    });
+    return info;
+}
+
+function insumoCubiertoPorProductoTerminadoEnPedido(insumoRow) {
+    const idDet = insumoIdDetallePadre(insumoRow);
+    if (!idDet) return false;
+    const info = infoStockPtDetallePedido(idDet);
+    return !!info && info.cantPt > 0;
+}
+
+/** Columna «Usa stock» en grilla Procesos e Insumos del pedido. */
+function badgeStockResumenLineaInsumoPedido(row) {
+    if (insumoCubiertoPorProductoTerminadoEnPedido(row)) {
+        const titulo =
+            "La salida de depósito es por producto terminado; este insumo no descuenta stock del depósito.";
+        return `<span class="badge bg-primary" title="${titulo}">USA STOCK PRODUCTO</span>`;
+    }
+    if (insumoUsaDepositoEnPedido(row)) {
+        return `<span class="badge bg-success">USA STOCK</span>`;
+    }
+    return `<span class="badge bg-secondary">NO USA STOCK</span>`;
+}
+
+function cantidadStockMostrarLineaInsumoPedido(row) {
+    if (insumoCubiertoPorProductoTerminadoEnPedido(row)) {
+        const cant = parseFloat(row.Cantidad ?? row.cantidad) || 0;
+        if (cant > 0) {
+            return `<span style="font-weight:bold">${formatCantidadPedido(cant)}</span>`;
+        }
+        const info = infoStockPtDetallePedido(insumoIdDetallePadre(row));
+        if (info && info.cantPed > 0) {
+            const ci = parseNumeroFlexible(row.CantidadInicial ?? row.cantidadInicial);
+            if (ci > 0) {
+                return `<span style="font-weight:bold">${formatCantidadPedido(ci * info.cantPed)}</span>`;
+            }
+        }
+        return `<span style="color:#6c757d">0</span>`;
+    }
+    const usado = cantidadStockInsumoProcesoPedido(row);
+    if (usado <= 0) {
+        return `<span style="color:#6c757d">0</span>`;
+    }
+    return `<span style="font-weight:bold">${formatCantidadPedido(usado)}</span>`;
+}
+
+/** IdDetalle → { cantPt, cantPed, cubreTodo } para no descontar insumos cuando el PT cubre toda la línea. */
+function mapaStockPtPorDetallePedido() {
+    const m = Object.create(null);
+    if (!gridProductos) return m;
+    gridProductos.rows().every(function () {
+        const p = this.data();
+        const id = parseInt(p.Id ?? p.id, 10) || 0;
+        if (!id) return;
+        const cantPtVal = cantidadStockProductoDesdeFilaPedido(p);
+        const usaPt = usaStockProductoDesdeFilaPedido(p);
+        const cantPt = pedidoLineaUsaStockProductoTerminado(cantPtVal, usaPt) ? cantPtVal : 0;
+        const cantPed = parseFloat(p.Cantidad ?? p.cantidad) || 0;
+        m[id] = { cantPt, cantPed, cubreTodo: cantPt > 0 && cantPed > 0 && cantPt >= cantPed };
+    });
+    return m;
+}
+
+function cantidadStockDepositoInsumoAlPersistir(insumoRow, detalleUsaPtCompleto) {
+    if (detalleUsaPtCompleto) return 0;
+    const usa = usaStockInsumoProcesoPedido(insumoRow);
+    if (!usa) return 0;
+    return cantidadStockInsumoProcesoPedido(insumoRow);
+}
+
+/** Badge columna stock producto en `grd_Productos`: PT depósito vs insumos depósito (parcial). */
+function badgeStockResumenLineaProductoPedido(row) {
+    const usaPt = productoUsaStockTerminadoEnPedido(row);
+    const estadoInsumos = estadoStockProductoSegunInsumos(row);
+
+    if (usaPt) {
+        return `<span class="badge bg-success">USA STOCK</span>`;
+    }
+    if (estadoInsumos === "ok" || estadoInsumos === "parcial") {
+        return `<span class="badge bg-warning text-dark">USA STOCK PARCIAL</span>`;
+    }
+    if (estadoInsumos === "sin") {
+        return `<span class="badge bg-secondary">NO USA STOCK</span>`;
+    }
+
+    const usa = usaStockProductoDesdeFilaPedido(row);
+    const cantidad = cantidadStockProductoDesdeFilaPedido(row);
+    if (usa && cantidad > 0) {
+        return `<span class="badge bg-success">USA STOCK</span>`;
+    }
+    return `<span class="badge bg-secondary">NO USA STOCK</span>`;
 }
 
 function actualizarPedidoModalTabsEdicionBloqueo() {
@@ -188,12 +600,12 @@ function obtenerNombreColorPorId(idColor) {
 
 function forzarColorInsumosModalDesdeProducto(colorId, colorTexto) {
     if (!gridInsumosModal) return;
-    const id = parseInt(colorId, 10) || 0;
+    const id = parseInt(colorId, 10);
     const txt = (colorTexto || "").toString().trim() || obtenerNombreColorPorId(id) || ($("#Colores option:selected").text() || "").toString().trim() || "-";
 
     gridInsumosModal.rows().every(function () {
         const rowData = this.data() || {};
-        if (id > 0) rowData.IdColor = id;
+        if (!Number.isNaN(id) && id >= 0) rowData.IdColor = id;
         rowData.Color = txt;
         this.data(rowData);
     });
@@ -354,7 +766,7 @@ function enriquecerInsumosConCantidadInicial(insumos, detalleProductos) {
         if (!isNaN(id)) mapaQtyProducto[id] = Math.max(1, parseFloat(d.Cantidad) || 1);
     });
     return normalizarArrayDataTable(insumos).map(row => {
-        const idDet = parseInt(row.IdDetalle, 10);
+        const idDet = insumoIdDetallePadre(row);
         const qProd = mapaQtyProducto[idDet] || 1;
         const cantLinea = parseFloat(row.Cantidad) || 0;
         const cantidadInicial = cantLinea / Math.max(1, qProd);
@@ -729,7 +1141,15 @@ function sincronizarStockProductoSeleccionadoConCantidad() {
     if (!producto || !controles) return;
 
     const cantidadPedido = parseFloat($('#ProductoModalCantidad').val()) || 0;
-    const stockDisponible = parseFloat(producto.Stock) || 0;
+    const stockDisponible = parseFloat(producto.Stock ?? producto.stock ?? 0) || 0;
+
+    if (_pedModalStockPtPersistido.activo) {
+        const cantGuardada = parseNumeroFlexible(_pedModalStockPtPersistido.cantidad);
+        controles.chk.prop('checked', cantGuardada > 0);
+        controles.txt.prop('disabled', cantGuardada <= 0);
+        controles.txt.val(cantGuardada);
+        return;
+    }
 
     controles.txt.attr('max', Math.min(stockDisponible, cantidadPedido));
 
@@ -763,12 +1183,14 @@ function recalcularInsumosPorCantidadProducto() {
 
         let rowData = this.data();
 
-        rowData.Cantidad = Math.round((parseFloat(rowData.CantidadInicial || 0) * cantidad) * 100) / 100;
+        rowData.Cantidad = Math.round((parseNumeroFlexible(rowData.CantidadInicial) * cantidad) * 100) / 100;
         rowData.SubTotal = Math.round((parseFloat(rowData.CostoUnitario || 0) * rowData.Cantidad) * 100) / 100;
 
-        if (rowData.CantidadStock != null) {
-            if (parseFloat(rowData.CantidadStock) > rowData.Cantidad) {
-                rowData.CantidadStock = rowData.Cantidad;
+        if (!insumoStockDepositoYaPersistidoEnPedido(rowData)) {
+            if (rowData.CantidadStock != null) {
+                if (parseFloat(rowData.CantidadStock) > rowData.Cantidad) {
+                    rowData.CantidadStock = rowData.Cantidad;
+                }
             }
         }
 
@@ -798,6 +1220,9 @@ async function configurarDataTableProductosModal(data) {
             searching: false,
             ordering: false,
             info: false,
+            drawCallback: function () {
+                aplicarControlesStockPtGrillaModalProducto();
+            },
             columns: [
                 { data: 'Nombre' },
                 { data: 'Color' },
@@ -805,6 +1230,9 @@ async function configurarDataTableProductosModal(data) {
                 {
                     data: 'Stock',
                     render: function (data, type, row) {
+                        if (_pedModalStockPtPersistido.activo && isEditingProducto) {
+                            return `<span class="badge bg-success" title="Esta línea ya usa producto terminado del depósito">USA STOCK</span>`;
+                        }
                         const stock = parseFloat(data) || 0;
 
                         if (stock <= 0) {
@@ -819,25 +1247,30 @@ async function configurarDataTableProductosModal(data) {
                 },
                 {
                     data: null,
-                    render: function () {
+                    render: function (data, type, row) {
+                        const usa = usaStockPtFilaModalProducto(row);
+                        const checked = usa ? "checked" : "";
                         return `
                             <div class="form-check d-flex justify-content-center align-items-center m-0">
                                 <input class="form-check-input chk-usa-stock-producto"
-                                       type="checkbox">
+                                       type="checkbox" ${checked}>
                             </div>
                         `;
                     }
                 },
                 {
                     data: null,
-                    render: function () {
+                    render: function (data, type, row) {
+                        const usa = usaStockPtFilaModalProducto(row);
+                        const cant = cantidadStockPtFilaModalProducto(row);
+                        const disabled = usa ? "" : "disabled";
                         return `
                             <input type="number"
                                    class="form-control form-control-sm txt-cantidad-stock-producto"
                                    min="0"
                                    step="0.01"
-                                   value="0"
-                                   disabled>
+                                   value="${cant}"
+                                   ${disabled}>
                         `;
                     }
                 },
@@ -928,18 +1361,23 @@ async function configurarDataTableProductosModal(data) {
                         const input = $tr.find('.txt-cantidad-stock-producto');
 
                         const cantidadPedido = parseFloat($('#ProductoModalCantidad').val()) || 0;
-                        const stockDisponible = parseFloat(rowData.Stock) || 0;
-                        const maximo = Math.min(stockDisponible, cantidadPedido > 0 ? cantidadPedido : stockDisponible);
+                        const stockDisponible = parseFloat(rowData.Stock ?? rowData.stock) || 0;
+                        const maximo = maximoCantidadStockPtModal(cantidadPedido, stockDisponible);
 
                         if ($(this).is(':checked')) {
                             input.prop('disabled', false);
                             input.attr('max', maximo);
-                            const auto = Math.min(stockDisponible, cantidadPedido > 0 ? cantidadPedido : stockDisponible);
+                            const auto = maximo > 0 ? maximo : 0;
                             if (auto > 0) input.val(auto);
+                            rowData.UsaStockProducto = true;
+                            rowData.CantidadStockProducto = auto;
                         } else {
                             input.prop('disabled', true);
                             input.val(0);
+                            rowData.UsaStockProducto = false;
+                            rowData.CantidadStockProducto = 0;
                         }
+                        rowApi.data(rowData);
 
                         controlarUsoStockInsumos();
 
@@ -968,11 +1406,11 @@ async function configurarDataTableProductosModal(data) {
                         if (!rowData) return;
 
                         const cantidadPedido = parseFloat($('#ProductoModalCantidad').val()) || 0;
-                        const stockDisponible = parseFloat(rowData.Stock) || 0;
+                        const stockDisponible = parseFloat(rowData.Stock ?? rowData.stock) || 0;
 
                         let valor = parseFloat($(this).val()) || 0;
 
-                        const maximo = Math.min(stockDisponible, cantidadPedido);
+                        const maximo = maximoCantidadStockPtModal(cantidadPedido, stockDisponible);
 
                         if (valor < 0) valor = 0;
                         if (valor > maximo) valor = maximo;
@@ -984,10 +1422,15 @@ async function configurarDataTableProductosModal(data) {
                         if (valor > 0) {
                             chk.prop('checked', true);
                             $(this).prop('disabled', false);
+                            rowData.UsaStockProducto = true;
+                            rowData.CantidadStockProducto = valor;
                         } else {
                             chk.prop('checked', false);
                             $(this).prop('disabled', true);
+                            rowData.UsaStockProducto = false;
+                            rowData.CantidadStockProducto = 0;
                         }
+                        rowApi.data(rowData);
 
                         controlarUsoStockInsumos();
                     });
@@ -1006,6 +1449,7 @@ async function configurarDataTableProductosModal(data) {
         setTimeout(() => {
             forzarReflowTablaModalProductos();
             resetFiltrosVistaModalProductos();
+            aplicarControlesStockPtGrillaModalProducto();
         }, 0);
     }
 }
@@ -1030,6 +1474,17 @@ async function configurarDataTableInsumosModal(data, editando) {
             info: false,
             drawCallback: function () {
                 aplicarSeleccionVisualInsumosModal();
+                const viaPt = productoTerminadoUsaStockEnModal();
+                if (isEditingProducto) {
+                    $('#grd_Insumos_Modal tbody tr').each(function () {
+                        const apiRow = gridInsumosModal.row(this);
+                        const d = apiRow.data();
+                        $(this).toggleClass('insumo-fila-stock-pedido', !!d && insumoStockDepositoYaPersistidoEnPedido(d));
+                        $(this).toggleClass('insumo-fila-via-pt-producto', viaPt);
+                    });
+                } else {
+                    $('#grd_Insumos_Modal tbody tr').removeClass('insumo-fila-stock-pedido insumo-fila-via-pt-producto');
+                }
             },
             columns: [
                 { data: 'Nombre' },
@@ -1037,38 +1492,59 @@ async function configurarDataTableInsumosModal(data, editando) {
                 {
                     data: 'Stock',
                     render: function (data, type, row) {
-                        const stock = stockInsumoDeposito(row);
-                        const usaStockProducto = productoTerminadoUsaStockEnModal();
-                        const usa = Number(row.UsaStock) === 1;
-
-                        if (usaStockProducto) {
-                            return `<span class="badge bg-success">USA STOCK</span>`;
-                        }
-
-                        if (stock <= 0) {
-                            return `<span class="badge bg-danger">SIN STOCK</span>`;
-                        }
-                        if (usa) {
-                            return `<span class="badge bg-success">USA STOCK</span>`;
-                        }
-                        return `<span class="badge bg-success">TIENE STOCK</span>`;
+                        return modalInsumoBadgeStockResumen(row);
                     }
                 },
                 {
                     data: 'UsaStock',
                     render: function (data, type, row, meta) {
-
-                        const stockReal = parseFloat(row.Stock ?? 0) || 0;
-
-                        // 🔥 SOLO depende del stock real
-                        const disabled = stockReal <= 0 ? 'disabled' : '';
-
-                        // 🔥 checked correcto
-                        const checked = Number(row.UsaStock) === 1 ? 'checked' : '';
+                        if (productoTerminadoUsaStockEnModal()) {
+                            return `
+            <div class="form-check d-flex justify-content-center align-items-center m-0">
+                <input class="form-check-input chk-usa-stock-insumo chk-insumo-stock-via-pt"
+                       type="checkbox"
+                       data-row="${meta.row}"
+                       checked
+                       disabled
+                       title="Cubierto por producto terminado del depósito (informativo).">
+            </div>
+        `;
+                        }
+                        if (insumoStockDepositoYaPersistidoEnPedido(row)) {
+                            return `
+            <div class="form-check d-flex justify-content-center align-items-center m-0">
+                <input class="form-check-input chk-usa-stock-insumo chk-insumo-stock-pedido"
+                       type="checkbox"
+                       data-row="${meta.row}"
+                       checked
+                       disabled
+                       title="Este insumo ya tiene stock del depósito guardado en el pedido. Guardá o revertí desde el pedido para cambiarlo.">
+            </div>
+        `;
+                        }
+                        if (isEditingProducto && insumoUsaDepositoEnPedido(row)) {
+                            const checked = row.UsaStock === true || Number(row.UsaStock) === 1 ? 'checked' : '';
+                            return `
+            <div class="form-check d-flex justify-content-center align-items-center m-0">
+                <input class="form-check-input chk-usa-stock-insumo chk-insumo-stock-ok"
+                       type="checkbox"
+                       data-row="${meta.row}"
+                       ${checked}
+                       title="Podés destildar antes de guardar si no querés usar stock del depósito.">
+            </div>
+        `;
+                        }
+                        const stockReal = stockInsumoDeposito(row);
+                        const sinSaldo = stockReal <= 0;
+                        const disabled = sinSaldo ? 'disabled' : '';
+                        const checked = row.UsaStock === true || Number(row.UsaStock) === 1 ? 'checked' : '';
+                        const chkCls = sinSaldo
+                            ? 'chk-usa-stock-insumo chk-insumo-stock-sin-saldo'
+                            : 'chk-usa-stock-insumo chk-insumo-stock-ok';
 
                         return `
             <div class="form-check d-flex justify-content-center align-items-center m-0">
-                <input class="form-check-input chk-usa-stock-insumo"
+                <input class="form-check-input ${chkCls}"
                        type="checkbox"
                        data-row="${meta.row}"
                        ${checked}
@@ -1080,6 +1556,28 @@ async function configurarDataTableInsumosModal(data, editando) {
                 {
                     data: 'CantidadStock',
                     render: function (data, type, row, meta) {
+                        if (productoTerminadoUsaStockEnModal()) {
+                            const qtyInfo = cantidadInformativaInsumoCubiertoPorProductoTerminado(row);
+                            return `
+                            <input type="text"
+                                   readonly
+                                   class="form-control form-control-sm txt-cant-stock-insumo txt-cant-stock-insumo-via-pt"
+                                   data-row="${meta.row}"
+                                   value="${formatCantidadPedido(qtyInfo)}"
+                                   title="Cantidad de insumo para la cantidad de producto del pedido (receta × cantidad). Con PT del depósito no se descuenta insumo del depósito; es informativo.">
+                        `;
+                        }
+                        if (insumoStockDepositoYaPersistidoEnPedido(row)) {
+                            const q = parseNumeroFlexible(row.CantidadStock ?? row.CantidadUsadaStock ?? 0);
+                            return `
+                            <input type="text"
+                                   readonly
+                                   class="form-control form-control-sm txt-cant-stock-insumo txt-cant-stock-insumo-pedido"
+                                   data-row="${meta.row}"
+                                   value="${formatCantidadPedido(q)}"
+                                   title="Cantidad ya tomada del depósito para esta línea (solo lectura).">
+                        `;
+                        }
                         const stockDisponible = parseFloat(row.Stock ?? row.StockDisponible ?? 0) || 0;
                         const cantidad = parseFloat(row.Cantidad || 0) || 0;
                         const maximo = Math.min(stockDisponible, cantidad);
@@ -1185,15 +1683,19 @@ async function configurarDataTableInsumosModal(data, editando) {
                     .off('change', '.chk-usa-stock-insumo')
                     .on('change', '.chk-usa-stock-insumo', function () {
 
-                        const rowIndex = parseInt($(this).attr('data-row'));
-                        const rowData = gridInsumosModal.row(rowIndex).data();
+                        const $tr = $(this).closest('tr');
+                        const apiRow = gridInsumosModal.row($tr);
+                        const rowData = apiRow.data();
+                        if (!rowData) return;
+
+                        const prev = insumoSnapshotCamposFecha(rowData);
+                        const rowIndex = apiRow.index();
                         const input = $(`.txt-cant-stock-insumo[data-row="${rowIndex}"]`);
 
-                        const stockDisponible = parseFloat(rowData.Stock ?? rowData.StockDisponible ?? 0) || 0;
+                        const stockDisponible = parseNumeroFlexible(rowData.Stock ?? rowData.StockDisponible);
 
-                        // 🔥 NUEVO
                         const cantidadAFabricar = obtenerCantidadAFabricar();
-                        const cantidadPorUnidad = parseFloat(rowData.CantidadInicial || 0);
+                        const cantidadPorUnidad = cantidadInicialInsumoPedidoModal(rowData, cantidadAFabricar);
 
                         // 👉 CUÁNTO NECESITO REALMENTE
                         const cantidadNecesaria = cantidadPorUnidad * cantidadAFabricar;
@@ -1211,7 +1713,8 @@ async function configurarDataTableInsumosModal(data, editando) {
                             rowData.UsaStock = 0;
                             rowData.CantidadStock = 0;
 
-                            gridInsumosModal.row(rowIndex).data(rowData).draw(false);
+                            tocarFechaActualizacionInsumoSiCambio(rowData, prev);
+                            apiRow.data(rowData).draw(false);
                             return;
                         }
 
@@ -1228,7 +1731,8 @@ async function configurarDataTableInsumosModal(data, editando) {
                                 rowData.UsaStock = 0;
                                 rowData.CantidadStock = 0;
                                 input.val(0).prop('disabled', true);
-                                gridInsumosModal.row(rowIndex).data(rowData).draw(false);
+                                tocarFechaActualizacionInsumoSiCambio(rowData, prev);
+                                apiRow.data(rowData).draw(false);
                                 return;
                             }
                             rowData.CantidadStock = necesario;
@@ -1249,20 +1753,25 @@ async function configurarDataTableInsumosModal(data, editando) {
                             input.val(0);
                         }
 
-                        gridInsumosModal.row(rowIndex).data(rowData).draw(false);
+                        tocarFechaActualizacionInsumoSiCambio(rowData, prev);
+                        apiRow.data(rowData).draw(false);
                     });
 
                 $('#grd_Insumos_Modal tbody')
-                    .off('input', '.txt-cant-stock-insumo')
-                    .on('input', '.txt-cant-stock-insumo', function () {
+                    .off('input', '.txt-cant-stock-insumo:not(.txt-cant-stock-insumo-pedido):not(.txt-cant-stock-insumo-via-pt)')
+                    .on('input', '.txt-cant-stock-insumo:not(.txt-cant-stock-insumo-pedido):not(.txt-cant-stock-insumo-via-pt)', function () {
 
-                        const rowIndex = parseInt($(this).attr('data-row'));
-                        const rowData = gridInsumosModal.row(rowIndex).data();
+                        const $tr = $(this).closest('tr');
+                        const apiRow = gridInsumosModal.row($tr);
+                        const rowData = apiRow.data();
+                        if (!rowData) return;
 
-                        const stockDisponible = parseFloat(rowData.Stock ?? rowData.StockDisponible ?? 0) || 0;
+                        const prev = insumoSnapshotCamposFecha(rowData);
+
+                        const stockDisponible = parseNumeroFlexible(rowData.Stock ?? rowData.StockDisponible);
 
                         const cantidadAFabricar = obtenerCantidadAFabricar();
-                        const cantidadPorUnidad = parseFloat(rowData.CantidadInicial || 0);
+                        const cantidadPorUnidad = cantidadInicialInsumoPedidoModal(rowData, cantidadAFabricar);
 
                         const cantidadNecesaria = cantidadPorUnidad * cantidadAFabricar;
 
@@ -1278,7 +1787,8 @@ async function configurarDataTableInsumosModal(data, editando) {
 
                         $(this).val(valor);
 
-                        gridInsumosModal.row(rowIndex).data(rowData).draw(false);
+                        tocarFechaActualizacionInsumoSiCambio(rowData, prev);
+                        apiRow.data(rowData).draw(false);
                     });
 
                 $('#grd_Insumos_Modal tbody')
@@ -1310,6 +1820,22 @@ async function configurarDataTableInsumosModal(data, editando) {
                         }
 
                         const rowData = gridInsumosModal.row($td.closest('tr')).data();
+                        if (productoTerminadoUsaStockEnModal()) {
+                            isEditing = false;
+                            if (typeof advertenciaModal === 'function') {
+                                advertenciaModal(
+                                    'Los insumos están cubiertos por producto terminado del depósito. Editá cantidad, precio o color del producto arriba.'
+                                );
+                            }
+                            return;
+                        }
+                        if (insumoStockDepositoYaPersistidoEnPedido(rowData)) {
+                            isEditing = false;
+                            if (typeof advertenciaModal === 'function') {
+                                advertenciaModal('Este insumo ya tiene stock del depósito guardado en el pedido; no se puede editar desde acá.');
+                            }
+                            return;
+                        }
                         if (insumoUsaStock(rowData)) {
                             isEditing = false;
                             if (typeof advertenciaModal === 'function') {
@@ -1325,14 +1851,31 @@ async function configurarDataTableInsumosModal(data, editando) {
                                     ? idsInsumoSeleccionadosModal.slice()
                                     : (idCelda ? [idCelda] : []);
 
+                            let stockPorInsumoMap = null;
+                            if (dataSrc === 'Color') {
+                                const pidModal = parseInt(document.getElementById("ProductoModalId")?.value, 10) || 0;
+                                if (pidModal > 0) {
+                                    stockPorInsumoMap = await obtenerMapaStockInsumosPorColorProducto(pidModal, newValue);
+                                }
+                            }
+
                             gridInsumosModal.rows().every(function () {
                                 const d = this.data();
                                 const idRow = parseIdInsumoModal(d);
                                 if (idsEditar.indexOf(idRow) === -1) return;
 
+                                const prev = insumoSnapshotCamposFecha(d);
+
                                 if (dataSrc === 'Color') {
                                     d.IdColor = parseInt(newValue, 10) || 0;
                                     d.Color = newText;
+                                    if (stockPorInsumoMap) {
+                                        const idIns = parseIdInsumoModal(d);
+                                        const st = stockPorInsumoMap[idIns];
+                                        const disp = typeof st === 'number' ? st : 0;
+                                        d.Stock = disp;
+                                        d.StockDisponible = disp;
+                                    }
                                 } else if (dataSrc === 'Estado') {
                                     d.IdEstado = parseInt(newValue, 10) || 0;
                                     d.Estado = newText;
@@ -1349,6 +1892,7 @@ async function configurarDataTableInsumosModal(data, editando) {
                                     d[dataSrc] = newText;
                                 }
 
+                                tocarFechaActualizacionInsumoSiCambio(d, prev);
                                 this.data(d);
                             });
 
@@ -1442,7 +1986,7 @@ $('#ProductoModalCantidad').off('keyup input').on('keyup input', function () {
             $(this).val(1);
         }
 
-        if (!_pedModalLineaEsFabricacion) {
+        if (!_pedModalLineaEsFabricacion && !_pedModalStockPtPersistido.activo) {
             const productoSel = obtenerFilaProductoModalSeleccionadaData();
             const stockDisponible = parseFloat(productoSel?.Stock) || 0;
             if (stockDisponible > 0 && cantidad > stockDisponible) {
@@ -1462,6 +2006,10 @@ $('#ProductoModalCantidad').off('keyup input').on('keyup input', function () {
 
         // 🔥 3. CONTROLAR STOCK INSUMOS
         controlarUsoStockInsumosOptimizado();
+
+        if (productoTerminadoUsaStockEnModal() && gridInsumosModal) {
+            gridInsumosModal.draw(false);
+        }
 
     }, 150);
 });
@@ -1485,18 +2033,17 @@ async function cargarDatosClienteRegistrado(idCliente) {
 }
 
 $('#Colores').on('change', async function () {
-    var idColorSeleccionado = $(this).val(); // El valor es el ID del color
-    const idColorNum = parseInt(idColorSeleccionado, 10) || 0;
+    var idColorSeleccionado = $(this).val();
+    const idColorFiltro = idColorFiltroStockInsumosModal(idColorSeleccionado);
 
-    // Catálogo fabricación: el buscador usa también el color elegido (ver filtrarLineasModalProductos).
     if (pedidoModalPaneActivo === "fab" && gridProductosModal) {
         redrawModalProductosSiHayGrilla();
     }
 
-    if (pedidoModalPaneActivo === "fab" && !isEditingProducto && idColorNum > 0) {
+    if (!isEditingProducto && idColorFiltro !== null && (pedidoModalPaneActivo === "fab" || pedidoModalPaneActivo === "pt")) {
         const pid = document.getElementById("ProductoModalId")?.value;
         if (pid) {
-            await cargarInformacionProducto(parseInt(pid, 10), idColorNum);
+            await cargarInformacionProducto(parseInt(pid, 10), idColorFiltro);
         }
     }
 
@@ -1513,16 +2060,20 @@ $('#Colores').on('change', async function () {
         gridInsumosModal.rows().every(function () {
             var rowData = this.data();
             if (idsInsumoSeleccionadosModal.indexOf(parseIdInsumoModal(rowData)) === -1) return;
+            const prev = insumoSnapshotCamposFecha(rowData);
             rowData.Color = colorSeleccionadoTexto;
             rowData.IdColor = idColorSeleccionado;
+            tocarFechaActualizacionInsumoSiCambio(rowData, prev);
             this.data(rowData);
         });
         gridInsumosModal.draw(false);
     } else {
         gridInsumosModal.rows().every(function () {
             var rowData = this.data();
+            const prev = insumoSnapshotCamposFecha(rowData);
             rowData.Color = colorSeleccionadoTexto;
             rowData.IdColor = idColorSeleccionado;
+            tocarFechaActualizacionInsumoSiCambio(rowData, prev);
             this.data(rowData);
         });
         gridInsumosModal.draw(false);
@@ -1530,9 +2081,37 @@ $('#Colores').on('change', async function () {
 });
 
 $('#btnEliminarInsumo').on('click', function () {
+    if (productoTerminadoUsaStockEnModal()) {
+        if (typeof advertenciaModal === "function") {
+            advertenciaModal(
+                "No podés quitar insumos mientras el producto usa stock terminado del depósito. Editá el producto arriba o eliminá la línea del pedido."
+            );
+        }
+        return;
+    }
+
     if (idsInsumoSeleccionadosModal.length === 0) {
         alert("No tienes ninguna fila seleccionada.");
         return;
+    }
+
+    for (let i = 0; i < idsInsumoSeleccionadosModal.length; i++) {
+        const idSel = idsInsumoSeleccionadosModal[i];
+        let bloqueada = false;
+        gridInsumosModal.rows().every(function () {
+            const d = this.data();
+            if (parseIdInsumoModal(d) === idSel && insumoStockDepositoYaPersistidoEnPedido(d)) {
+                bloqueada = true;
+            }
+        });
+        if (bloqueada) {
+            if (typeof advertenciaModal === "function") {
+                advertenciaModal("No se puede eliminar un insumo que ya tiene stock del depósito guardado en el pedido.");
+            } else {
+                alert("No se puede eliminar un insumo que ya tiene stock del depósito guardado en el pedido.");
+            }
+            return;
+        }
     }
 
     var cantidadFilasTotales = gridInsumosModal.data().length;
@@ -1582,32 +2161,7 @@ async function configurarDataTableProductos(data) {
                 {
                     data: 'UsaStockProducto',
                     render: function (data, type, row) {
-                        const estadoInsumos = estadoStockProductoSegunInsumos(row);
-
-                        if (estadoInsumos === "ok") {
-                            return `<span class="badge bg-success">USA STOCK</span>`;
-                        }
-
-                        if (estadoInsumos === "parcial") {
-                            return `<span class="badge bg-warning text-dark">STOCK PARCIAL</span>`;
-                        }
-
-                        if (estadoInsumos === "sin") {
-                            return `<span class="badge bg-danger">SIN STOCK</span>`;
-                        }
-
-                        // Fallback defensivo si aún no hay insumos cargados para el detalle.
-                        const stock = parseFloat(row.Stock) || 0;
-                        const usa = Number(data) === 1;
-                        const cantidad = parseFloat(row.CantidadStockProducto || 0) || 0;
-
-                        if (usa && cantidad > 0) {
-                            return `<span class="badge bg-success">USA STOCK</span>`;
-                        }
-                        if (stock <= 0) {
-                            return `<span class="badge bg-danger">SIN STOCK</span>`;
-                        }
-                        return `<span class="badge bg-warning text-dark">STOCK PARCIAL</span>`;
+                        return badgeStockResumenLineaProductoPedido(row);
                     }
                 },
 
@@ -1615,14 +2169,15 @@ async function configurarDataTableProductos(data) {
                     data: 'CantidadStockProducto',
                     render: function (data, type, row) {
 
-                        const stock = parseFloat(row.Stock) || 0;
+                        const stock = parseFloat(row.Stock ?? row.stock ?? 0) || 0;
+                        const cantPt = cantidadStockProductoDesdeFilaPedido(row);
 
                         if (stock <= 0) {
                             return `<span style="color:#dc3545">0</span>`;
                         }
 
                         return `<span style="font-weight:bold">
-                    ${data || 0}
+                    ${cantPt || 0}
                 </span>`;
                     }
                 },
@@ -1638,11 +2193,12 @@ async function configurarDataTableProductos(data) {
                 {
                     data: "Id",
                     render: function (data, type, row) {
+                        const idDet = row.Id ?? row.id;
                         return `
                   <button class='btn btn-sm btneditar btnacciones' type='button' onclick='editarProducto(${JSON.stringify(row)})' title='Editar'>
                     <i class='fa fa-pencil-square-o fa-lg text-white' aria-hidden='true'></i>
                 </button>
-                <button class='btn btn-sm btneditar btnacciones' type='button' onclick='eliminarProducto(${row.Id})' title='Eliminar'>
+                <button class='btn btn-sm btneditar btnacciones' type='button' onclick='eliminarProducto(${idDet})' title='Eliminar'>
                     <i class='fa fa-trash-o fa-lg text-danger' aria-hidden='true'></i>
                 </button>`;
                     },
@@ -1713,32 +2269,13 @@ async function configurarDataTableInsumos(data) {
                 {
                     data: 'UsaStock',
                     render: function (data, type, row) {
-
-                        const stockDep = stockInsumoDeposito(row);
-                        const usa = Number(data) === 1;
-
-                        if (usa) {
-                            return `<span class="badge bg-success">USA STOCK</span>`;
-                        }
-
-                        if (stockDep <= 0) {
-                            return `<span class="badge bg-danger">SIN STOCK</span>`;
-                        }
-
-                        return `<span class="badge bg-success">TIENE STOCK</span>`;
+                        return badgeStockResumenLineaInsumoPedido(row);
                     }
                 },
                 {
                     data: 'CantidadStockInsumo',
                     render: function (data, type, row) {
-
-                        const usado = parseFloat(row.CantidadStock || 0) || 0;
-
-                        if (usado <= 0) {
-                            return `<span style="color:#6c757d">0</span>`;
-                        }
-
-                        return `<span style="font-weight:bold">${formatCantidadPedido(usado)}</span>`;
+                        return cantidadStockMostrarLineaInsumoPedido(row);
                     }
                 },
 
@@ -1897,6 +2434,7 @@ async function configurarDataTableInsumos(data) {
                                 const rowElement = filas[i];
                                 const row = gridInsumos.row($(rowElement));
                                 const d = row.data();
+                                const prev = insumoSnapshotCamposFecha(d);
 
                                 if (dataSrc === 'Color') {
                                     d.IdColor = parseInt(newValue) || 0;
@@ -1907,9 +2445,9 @@ async function configurarDataTableInsumos(data) {
                                 } else if (dataSrc === 'Cantidad') {
                                     const cantidad = parseFloat(newValue) || 0;
                                     d.Cantidad = cantidad;
-                                    const qProd = obtenerCantidadProductoPedidoPorIdDetalle(d.IdDetalle);
-                                    d.CantidadInicial = qProd > 0 ? (cantidad / qProd) : (parseFloat(d.CantidadInicial) || 0);
-                                    if (parseFloat(d.CantidadStock || 0) > cantidad) {
+                                    const qProd = obtenerCantidadProductoPedidoPorIdDetalle(insumoIdDetallePadre(d));
+                                    d.CantidadInicial = qProd > 0 ? (cantidad / qProd) : (parseFloat(d.CantidadInicial ?? d.cantidadInicial) || 0);
+                                    if (cantidadStockInsumoProcesoPedido(d) > cantidad) {
                                         d.CantidadStock = cantidad;
                                         d.UsaStock = cantidad > 0 ? d.UsaStock : 0;
                                     }
@@ -1917,6 +2455,7 @@ async function configurarDataTableInsumos(data) {
                                     d[dataSrc] = newText;
                                 }
 
+                                tocarFechaActualizacionInsumoSiCambio(d, prev);
                                 row.data(d);
                             }
 
@@ -2037,7 +2576,7 @@ async function guardarProducto() {
         const rowProducto = gridProductosModal.row(rowIndexStock).data();
 
         if (rowProducto) {
-            stockDisponibleProducto = parseFloat(rowProducto.Stock) || 0;
+            stockDisponibleProducto = parseFloat(rowProducto.Stock ?? rowProducto.stock ?? 0) || 0;
 
             if (!_pedModalLineaEsFabricacion && Cantidad > stockDisponibleProducto) {
                 errorModal(`No tenés stock suficiente del producto terminado. Stock disponible: ${formatCantidadPedido(stockDisponibleProducto)}.`);
@@ -2075,7 +2614,8 @@ async function guardarProducto() {
     if (gridInsumosModal) {
         gridInsumosModal.rows().every(function () {
             let insumoData = this.data();
-            if (!insumoData.IdColor || insumoData.IdColor == 0) {
+            const idc = parseInt(insumoData.IdColor ?? insumoData.idColor, 10) || 0;
+            if (!idc || idc === 0) {
                 colorValido = false;
             }
         });
@@ -2087,17 +2627,18 @@ async function guardarProducto() {
     }
 
     if (gridInsumosModal) {
+        controlarUsoStockInsumos();
         let errorStockInsumo = false;
 
         gridInsumosModal.rows().every(function () {
 
             const insumoData = this.data();
 
-            const usaStock = Number(insumoData.UsaStock) === 1;
+            const usaStock = usaStockInsumoProcesoPedido(insumoData);
             if (!usaStock) return; // 🔥 SI NO USA STOCK → IGNORAR
 
-            const cantInsumo = parseFloat(insumoData.Cantidad || 0) || 0;
-            const cantStockInsumo = parseFloat(insumoData.CantidadStock || 0) || 0;
+            const cantInsumo = parseFloat(insumoData.Cantidad ?? insumoData.cantidad ?? 0) || 0;
+            const cantStockInsumo = cantidadStockInsumoProcesoPedido(insumoData);
 
             if (cantStockInsumo > cantInsumo) {
                 errorStockInsumo = true;
@@ -2110,10 +2651,13 @@ async function guardarProducto() {
         }
     }
     if (editando) {
+        const detalleUsaPtCompleto = pedidoLineaUsaStockProductoTerminado(cantidadStockProducto, usaStockProducto) &&
+            cantidadStockProducto >= Cantidad;
+
         gridProductos.rows().every(function () {
             const data = this.data();
 
-            if (parseInt(data.Id) == parseInt(IdProductoEditando)) {
+            if (parseInt(data.Id ?? data.id, 10) == parseInt(IdProductoEditando, 10)) {
                 data.Nombre = NombreProducto;
                 data.IdProducto = IdProducto;
                 data.IdCategoria = IdCategoria;
@@ -2142,7 +2686,10 @@ async function guardarProducto() {
             gridInsumos.rows().every(function () {
                 let insumoDataInsumos = this.data();
 
-                if (insumoDataInsumos.IdDetalle == parseInt(IdProductoEditando) && insumoDataInsumos.IdInsumo == insumoData.IdInsumo) {
+                if (parseInt(insumoDataInsumos.IdDetalle ?? insumoDataInsumos.idDetalle, 10) === parseInt(IdProductoEditando, 10) &&
+                    parseInt(insumoDataInsumos.IdInsumo ?? insumoDataInsumos.idInsumo, 10) === parseInt(insumoData.IdInsumo ?? insumoData.idInsumo, 10)) {
+                    const prev = insumoSnapshotCamposFecha(insumoDataInsumos);
+
                     insumoDataInsumos.Cantidad = insumoData.Cantidad;
                     insumoDataInsumos.CantidadInicial = insumoData.CantidadInicial ?? insumoData.Cantidad;
                     insumoDataInsumos.Comentarios = insumoData.Comentarios;
@@ -2155,8 +2702,11 @@ async function guardarProducto() {
                     insumoDataInsumos.SubTotal = insumoData.SubTotal;
                     insumoDataInsumos.Stock = insumoData.Stock ?? insumoData.StockDisponible ?? 0;
                     insumoDataInsumos.StockDisponible = insumoData.Stock ?? insumoData.StockDisponible ?? 0;
-                    insumoDataInsumos.UsaStock = insumoData.UsaStock ? 1 : 0;
-                    insumoDataInsumos.CantidadStock = parseFloat(insumoData.CantidadStock || 0) || 0;
+                    const cantStockIns = cantidadStockDepositoInsumoAlPersistir(insumoData, detalleUsaPtCompleto);
+                    insumoDataInsumos.UsaStock = cantStockIns > 0 ? 1 : 0;
+                    insumoDataInsumos.CantidadStock = cantStockIns;
+
+                    tocarFechaActualizacionInsumoSiCambio(insumoDataInsumos, prev);
 
                     this.data(insumoDataInsumos).draw();
                 }
@@ -2164,6 +2714,9 @@ async function guardarProducto() {
         });
 
     } else {
+        const detalleUsaPtCompleto = pedidoLineaUsaStockProductoTerminado(cantidadStockProducto, usaStockProducto) &&
+            cantidadStockProducto >= Cantidad;
+
         gridProductos.row.add({
             Id: detalleId,
             IdProducto: IdProducto,
@@ -2187,6 +2740,7 @@ async function guardarProducto() {
 
         gridInsumosModal.rows().every(function () {
             let insumoData = this.data();
+            const cantStockIns = cantidadStockDepositoInsumoAlPersistir(insumoData, detalleUsaPtCompleto);
 
             gridInsumos.row.add({
                 IdDetalle: detalleId,
@@ -2215,8 +2769,8 @@ async function guardarProducto() {
                 IdUnidadMedida: insumoData.IdUnidadMedida,
                 Stock: insumoData.Stock ?? insumoData.StockDisponible ?? 0,
                 StockDisponible: insumoData.Stock ?? insumoData.StockDisponible ?? 0,
-                UsaStock: insumoData.UsaStock ? 1 : 0,
-                CantidadStock: parseFloat(insumoData.CantidadStock || 0) || 0
+                UsaStock: cantStockIns > 0 ? 1 : 0,
+                CantidadStock: cantStockIns
             }).draw();
         });
     }
@@ -2258,16 +2812,14 @@ async function ObtenerDatosCliente(id) {
 }
 
 async function ObtenerInsumosProducto(id, idColor) {
-    const esFab = pedidoModalPaneActivo === "fab";
-    const idColorEfectivo = esFab ? null : idColor;
-    const idColorNum = idColorEfectivo == null || idColorEfectivo === '' ? NaN : Number(idColorEfectivo);
+    const idc = idColorFiltroStockInsumosModal(idColor);
     const colorQ =
-        idColorEfectivo == null || idColorEfectivo === undefined || idColorEfectivo === '' || idColorNum === 0 || Number.isNaN(idColorNum)
-            ? ''
-            : `&idColor=${encodeURIComponent(idColorEfectivo)}`;
+        idc == null || idc === undefined || idc === ""
+            ? ""
+            : `&idColor=${encodeURIComponent(idc)}`;
     const url = `/Productos/EditarInfo?Id=${id}${colorQ}`;
     const response = await fetch(url);
-    const data = await response.json();
+    const data = await parseRespuestaEditarInfoProducto(response);
     return data;
 }
 
@@ -2275,6 +2827,7 @@ async function limpiarInformacionProducto() {
     limpiarSeleccionInsumosModal();
     filaSeleccionadaProductos = null;
     _pedModalLineaEsFabricacion = false;
+    resetPedModalStockPtPersistido();
     $("#Colores").prop("disabled", false);
 
     if (gridInsumosModal != null) {
@@ -2303,7 +2856,7 @@ async function limpiarInformacionProducto() {
 
 async function cargarInformacionProducto(id, idColor, colorTextoProducto) {
     const miToken = ++tokenCargaProducto;
-    const cacheKey = claveCacheInsumosProducto(id, pedidoModalPaneActivo === "fab" ? 0 : idColor);
+    const cacheKey = claveCacheInsumosPedidoModal(id, idColor);
 
     try {
         let data = null;
@@ -2342,9 +2895,9 @@ async function procesarProducto(insumosProducto, idColorSeleccionado, colorTexto
         ...i,
         Stock: getStockDisponibleFila(i),
         StockDisponible: getStockDisponibleFila(i),
-        Cantidad: parseFloat(i.Cantidad || 0) || 0,
-        CantidadInicial: parseFloat(i.CantidadInicial ?? i.Cantidad ?? 0) || 0,
-        CantidadStock: parseFloat(i.CantidadStock || 0) || 0,
+        Cantidad: parseNumeroFlexible(i.Cantidad),
+        CantidadInicial: parseNumeroFlexible(i.CantidadInicial ?? i.Cantidad),
+        CantidadStock: parseNumeroFlexible(i.CantidadStock || 0),
         UsaStock: Number(i.UsaStock) === 1 ? 1 : 0
     }));
 
@@ -2362,8 +2915,13 @@ async function procesarProducto(insumosProducto, idColorSeleccionado, colorTexto
     });
 
     const producto = insumosProducto.Producto || {};
-    const colorSelectId = parseInt($("#Colores").val(), 10) || 0;
-    const colorProducto = parseInt(idColorSeleccionado, 10) || parseInt(producto.IdColor, 10) || colorSelectId || 0;
+    const selColorFiltro = idColorFiltroStockInsumosModal(idColorSeleccionado);
+    const colorSelectId = idColorFiltroStockInsumosModal($("#Colores").val());
+    const fromProduct = parseInt(producto.IdColor, 10);
+    const colorProducto =
+        selColorFiltro !== null
+            ? selColorFiltro
+            : (colorSelectId !== null ? colorSelectId : (Number.isNaN(fromProduct) ? 0 : fromProduct));
     const colorSelectTexto = ($("#Colores option:selected").text() || "").toString().trim();
     const colorProductoTexto =
         ((colorTextoProducto ?? producto.Color ?? "").toString().trim()) ||
@@ -2372,7 +2930,13 @@ async function procesarProducto(insumosProducto, idColorSeleccionado, colorTexto
 
     if (pedidoModalPaneActivo === "pt") {
         insumos.forEach(i => {
-            if (colorProducto > 0) i.IdColor = colorProducto;
+            if (selColorFiltro !== null) {
+                i.IdColor = selColorFiltro;
+            } else if (colorProducto > 0) {
+                i.IdColor = colorProducto;
+            } else if (!Number.isNaN(fromProduct) && fromProduct === 0) {
+                i.IdColor = 0;
+            }
             i.Color = colorProductoTexto || "-";
         });
     }
@@ -2397,9 +2961,12 @@ async function procesarProducto(insumosProducto, idColorSeleccionado, colorTexto
         Math.ceil((parseFloat(producto.CostoUnitario || 0)) / 100) * 100
     );
 
-    if (colorProducto > 0) {
-        // Refleja el color de la fila seleccionada en el Select2 sin disparar el handler global de cambio.
+    if (selColorFiltro !== null) {
+        $('#Colores').val(String(selColorFiltro)).trigger('change.select2');
+    } else if (colorProducto > 0) {
         $('#Colores').val(String(colorProducto)).trigger('change.select2');
+    } else if (colorProducto === 0 && (colorSelectId === 0 || fromProduct === 0)) {
+        $('#Colores').val("0").trigger('change.select2');
     }
 
     if (pedidoModalPaneActivo === "pt") {
@@ -2487,24 +3054,37 @@ async function editarProducto(producto) {
    
 
     // Stock por color viene del detalle del pedido (API); no usar lista genérica de productos.
-    const stockReal = parseFloat(producto.Stock ?? producto.StockDisponible ?? 0) || 0;
-    _pedModalLineaEsFabricacion = stockReal <= 0;
+    const stockReal =
+        parseFloat(producto.Stock ?? producto.stock ?? producto.StockDisponible ?? producto.stockDisponible ?? 0) || 0;
+    const cantPtLinea = cantidadStockProductoDesdeFilaPedido(producto);
+    const usaPtLinea = usaStockProductoDesdeFilaPedido(producto);
+    const idProdModal = idProductoDetallePedido(producto);
+    const idColModal = idColorDetallePedido(producto);
+    const idDetallePedido = parseInt(producto.Id ?? producto.id, 10) || 0;
+
+    if (pedidoLineaUsaStockPtGuardado(producto)) {
+        _pedModalStockPtPersistido = { activo: true, cantidad: cantPtLinea };
+    } else {
+        resetPedModalStockPtPersistido();
+    }
+
+    _pedModalLineaEsFabricacion = stockReal <= 0 && cantPtLinea <= 0;
 
     // =========================================================
     // 3) ARMAR PRODUCTO PARA MODAL
     // =========================================================
     const productoSoloModal = {
-        Id: parseInt(producto.IdProducto), // 👈 ID REAL
+        Id: idProdModal,
         Nombre: producto.Nombre,
         Categoria: producto.Categoria,
-        IdCategoria: producto.IdCategoria,
+        IdCategoria: producto.IdCategoria ?? producto.idCategoria,
         CostoUnitario: producto.CostoUnitario,
 
         // 🔥 STOCK REAL
         Stock: stockReal,
 
-        IdProducto: parseInt(producto.IdProducto),
-        IdColor: producto.IdColor,
+        IdProducto: idProdModal,
+        IdColor: idColModal,
         Color: producto.Color,
         PorcGanancia: producto.PorcGanancia,
         Ganancia: producto.Ganancia,
@@ -2512,92 +3092,19 @@ async function editarProducto(producto) {
         IVA: producto.IVA,
         PrecioVenta: producto.PrecioVenta,
         PrecioVentaUnitario: producto.PrecioVentaUnitario,
-        Cantidad: producto.Cantidad,
-        UsaStockProducto: producto.UsaStockProducto,
-        CantidadStockProducto: parseFloat(producto.CantidadStockProducto || 0) || 0
+        Cantidad: producto.Cantidad ?? producto.cantidad,
+        UsaStockProducto: usaPtLinea,
+        CantidadStockProducto: cantPtLinea
     };
 
     // =========================================================
-    // 4) CARGAR PRODUCTO EN MODAL
+    // 4) SETEAR FORMULARIO (cantidad antes de sincronizar stock PT del modal)
     // =========================================================
-    await configurarDataTableProductosModal([productoSoloModal]);
-    setPedidoModalPane(stockReal > 0 ? "pt" : "fab", { skipReloadProductosGrid: true });
-    actualizarPedidoModalTabsEdicionBloqueo();
-
-    // =========================================================
-    // 5) OBTENER INSUMOS DEL GRID PRINCIPAL
-    // =========================================================
-    let insumosData = [];
-
-    if (gridInsumos) {
-        insumosData = gridInsumos
-            .rows()
-            .data()
-            .toArray()
-            .filter(row =>
-                parseInt(row.IdDetalle) === parseInt(producto.Id)
-            );
-    }
-
-    // =========================================================
-    // 6) TRANSFORMAR INSUMOS PARA MODAL
-    // =========================================================
-    const qProdLinea = Math.max(1, parseFloat(producto.Cantidad) || 1);
-
-    const transformedData = insumosData.map(row => {
-
-        const cantLinea = parseFloat(row.Cantidad) || 0;
-        const cantidadInicial = cantLinea / qProdLinea;
-
-        return {
-
-        Nombre: row.Insumo,
-        Cantidad: row.Cantidad,
-        CantidadInicial: cantidadInicial,
-
-        CostoUnitario: row.PrecioUnitario,
-        SubTotal: row.SubTotal,
-
-        IdCategoria: row.IdCategoria,
-        Categoria: row.Categoria,
-
-        IdColor: row.IdColor,
-        Color: row.Color,
-
-        IdEstado: row.IdEstado,
-        Estado: row.Estado,
-
-        IdTipo: row.IdTipo,
-        Tipo: row.Tipo,
-
-        Especificacion: row.Especificacion,
-        Comentarios: row.Comentarios,
-
-        IdUnidadMedida: row.IdUnidadMedida,
-        IdProveedor: row.IdProveedor,
-        Proveedor: row.Proveedor,
-
-        Id: row.Id,
-        IdProducto: row.IdProducto,
-        IdInsumo: row.IdInsumo,
-
-        // 🔥 STOCK CORRECTO
-        Stock: parseFloat(row.Stock ?? row.StockDisponible ?? 0) || 0,
-        StockDisponible: parseFloat(row.Stock ?? row.StockDisponible ?? 0) || 0,
-
-        UsaStock: row.UsaStock === true || Number(row.UsaStock) === 1 ? 1 : 0,
-        CantidadStock: parseFloat(row.CantidadStock || 0) || 0
-        };
-    });
-
-    // =========================================================
-    // 7) SETEAR FORMULARIO
-    // =========================================================
-    $('#ProductoEditandoModalId').val(producto.Id); // 👈 ID DETALLE
-    $('#ProductoModalId').val(producto.IdProducto);
+    $('#ProductoEditandoModalId').val(String(idDetallePedido));
+    $('#ProductoModalId').val(String(idProdModal));
 
     $('#ProductoModalNombre').val(producto.Nombre);
-    $('#ProductoModalIdCategoria').val(producto.IdCategoria);
+    $('#ProductoModalIdCategoria').val(producto.IdCategoria ?? producto.idCategoria);
     $('#ProductoModalCategoria').val(producto.Categoria);
 
     $('#ProductoModalCostoUnitario').val(formatNumber(producto.CostoUnitario));
@@ -2608,7 +3115,133 @@ async function editarProducto(producto) {
     $('#ProductoModalIva').val(formatNumber(producto.IVA));
 
     $('#ProductoModalPrecioVenta').val(formatNumber(producto.PrecioVenta));
-    $('#ProductoModalCantidad').val(producto.Cantidad);
+    $('#ProductoModalCantidad').val(producto.Cantidad ?? producto.cantidad);
+
+    // =========================================================
+    // 5) CARGAR PRODUCTO EN MODAL (grilla superior)
+    // =========================================================
+    await configurarDataTableProductosModal([productoSoloModal]);
+
+    // Stock PT en DOM **antes** de setPedidoModalPane → controlarUsoStockInsumos (usa el checkbox).
+    if (gridProductosModal) {
+        const filasModal = gridProductosModal.rows().nodes().to$();
+        filasModal.removeClass('selected');
+        filasModal.find('td').removeClass('selected');
+    }
+    filaSeleccionadaProductos = null;
+
+    let filaStockPt = null;
+    if (gridProductosModal) {
+        if (isEditingProducto && gridProductosModal.rows().count() === 1) {
+            filaStockPt = gridProductosModal.row(0).node();
+        } else {
+            gridProductosModal.rows().every(function () {
+                const d = this.data();
+                const idCatalogoFila =
+                    parseInt(d.Id ?? d.id ?? d.IdProducto ?? d.idProducto, 10) || 0;
+                const idColorFila = idColorDetallePedido(d);
+                if (idCatalogoFila === idProdModal && idColorFila === idColModal) {
+                    filaStockPt = this.node();
+                }
+            });
+        }
+    }
+
+    if (filaStockPt) {
+        filaSeleccionadaProductos = filaStockPt;
+        $(filaStockPt).addClass('selected');
+        $('td', filaStockPt).addClass('selected');
+
+        const $fila = $(filaStockPt);
+        const chk = $fila.find('.chk-usa-stock-producto');
+        const txt = $fila.find('.txt-cantidad-stock-producto');
+        const usaStock = usaStockProductoDesdeFilaPedido(producto);
+        const cantTxt = cantidadStockProductoDesdeFilaPedido(producto);
+
+        if (_pedModalLineaEsFabricacion) {
+            chk.prop('checked', false);
+            txt.prop('disabled', true).val(0);
+        } else {
+            chk.prop('checked', usaStock || _pedModalStockPtPersistido.activo);
+            txt.prop('disabled', !(usaStock || _pedModalStockPtPersistido.activo));
+            txt.val(_pedModalStockPtPersistido.activo ? _pedModalStockPtPersistido.cantidad : cantTxt);
+            sincronizarStockProductoSeleccionadoConCantidad();
+        }
+    }
+
+    setPedidoModalPane((stockReal > 0 || cantPtLinea > 0) ? "pt" : "fab", { skipReloadProductosGrid: true });
+    actualizarPedidoModalTabsEdicionBloqueo();
+    aplicarControlesStockPtGrillaModalProducto();
+
+    // =========================================================
+    // 6) OBTENER INSUMOS DEL GRID PRINCIPAL
+    // =========================================================
+    let insumosData = [];
+
+    if (gridInsumos) {
+        insumosData = gridInsumos
+            .rows()
+            .data()
+            .toArray()
+            .filter(row => parseInt(row.IdDetalle ?? row.idDetalle, 10) === idDetallePedido);
+    }
+
+    // =========================================================
+    // 7) TRANSFORMAR INSUMOS PARA MODAL
+    // =========================================================
+    const qProdLinea = Math.max(1, parseFloat(producto.Cantidad ?? producto.cantidad) || 1);
+
+    const transformedData = insumosData.map(row => {
+
+        const cantLinea = parseFloat(row.Cantidad ?? row.cantidad) || 0;
+        const cantidadInicial = cantLinea / qProdLinea;
+
+        return {
+
+        Nombre: row.Insumo ?? row.insumo,
+        Cantidad: row.Cantidad ?? row.cantidad,
+        CantidadInicial: cantidadInicial,
+
+        CostoUnitario: row.PrecioUnitario ?? row.precioUnitario,
+        SubTotal: row.SubTotal ?? row.subTotal,
+
+        IdCategoria: row.IdCategoria ?? row.idCategoria,
+        Categoria: row.Categoria ?? row.categoria,
+
+        IdColor: row.IdColor ?? row.idColor,
+        Color: row.Color ?? row.color,
+
+        IdEstado: row.IdEstado ?? row.idEstado,
+        Estado: row.Estado ?? row.estado,
+
+        IdTipo: row.IdTipo ?? row.idTipo,
+        Tipo: row.Tipo ?? row.tipo,
+
+        Especificacion: row.Especificacion ?? row.especificacion,
+        Comentarios: row.Comentarios ?? row.comentarios,
+
+        IdUnidadMedida: row.IdUnidadMedida ?? row.idUnidadMedida,
+        IdProveedor: row.IdProveedor ?? row.idProveedor,
+        Proveedor: row.Proveedor ?? row.proveedor,
+
+        Id: row.Id ?? row.id,
+        IdProducto: row.IdProducto ?? row.idProducto,
+        IdInsumo: row.IdInsumo ?? row.idInsumo,
+
+        // 🔥 STOCK CORRECTO
+        Stock: parseFloat(row.Stock ?? row.stock ?? row.StockDisponible ?? row.stockDisponible ?? 0) || 0,
+        StockDisponible: parseFloat(row.Stock ?? row.stock ?? row.StockDisponible ?? row.stockDisponible ?? 0) || 0,
+
+        UsaStock: usaStockInsumoProcesoPedido(row) ? 1 : 0,
+        CantidadStock: cantidadStockInsumoProcesoPedido(row),
+        CantidadUsadaStock: parseNumeroFlexible(
+            row.CantidadUsadaStock ?? row.cantidadUsadaStock ?? row.CantidadStock ?? row.cantidadStock ?? row.CantidadStockInsumo ?? row.cantidadStockInsumo ?? 0
+        ),
+        _insumoCantidadStockDesdeDb: parseNumeroFlexible(
+            row.CantidadUsadaStock ?? row.cantidadUsadaStock ?? row.CantidadStockInsumo ?? row.cantidadStockInsumo ?? row.CantidadStock ?? row.cantidadStock ?? 0
+        )
+        };
+    });
 
     // =========================================================
     // 8) CARGAR INSUMOS EN MODAL
@@ -2619,74 +3252,30 @@ async function editarProducto(producto) {
     // 9) SETEAR COLOR
     // =========================================================
     $('#Colores')
-        .val(parseInt(producto.IdColor) || -1)
+        .val(String(idColModal !== 0 && idColModal != null ? idColModal : -1))
         .trigger('change');
 
-    if ((parseFloat(producto.Stock ?? producto.StockDisponible ?? 0) || 0) > 0) {
-        forzarColorInsumosModalDesdeProducto(producto.IdColor, producto.Color);
+    if (stockReal > 0) {
+        forzarColorInsumosModalDesdeProducto(idColModal, producto.Color);
     }
 
-    // =========================================================
-    // 10) LIMPIAR SELECCIÓN
-    // =========================================================
-    filaSeleccionadaProductos = null;
-
-    if (gridProductosModal) {
-        const filasModal = gridProductosModal.rows().nodes().to$();
-        filasModal.removeClass('selected');
-        filasModal.find('td').removeClass('selected');
-    }
-
-    // =========================================================
-    // 11) SELECCIONAR PRODUCTO EN MODAL
-    // =========================================================
-    let filaEncontrada = null;
-
-    if (gridProductosModal) {
-        gridProductosModal.rows().every(function () {
-            const d = this.data();
-
-            if (parseInt(d.Id, 10) === parseInt(producto.IdProducto, 10) &&
-                (parseInt(d.IdColor, 10) || 0) === (parseInt(producto.IdColor, 10) || 0)) {
-                filaEncontrada = this.node();
-            }
-        });
-    }
-
-    // =========================================================
-    // 12) APLICAR STOCK PRODUCTO
-    // =========================================================
-    if (filaEncontrada) {
-
-        filaSeleccionadaProductos = filaEncontrada;
-
-        $(filaEncontrada).addClass('selected');
-        $('td', filaEncontrada).addClass('selected');
-
-        const $fila = $(filaEncontrada);
-
-        const chk = $fila.find('.chk-usa-stock-producto');
-        const txt = $fila.find('.txt-cantidad-stock-producto');
-        const usaStock =
-            producto.UsaStockProducto === true ||
-            Number(producto.UsaStockProducto) === 1 ||
-            parseFloat(producto.CantidadStockProducto || 0) > 0;
-
-        if (_pedModalLineaEsFabricacion) {
-            chk.prop('checked', false);
-            txt.prop('disabled', true).val(0);
-        } else {
-            chk.prop('checked', usaStock);
-            txt.prop('disabled', !usaStock);
-            txt.val(parseFloat(producto.CantidadStockProducto || 0) || 0);
-            sincronizarStockProductoSeleccionadoConCantidad();
+    if (gridInsumosModal) {
+        if (!_pedModalStockPtPersistido.activo) {
+            controlarUsoStockInsumos();
+        }
+        gridInsumosModal.draw(false);
+        if (_pedModalStockPtPersistido.activo) {
+            $('#grd_Insumos_Modal tbody tr').addClass('insumo-fila-via-pt-producto');
         }
     }
 
     // =========================================================
-    // 13) UI MODAL
+    // 11) UI MODAL
     // =========================================================
-    $("#productoModal .modal-title").text("Editar Producto");
+    const tituloModal = _pedModalStockPtPersistido.activo
+        ? "Editar Producto (terminado del depósito)"
+        : "Editar Producto";
+    $("#productoModal .modal-title").text(tituloModal);
     $("#btnGuardarProducto").html(`<i class="fa fa-check me-1"></i> Guardar`);
 
     $('#productoModal .modal-dialog').css({
@@ -2695,11 +3284,13 @@ async function editarProducto(producto) {
     });
 
     // =========================================================
-    // 14) ABRIR MODAL
+    // 12) ABRIR MODAL
     // =========================================================
-    $("#productoModal").modal('show');
+    $("#productoModal").modal("show");
+    setTimeout(() => aplicarControlesStockPtGrillaModalProducto(), 100);
 }
 async function anadirProducto() {
+    resetPedModalStockPtPersistido();
     isEditingProducto = false;
     $("#productoModal .modal-title").text("Añadir Producto");
     $("#btnGuardarProducto").html(`<i class="fa fa-check me-1"></i> Añadir`);
@@ -2961,6 +3552,12 @@ function calcularDatosPedido() {
     document.getElementById("SubTotal").value = formatNumber(subTotal);
     document.getElementById("Saldo").value = formatNumber(saldo);
 
+    try {
+        if (gridProductos && $.fn.DataTable.isDataTable("#grd_Productos")) {
+            gridProductos.column(5).cells().invalidate();
+            gridProductos.draw(false);
+        }
+    } catch (e) { /* no-op */ }
 }
 
 
@@ -3012,25 +3609,25 @@ async function guardarCambios(redirecciona = true) {
             gridProductos.rows().every(function () {
                 const p = this.data();
 
-                const cantidadStock = parseFloat(p.CantidadStockProducto || 0) || 0;
+                const cantidadStock = cantidadStockProductoDesdeFilaPedido(p);
 
                 productos.push({
-                    "Id": p.Id,
-                    "IdProducto": parseInt(p.IdProducto),
-                    "IdCategoria": parseInt(p.IdCategoria),
-                    "CostoUnitario": parseFloat(p.CostoUnitario),
-                    "Cantidad": parseFloat(p.Cantidad),
-                    "PorcGanancia": parseFloat(p.PorcGanancia),
-                    "Ganancia": parseFloat(p.Ganancia),
-                    "PorcIva": parseFloat(p.PorcIva),
-                    "IVA": parseFloat(p.IVA),
-                    "PrecioVenta": parseFloat(p.PrecioVenta),
-                    "IdColor": parseInt(p.IdColor),
+                    "Id": p.Id ?? p.id,
+                    "IdProducto": parseInt(p.IdProducto ?? p.idProducto, 10),
+                    "IdCategoria": parseInt(p.IdCategoria ?? p.idCategoria, 10),
+                    "CostoUnitario": parseFloat(p.CostoUnitario ?? p.costoUnitario),
+                    "Cantidad": parseFloat(p.Cantidad ?? p.cantidad),
+                    "PorcGanancia": parseFloat(p.PorcGanancia ?? p.porcGanancia),
+                    "Ganancia": parseFloat(p.Ganancia ?? p.ganancia),
+                    "PorcIva": parseFloat(p.PorcIva ?? p.porcIva),
+                    "IVA": parseFloat(p.IVA ?? p.iva),
+                    "PrecioVenta": parseFloat(p.PrecioVenta ?? p.precioVenta),
+                    "IdColor": parseInt(p.IdColor ?? p.idColor, 10),
                     "Producto": p.Nombre,
 
                     // 🔥 CLAVE
                     "CantidadUsadaStock": cantidadStock,
-                    "UsaStockProducto": cantidadStock > 0
+                    "UsaStockProducto": usaStockProductoDesdeFilaPedido(p)
                 });
             });
 
@@ -3043,44 +3640,56 @@ async function guardarCambios(redirecciona = true) {
         function obtenerInsumos() {
             const insumos = [];
             let invalido = false;
+            const stockPtPorDetalle = mapaStockPtPorDetallePedido();
 
             gridInsumos.rows().every(function () {
                 const i = this.data();
 
-                if (!i.IdColor || i.IdColor === 0) {
-                    invalido = true;
+                const cantidad = parseFloat(i.Cantidad ?? i.cantidad ?? 0) || 0;
+
+                const idDet = parseInt(i.IdDetalle ?? i.idDetalle, 10) || 0;
+                const infoPt = stockPtPorDetalle[idDet];
+                const ptCubreTodo = !!(infoPt && infoPt.cubreTodo);
+
+                const usaCheckbox = usaStockInsumoProcesoPedido(i);
+                let cantidadStock = cantidadStockInsumoProcesoPedido(i);
+                if (!usaCheckbox || ptCubreTodo) {
+                    cantidadStock = 0;
                 }
 
-                const cantidad = parseFloat(i.Cantidad || 0) || 0;
-
-                const cantidadStock = parseFloat(i.CantidadStock || 0) || 0;
-                const usaStock = cantidadStock > 0;
+                const idColorIns = parseInt(i.IdColor ?? i.idColor, 10) || 0;
+                if (!idColorIns || idColorIns === 0) {
+                    invalido = true;
+                }
 
                 if (cantidadStock > cantidad) {
                     invalido = true;
                 }
 
-                insumos.push({
-                    "Id": idPedido !== "" ? i.Id : 0,
-                    "IdProducto": parseInt(i.IdProducto),
-                    "IdInsumo": parseInt(i.IdInsumo),
-                    "IdCategoria": parseInt(i.IdCategoria),
-                    "PrecioUnitario": parseFloat(i.PrecioUnitario),
+                const ins = {
+                    "Id": idPedido !== "" ? (i.Id ?? i.id) : 0,
+                    "IdProducto": parseInt(i.IdProducto ?? i.idProducto, 10),
+                    "IdInsumo": parseInt(i.IdInsumo ?? i.idInsumo, 10),
+                    "IdCategoria": parseInt(i.IdCategoria ?? i.idCategoria, 10),
+                    "PrecioUnitario": parseFloat(i.PrecioUnitario ?? i.precioUnitario),
                     "Cantidad": cantidad,
-                    "SubTotal": parseFloat(i.SubTotal),
-                    "IdColor": parseInt(i.IdColor),
-                    "IdTipo": parseInt(i.IdTipo),
-                    "IdEstado": parseInt(i.IdEstado),
-                    "IdDetalle": parseInt(i.IdDetalle),
-                    "IdProveedor": parseInt(i.IdProveedor),
-                    "IdUnidadMedida": parseInt(i.IdUnidadMedida),
-                    "Especificacion": i.Especificacion,
-                    "Comentarios": i.Comentarios,
+                    "SubTotal": parseFloat(i.SubTotal ?? i.subTotal),
+                    "IdColor": idColorIns,
+                    "IdTipo": parseInt(i.IdTipo ?? i.idTipo, 10),
+                    "IdEstado": parseInt(i.IdEstado ?? i.idEstado, 10),
+                    "IdDetalle": idDet,
+                    "IdProveedor": parseInt(i.IdProveedor ?? i.idProveedor, 10),
+                    "IdUnidadMedida": parseInt(i.IdUnidadMedida ?? i.idUnidadMedida, 10),
+                    "Especificacion": i.Especificacion ?? i.especificacion,
+                    "Comentarios": i.Comentarios ?? i.comentarios,
 
-                    // 🔥 CLAVE
-                    "CantidadUsadaStock": cantidadStock,
-                    "UsaStock": usaStock
-                });
+                    "CantidadUsadaStock": cantidadStock
+                };
+
+                if (i.FechaActualizacion)
+                    ins.FechaActualizacion = i.FechaActualizacion;
+
+                insumos.push(ins);
             });
 
             if (invalido) {
@@ -3249,9 +3858,14 @@ function isValidPedido() {
     gridProductos.rows().every(function () {
         const p = this.data();
 
-        const cantidad = parseFloat(p.Cantidad || 0) || 0;
-        const usaStockProducto = Number(p.UsaStockProducto || 0) === 1;
-        const cantidadStockProducto = usaStockProducto ? (parseFloat(p.CantidadStockProducto || 0) || 0) : 0;
+        const cantidad = parseFloat(p.Cantidad ?? p.cantidad ?? 0) || 0;
+        const usaStockProducto = usaStockProductoDesdeFilaPedido(p);
+        const cantidadStockProducto = pedidoLineaUsaStockProductoTerminado(
+            cantidadStockProductoDesdeFilaPedido(p),
+            usaStockProducto
+        )
+            ? cantidadStockProductoDesdeFilaPedido(p)
+            : 0;
 
         if (cantidadStockProducto > cantidad) {
             errorStockProducto = true;
@@ -3268,15 +3882,16 @@ function isValidPedido() {
     gridInsumos.rows().every(function () {
         const i = this.data();
 
-        const cantidad = parseFloat(i.Cantidad || 0) || 0;
-        const usaStock = Number(i.UsaStock || 0) === 1;
-        const cantidadStock = usaStock ? (parseFloat(i.CantidadStock || 0) || 0) : 0;
+        const cantidad = parseFloat(i.Cantidad ?? i.cantidad ?? 0) || 0;
+        const usaStock = usaStockInsumoProcesoPedido(i);
+        const cantidadStock = usaStock ? cantidadStockInsumoProcesoPedido(i) : 0;
 
         if (cantidadStock > cantidad) {
             errorStockInsumo = true;
         }
 
-        if (!i.IdColor || i.IdColor == 0) {
+        const idColIns = parseInt(i.IdColor ?? i.idColor, 10) || 0;
+        if (!idColIns || idColIns === 0) {
             errorStockInsumo = true;
         }
     });
@@ -4309,14 +4924,18 @@ function ceilToStep(value, step = 0.1) {
 function controlarUsoStockInsumos() {
 
     if (!gridInsumosModal) return;
+    if (productoTerminadoUsaStockEnModal()) return;
 
     const cantidadProducto = parseFloat($('#ProductoModalCantidad').val()) || 0;
 
     const controles = obtenerControlesStockProductoFilaSeleccionada();
-    if (!controles) return;
+    let usaStockProducto = false;
+    let cantidadStockProducto = 0;
+    if (controles) {
+        usaStockProducto = _pedModalLineaEsFabricacion ? false : controles.chk.is(':checked');
+        cantidadStockProducto = usaStockProducto ? (parseFloat(controles.txt.val()) || 0) : 0;
+    }
 
-    const usaStockProducto = _pedModalLineaEsFabricacion ? false : controles.chk.is(':checked');
-    const cantidadStockProducto = usaStockProducto ? (parseFloat(controles.txt.val()) || 0) : 0;
     const productoUsaStock = usaStockProducto && cantidadStockProducto > 0;
 
     const cantidadAFabricar = Math.max(0, cantidadProducto - cantidadStockProducto);
@@ -4327,27 +4946,28 @@ function controlarUsoStockInsumos() {
 
         const rowData = this.data();
 
-        const stockDisponible = parseFloat(rowData.Stock ?? rowData.StockDisponible ?? 0) || 0;
-        const cantidadInicial = parseFloat(rowData.CantidadInicial || 0) || 0;
-        const cantidadTotalInsumo = parseFloat(rowData.Cantidad || 0) || 0;
+        if (insumoStockDepositoYaPersistidoEnPedido(rowData)) {
+            return;
+        }
+
+        const stockDisponible = parseNumeroFlexible(rowData.Stock ?? rowData.StockDisponible);
+        const cantidadInicial = cantidadInicialInsumoPedidoModal(rowData, cantidadAFabricar);
 
         const cantidadNecesaria = cantidadInicial * cantidadAFabricar;
-        const cantidadCubiertaPorStockProducto = cantidadInicial * cantidadStockProducto;
         const maximo = Math.min(stockDisponible, cantidadNecesaria);
 
-        let nuevaCantidadStock = parseFloat(rowData.CantidadStock || 0) || 0;
+        let nuevaCantidadStock = parseNumeroFlexible(rowData.CantidadStock);
 
-        if (productoUsaStock) {
-            // Si se usa stock de producto terminado, la parte de insumo cubierta
-            // viene dada por esa cantidad de producto, no por stock de depósito.
-            nuevaCantidadStock = Math.min(cantidadCubiertaPorStockProducto, cantidadTotalInsumo);
+        // Producto terminado del depósito NO consume insumos del depósito (solo baja stock tipo P).
+        if (productoUsaStock && cantidadAFabricar <= 0) {
+            nuevaCantidadStock = 0;
         } else if (cantidadAFabricar <= 0 || stockDisponible <= 0) {
             nuevaCantidadStock = 0;
         } else {
             nuevaCantidadStock = Math.min(nuevaCantidadStock, maximo);
         }
 
-        const nuevoUsaStock = productoUsaStock ? 1 : (nuevaCantidadStock > 0 ? 1 : 0);
+        const nuevoUsaStock = nuevaCantidadStock > 0 ? 1 : 0;
 
         // 🔥 SOLO actualiza si cambia (clave para performance y bugs)
         if (
@@ -4467,19 +5087,26 @@ function clamp(valor, min, max) {
 }
 
 function getStockDisponibleFila(row) {
-    return parseFloat(row.Stock ?? row.StockDisponible ?? 0) || 0;
+    return parseNumeroFlexible(row?.Stock ?? row?.StockDisponible);
 }
 
 function getCantidadStockFila(row) {
-    return parseFloat(row.CantidadStock ?? row.CantidadStockInsumo ?? row.CantidadStockProducto ?? 0) || 0;
+    if (!row) return 0;
+    if (row.CantidadStockProducto != null || row.cantidadStockProducto != null) {
+        return cantidadStockProductoDesdeFilaPedido(row);
+    }
+    return cantidadStockInsumoProcesoPedido(row);
 }
 
 function getCantidadFila(row) {
-    return parseFloat(row.Cantidad || 0) || 0;
+    return parseFloat(row.Cantidad ?? row.cantidad ?? 0) || 0;
 }
 
 function productoTerminadoUsaStockEnModal() {
     if (_pedModalLineaEsFabricacion) return false;
+    if (_pedModalStockPtPersistido.activo) {
+        return parseNumeroFlexible(_pedModalStockPtPersistido.cantidad) > 0;
+    }
     const controles = obtenerControlesStockProductoFilaSeleccionada();
     if (!controles || !controles.chk?.length) return false;
     if (!controles.chk.is(':checked')) return false;
@@ -4487,8 +5114,23 @@ function productoTerminadoUsaStockEnModal() {
     return cantidadStock > 0;
 }
 
+/** Cantidad de insumo de la línea (informativo con PT del depósito): receta × cantidad de producto del modal (= columna Cantidad). */
+function cantidadInformativaInsumoCubiertoPorProductoTerminado(row) {
+    if (!productoTerminadoUsaStockEnModal() || !row) return 0;
+    const qPedido = parseFloat($("#ProductoModalCantidad").val()) || 0;
+    if (qPedido <= 0) return 0;
+
+    let cantInicial = parseFloat(row.CantidadInicial ?? row.cantidadInicial ?? 0) || 0;
+    if (cantInicial <= 0) {
+        const cantLinea = parseFloat(row.Cantidad ?? row.cantidad ?? 0) || 0;
+        cantInicial = qPedido > 0 ? cantLinea / qPedido : cantLinea;
+    }
+    const n = cantInicial * qPedido;
+    return Math.round((n + Number.EPSILON) * 10000) / 10000;
+}
+
 function insumoUsaStock(row) {
-    return Number(row?.UsaStock) === 1;
+    return usaStockInsumoProcesoPedido(row);
 }
 
 

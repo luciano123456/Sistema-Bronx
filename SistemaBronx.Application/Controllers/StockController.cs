@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SistemaBronx.Application.Models.ViewModels;
 using SistemaBronx.BLL.Service;
@@ -49,6 +49,9 @@ namespace SistemaBronx.Application.Controllers
                 Producto = s.IdProductoNavigation?.Nombre,
                 s.IdInsumo,
                 Insumo = s.IdInsumoNavigation?.Descripcion,
+                Proveedor = string.Equals(s.TipoItem, "I", StringComparison.OrdinalIgnoreCase)
+                    ? (s.IdInsumoNavigation?.IdProveedorNavigation?.Nombre ?? "")
+                    : "",
                 s.IdColor,
                 Color = s.IdColorNavigation?.Nombre,
                 s.CantidadActual,
@@ -76,17 +79,30 @@ namespace SistemaBronx.Application.Controllers
 
             tipoItem = tipoItem.ToUpper();
 
+            var colorFiltro = idColor ?? 0;
+            int? idProdFiltro = tipoItem == "I" ? null : idProducto;
+            int? idInsFiltro = tipoItem == "P" ? null : idInsumo;
+
+            if (tipoItem == "I" && (!idInsumo.HasValue || idInsumo.Value <= 0))
+                return Json(new List<VMStockViewModels.VMStockMovimientoDetalle>());
+
+            if (tipoItem == "P" && (!idProducto.HasValue || idProducto.Value <= 0))
+                return Json(new List<VMStockViewModels.VMStockMovimientoDetalle>());
+
             var movimientos = await _svc.ObtenerMovimientosItem(tipoItem, idProducto, idInsumo, idColor);
 
+            // idColor=0: historial “general” del ítem (todas las variantes de color en detalle).
+            // idColor>0: solo líneas de detalle con ese IdColor (saldo por color).
             var vm = movimientos
                 .OrderBy(m => m.Fecha)
                 .SelectMany(m =>
                     m.StockMovimientosDetalles
                         .Where(d =>
                             d.TipoItem == tipoItem &&
-                            d.IdProducto == idProducto &&
-                            d.IdInsumo == idInsumo &&
-                            (d.IdColor ?? 0) == (idColor ?? 0))
+                            (colorFiltro == 0 || (d.IdColor ?? 0) == colorFiltro) &&
+                            (tipoItem == "I"
+                                ? d.IdInsumo == idInsFiltro
+                                : d.IdProducto == idProdFiltro))
                         .Select(d => new VMStockViewModels.VMStockMovimientoDetalle
                         {
                             Id = d.Id,

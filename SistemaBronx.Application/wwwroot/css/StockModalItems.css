@@ -351,6 +351,16 @@
     max-width: 8rem;
 }
 
+.stock-bom-factor-color-field {
+    min-width: 9rem;
+    max-width: 14rem;
+    flex: 1 1 11rem;
+}
+
+.stock-bom-factor-color-field .select2-container {
+    width: 100% !important;
+}
+
 .stock-bom-factor-hint {
     color: #7a8bad;
     flex: 1 1 12rem;

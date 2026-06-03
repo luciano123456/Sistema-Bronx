@@ -57,7 +57,7 @@ namespace SistemaBronx.Application.Controllers
         }
 
         /// <summary>
-        /// Catálogo para el modal de pedidos: con stock = producto×color con stock PT &gt; 0;
+        /// Catálogo para el modal de pedidos: con stock = producto×color con stock PT &gt; 0 (incluye sin color, IdColor 0);
         /// fabricación = todos los productos (una fila c/u; Stock = suma PT; color al añadir).
         /// </summary>
         [HttpGet]

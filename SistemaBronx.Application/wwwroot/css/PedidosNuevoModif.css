@@ -2761,3 +2761,100 @@ table.dataTable tbody tr.selected {
         min-width: 0;
     }
 }
+
+/* Modal insumos: «Usar stock» — solo el checkbox; sin saldo = rojo + cruz (sin recuadro extra). */
+#grd_Insumos_Modal .chk-usa-stock-insumo.chk-insumo-stock-sin-saldo {
+    opacity: 1;
+    cursor: not-allowed;
+    width: 1.1em;
+    height: 1.1em;
+    border: 2px solid #ff5a6a !important;
+    background-color: rgba(55, 18, 26, 0.92) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath stroke='%23ffb0b8' stroke-width='2.2' stroke-linecap='round' d='M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6'/%3E%3C/svg%3E") !important;
+    background-size: 62% 62%;
+    background-position: center;
+    background-repeat: no-repeat;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+#grd_Insumos_Modal .chk-usa-stock-insumo.chk-insumo-stock-ok:enabled {
+    width: 1.1em;
+    height: 1.1em;
+    border: 2px solid rgba(200, 210, 235, 0.55) !important;
+    background-color: rgba(22, 28, 44, 0.95) !important;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+#grd_Insumos_Modal .chk-usa-stock-insumo.chk-insumo-stock-ok:enabled:not(:checked) {
+    background-image: none !important;
+}
+
+#grd_Insumos_Modal .chk-usa-stock-insumo.chk-insumo-stock-via-pt {
+    opacity: 1 !important;
+    cursor: default;
+    pointer-events: none;
+    border: 2px solid #1ecf93 !important;
+    background-color: #1ecf93 !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%230a111f' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
+    background-size: 72% 72%;
+    background-position: center;
+    background-repeat: no-repeat;
+    appearance: none;
+    -webkit-appearance: none;
+    width: 1.1em;
+    height: 1.1em;
+}
+
+/* Misma idea que vía PT: línea que ya descuenta insumo del depósito en el pedido (edición). */
+#grd_Insumos_Modal .chk-usa-stock-insumo.chk-insumo-stock-pedido {
+    opacity: 1 !important;
+    cursor: default;
+    pointer-events: none;
+    border: 2px solid #1ecf93 !important;
+    background-color: #1ecf93 !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%230a111f' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
+    background-size: 72% 72%;
+    background-position: center;
+    background-repeat: no-repeat;
+    appearance: none;
+    -webkit-appearance: none;
+    width: 1.1em;
+    height: 1.1em;
+}
+
+#grd_Insumos_Modal tr.insumo-fila-stock-pedido > td {
+    background-color: rgba(30, 207, 147, 0.07) !important;
+}
+
+#grd_Insumos_Modal tr.insumo-fila-stock-pedido > td:first-child {
+    box-shadow: inset 3px 0 0 0 #1ecf93;
+}
+
+#grd_Insumos_Modal .txt-cant-stock-insumo-via-pt {
+    text-align: center;
+    font-weight: 600;
+    border-color: rgba(30, 207, 147, 0.55) !important;
+    background-color: rgba(30, 207, 147, 0.12) !important;
+    color: var(--txt, #eaf1ff);
+    cursor: default;
+}
+
+#grd_Insumos_Modal .txt-cant-stock-insumo-pedido {
+    text-align: center;
+    font-weight: 600;
+    border-color: rgba(30, 207, 147, 0.55) !important;
+    background-color: rgba(30, 207, 147, 0.12) !important;
+    color: var(--txt, #eaf1ff);
+    cursor: default;
+}
+
+#grd_Insumos_Modal .chk-usa-stock-insumo.chk-insumo-stock-ok:enabled:checked {
+    border-color: #1ecf93 !important;
+    background-color: #1ecf93 !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%230a111f' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
+    background-size: 72% 72%;
+    background-position: center;
+    background-repeat: no-repeat;
+}

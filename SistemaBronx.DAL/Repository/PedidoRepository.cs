@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using SistemaBronx.DAL.DataContext;
 using SistemaBronx.Models;
 using System.Collections.Generic;
@@ -129,6 +129,11 @@ namespace SistemaBronx.DAL.Repository
             var delta = det.Cantidad * signo;
 
             var saldo = await BuscarSaldoParaDetalleAsync(det);
+
+            // Persistir el color del **saldo** tocado (p. ej. sin color aunque la línea traiga color),
+            // para que historial / consultas por IdColor coincidan con StockSaldos.
+            if (saldo != null)
+                det.IdColor = saldo.IdColor;
 
             if (saldo == null)
             {
@@ -765,8 +770,13 @@ namespace SistemaBronx.DAL.Repository
                 ============================================================ */
                 if (hayCambiosStock)
                 {
-                    // 🔥 SI EXISTE MOVIMIENTO → LO MODIFICO
-                    if (movAnterior != null && !movAnterior.EsAnulado)
+                    if (!detallesStock.Any())
+                    {
+                        // El pedido ya no consume stock del depósito: eliminar movimiento y relaciones
+                        // (evita cabecera en StockMovimientos sin líneas en StockMovimientosDetalle).
+                        await LimpiarMovimientoStockPedidoAsync(pedido.Id);
+                    }
+                    else if (movAnterior != null && !movAnterior.EsAnulado)
                     {
                         var esEntradaAnterior = EsEntradaLocal(movAnterior)
                             || await GetEsEntradaAsync(movAnterior.IdTipoMovimiento);
@@ -855,6 +865,22 @@ namespace SistemaBronx.DAL.Repository
                 return false;
             }
         }
+        private static bool ProcesoDetalleCambioSignificativo(PedidosDetalleProceso anterior, PedidosDetalleProceso nuevo)
+        {
+            static bool DecEq(decimal? a, decimal? b) => (a ?? 0m) == (b ?? 0m);
+            static bool IntEq(int? a, int? b) => (a ?? 0) == (b ?? 0);
+
+            return !DecEq(anterior.Cantidad, nuevo.Cantidad)
+                || !IntEq(anterior.IdEstado, nuevo.IdEstado)
+                || !IntEq(anterior.IdColor, nuevo.IdColor)
+                || !DecEq(anterior.CantidadUsadaStock, nuevo.CantidadUsadaStock)
+                || !string.Equals(anterior.Comentarios ?? "", nuevo.Comentarios ?? "", StringComparison.Ordinal)
+                || !string.Equals(anterior.Especificacion ?? "", nuevo.Especificacion ?? "", StringComparison.Ordinal)
+                || !string.Equals(anterior.Descripcion ?? "", nuevo.Descripcion ?? "", StringComparison.Ordinal)
+                || !DecEq(anterior.PrecioUnitario, nuevo.PrecioUnitario)
+                || !DecEq(anterior.SubTotal, nuevo.SubTotal);
+        }
+
         /* ============================================================
            ACTUALIZAR DETALLE PROCESO
         ============================================================ */
@@ -869,12 +895,15 @@ namespace SistemaBronx.DAL.Repository
                 if (pedidoDetalleExistente == null)
                     return false;
 
+                var huboCambio = ProcesoDetalleCambioSignificativo(pedidoDetalleExistente, pedidosDetalleProceso);
+
                 pedidoDetalleExistente.Cantidad = pedidosDetalleProceso.Cantidad ?? pedidoDetalleExistente.Cantidad;
                 pedidoDetalleExistente.Comentarios = pedidosDetalleProceso.Comentarios;
                 pedidoDetalleExistente.Descripcion = pedidosDetalleProceso.Descripcion;
                 pedidoDetalleExistente.Especificacion = pedidosDetalleProceso.Especificacion;
                 pedidoDetalleExistente.IdColor = pedidosDetalleProceso.IdColor;
-                pedidoDetalleExistente.FechaActualizacion = DateTime.Now;
+                if (huboCambio)
+                    pedidoDetalleExistente.FechaActualizacion = DateTime.Now;
                 pedidoDetalleExistente.IdEstado = pedidosDetalleProceso.IdEstado;
                 pedidoDetalleExistente.CantidadUsadaStock = pedidosDetalleProceso.CantidadUsadaStock;
 

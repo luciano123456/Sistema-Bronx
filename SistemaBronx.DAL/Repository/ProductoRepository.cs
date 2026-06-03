@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using SistemaBronx.Models;
 using System;
 using System.Collections.Generic;
@@ -426,9 +426,9 @@ namespace SistemaBronx.DAL.Repository
         }
 
         /// <summary>
-        /// Catálogo modal pedidos: PT = producto×color con saldo tipo P &gt; 0 en ese color;
-        /// fabricación = **un producto por fila** (todos los productos) con Stock = suma PT en todos los colores
-        /// (IdColor 0); permite armar pedido por insumos aunque exista stock terminado.
+        /// Catálogo modal pedidos: PT = producto por color con saldo tipo P &gt; 0 en ese color (incluye sin color: IdColor 0
+        /// cuando en StockSaldos IdColor es null o cero, alineado con insumos). Fabricación: una fila por producto con
+        /// Stock = suma PT en todos los colores y sin color; color se elige al añadir.
         /// </summary>
         public async Task<CatalogoPedidoModalResult> ObtenerCatalogoPedidoModalAsync()
         {
@@ -483,6 +483,26 @@ namespace SistemaBronx.DAL.Repository
                             Stock = st
                         });
                     }
+                }
+
+                // PT sin color (IdColor null/0 en StockSaldos) — misma convención que insumos / depósito.
+                var stSinColor = map.TryGetValue((p.Id, 0), out var v0) ? v0 : 0m;
+                sumaPt += stSinColor;
+                if (stSinColor > 0m)
+                {
+                    conStock.Add(new ProductoCatalogoPedidoLinea
+                    {
+                        Id = p.Id,
+                        Nombre = p.Nombre,
+                        IdCategoria = p.IdCategoria ?? 0,
+                        Categoria = p.IdCategoriaNavigation?.Nombre ?? "",
+                        PorcGanancia = p.PorcGanancia ?? 0m,
+                        PorcIva = p.PorcIva,
+                        CostoUnitario = p.CostoUnitario,
+                        IdColor = 0,
+                        Color = "Sin color",
+                        Stock = stSinColor
+                    });
                 }
 
                 // Siempre listado fabricación: todos los productos (una fila; color se elige al añadir).

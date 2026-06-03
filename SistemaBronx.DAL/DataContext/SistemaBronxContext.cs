@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -670,7 +670,8 @@ public partial class SistemaBronxContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__StockSal__3214EC077A76277A");
 
-            entity.HasIndex(e => new { e.TipoItem, e.IdProducto, e.IdInsumo }, "UX_StockSaldos_Item").IsUnique();
+            // Un saldo por variante: mismo ítem + IdColor (NULL = sin color en DB; FK solo a Id existente en Colores).
+            entity.HasIndex(e => new { e.TipoItem, e.IdProducto, e.IdInsumo, e.IdColor }, "UX_StockSaldos_ItemColor").IsUnique();
 
             entity.Property(e => e.CantidadActual).HasColumnType("decimal(18, 3)");
             entity.Property(e => e.FechaUltMovimiento)
@@ -681,6 +682,7 @@ public partial class SistemaBronxContext : DbContext
                 .IsUnicode(false)
                 .IsFixedLength();
 
+            // IdColor apunta a la tabla Colores ya existente (FK; no hay tabla puente tipo StockSaldos_Colores).
             entity.HasOne(d => d.IdColorNavigation).WithMany(p => p.StockSaldos)
                 .HasForeignKey(d => d.IdColor)
                 .HasConstraintName("FK_StockSaldos_Colores");

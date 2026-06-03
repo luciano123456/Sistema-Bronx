@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using SistemaBronx.DAL.DataContext;
 using SistemaBronx.Models;
 using System;
@@ -88,6 +88,9 @@ namespace SistemaBronx.DAL.Repository
             var delta = det.Cantidad * signo;
 
             var saldo = await BuscarSaldoParaDetalleAsync(det);
+
+            if (saldo != null)
+                det.IdColor = saldo.IdColor;
 
             if (saldo == null)
             {
@@ -476,6 +479,7 @@ namespace SistemaBronx.DAL.Repository
                 return await _db.StockSaldos
                     .Include(s => s.IdProductoNavigation)
                     .Include(s => s.IdInsumoNavigation)
+                        .ThenInclude(i => i.IdProveedorNavigation)
                     .Include(s => s.IdColorNavigation)
                     .OrderBy(s => s.TipoItem)
                     .ThenBy(s => s.IdProducto ?? s.IdInsumo)
@@ -490,6 +494,10 @@ namespace SistemaBronx.DAL.Repository
         public async Task<StockSaldo?> ObtenerSaldoItem(string tipoItem, int? idProducto, int? idInsumo, int? idColor = null)
         {
             tipoItem = (tipoItem ?? "").ToUpper();
+            if (tipoItem == "I")
+                idProducto = null;
+            else if (tipoItem == "P")
+                idInsumo = null;
 
             var colorReq = idColor ?? 0;
             var exact = await _db.StockSaldos.FirstOrDefaultAsync(s =>
@@ -499,20 +507,17 @@ namespace SistemaBronx.DAL.Repository
                 (s.IdColor ?? 0) == colorReq);
             if (exact != null)
                 return exact;
-            if (colorReq != 0)
-            {
-                return await _db.StockSaldos.FirstOrDefaultAsync(s =>
-                    s.TipoItem == tipoItem &&
-                    s.IdProducto == idProducto &&
-                    s.IdInsumo == idInsumo &&
-                    (s.IdColor ?? 0) == 0);
-            }
+
             return null;
         }
 
         public async Task<List<StockMovimiento>> ObtenerMovimientosItem(string tipoItem, int? idProducto, int? idInsumo, int? idColor = null)
         {
             tipoItem = (tipoItem ?? "").ToUpper();
+            if (tipoItem == "I")
+                idProducto = null;
+            else if (tipoItem == "P")
+                idInsumo = null;
 
             var query = _db.StockMovimientos
                 .Include(m => m.StockMovimientosDetalles)
@@ -524,13 +529,34 @@ namespace SistemaBronx.DAL.Repository
                 .Include(m => m.IdTipoMovimientoNavigation)
                 .AsQueryable();
 
-            query = query.Where(m =>
-                m.StockMovimientosDetalles.Any(d =>
-                    d.TipoItem == tipoItem &&
-                    d.IdProducto == idProducto &&
-                    d.IdInsumo == idInsumo &&
-                    (d.IdColor ?? 0) == (idColor ?? 0)
-                ));
+            var colorFiltro = idColor ?? 0;
+
+            if (tipoItem == "I")
+            {
+                if (!idInsumo.HasValue || idInsumo.Value <= 0)
+                    return new List<StockMovimiento>();
+
+                query = query.Where(m =>
+                    m.StockMovimientosDetalles.Any(d =>
+                        d.TipoItem == tipoItem &&
+                        d.IdInsumo == idInsumo &&
+                        (colorFiltro == 0 || (d.IdColor ?? 0) == colorFiltro)));
+            }
+            else if (tipoItem == "P")
+            {
+                if (!idProducto.HasValue || idProducto.Value <= 0)
+                    return new List<StockMovimiento>();
+
+                query = query.Where(m =>
+                    m.StockMovimientosDetalles.Any(d =>
+                        d.TipoItem == tipoItem &&
+                        d.IdProducto == idProducto &&
+                        (colorFiltro == 0 || (d.IdColor ?? 0) == colorFiltro)));
+            }
+            else
+            {
+                query = query.Where(m => false);
+            }
 
             return await query
                 .OrderBy(m => m.Fecha)

@@ -1,8 +1,9 @@
 namespace SistemaBronx.Models;
 
 /// <summary>
-/// Una fila del catálogo del modal de pedidos. Con stock: producto + color + stock de ese color.
-/// Fabricación: una fila por producto sin stock PT total; <see cref="IdColor"/> 0 y color placeholder hasta elegir en el formulario.
+/// Una fila del catálogo del modal de pedidos. Con stock: producto + color + stock de ese color
+/// (<see cref="IdColor"/> 0 = producto terminado sin color en depósito, mismo criterio que StockSaldos.IdColor null o 0).
+/// Fabricación: una fila por producto sin stock PT total; IdColor 0 y color placeholder hasta elegir en el formulario.
 /// </summary>
 public class ProductoCatalogoPedidoLinea
 {

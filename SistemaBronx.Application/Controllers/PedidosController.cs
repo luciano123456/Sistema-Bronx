@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SistemaBronx.Application.Models;
@@ -116,7 +116,10 @@ namespace SistemaBronx.Application.Controllers
                     Descripcion = detalleProceso.Descripcion,
                     Especificacion = detalleProceso.Especificacion,
                     IdColor = detalleProceso.IdColor,
-                    FechaActualizacion = DateTime.Now,
+                    FechaActualizacion = detalleProceso.FechaActualizacion.HasValue &&
+                        detalleProceso.FechaActualizacion.Value > DateTime.MinValue
+                        ? detalleProceso.FechaActualizacion
+                        : DateTime.Now,
                     SubTotal = detalleProceso.SubTotal ?? 0,
                     IdEstado = detalleProceso.IdEstado,
                     IdTipo = detalleProceso.IdTipo,
@@ -130,6 +133,37 @@ namespace SistemaBronx.Application.Controllers
             }
 
             return pedidoDetalleProceso;
+        }
+
+        /// <summary>
+        /// Si el pedido toma producto terminado del depósito y esa cantidad <b>cubre toda</b> la línea,
+        /// no se descuentan insumos del depósito (solo el PT). Con PT <b>parcial</b> sí se persisten
+        /// <see cref="PedidosDetalleProceso.CantidadUsadaStock"/> de los insumos que usen stock.
+        /// </summary>
+        private static void AnularStockInsumoSiProductoTerminadoUsaDeposito(
+            List<PedidosDetalle> pedidoDetalle,
+            List<PedidosDetalleProceso> pedidoDetalleProceso)
+        {
+            if (pedidoDetalleProceso == null || pedidoDetalleProceso.Count == 0)
+                return;
+
+            var idsDetallePtCubreTodo = (pedidoDetalle ?? new List<PedidosDetalle>())
+                .Where(d =>
+                    d.Id != 0 &&
+                    (d.CantidadUsadaStock ?? 0) > 0 &&
+                    (d.Cantidad ?? 0) > 0 &&
+                    (d.CantidadUsadaStock ?? 0) >= (d.Cantidad ?? 0))
+                .Select(d => d.Id)
+                .ToHashSet();
+
+            if (idsDetallePtCubreTodo.Count == 0)
+                return;
+
+            foreach (var proc in pedidoDetalleProceso)
+            {
+                if (proc.IdDetalle.HasValue && idsDetallePtCubreTodo.Contains(proc.IdDetalle.Value))
+                    proc.CantidadUsadaStock = 0;
+            }
         }
 
         /* ============================================================
@@ -161,6 +195,7 @@ namespace SistemaBronx.Application.Controllers
 
                 var pedidoDetalle = MapearDetallesProductoDesdeVm(model);
                 var pedidoDetalleProceso = MapearDetallesProcesoDesdeVm(model);
+                AnularStockInsumoSiProductoTerminadoUsaDeposito(pedidoDetalle, pedidoDetalleProceso);
 
                 var resultado = await _PedidosService.Insertar(
                     pedido,
@@ -208,6 +243,7 @@ namespace SistemaBronx.Application.Controllers
 
                 var pedidoDetalle = MapearDetallesProductoDesdeVm(model);
                 var pedidoDetalleProceso = MapearDetallesProcesoDesdeVm(model);
+                AnularStockInsumoSiProductoTerminadoUsaDeposito(pedidoDetalle, pedidoDetalleProceso);
 
                 var resultado = await _PedidosService.Actualizar(
                     pedido,
@@ -252,7 +288,6 @@ namespace SistemaBronx.Application.Controllers
                     Descripcion = model.Descripcion,
                     Especificacion = model.Especificacion,
                     IdColor = model.IdColor,
-                    FechaActualizacion = DateTime.Now,
                     IdEstado = model.IdEstado,
                     CantidadUsadaStock = cantidadUsadaStock
                 };

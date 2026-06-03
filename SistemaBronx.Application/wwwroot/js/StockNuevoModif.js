@@ -1,4 +1,4 @@
-﻿// ============================== StockNuevoModif.js ==============================
+// ============================== StockNuevoModif.js ==============================
 let gridDetalle = null;
 let DETALLES = [];
 let TEMP_ID_SEQ = 1;
@@ -458,8 +458,7 @@ function configurarTablaDetalle() {
                 data: "NombreColor",
                 className: "align-middle stock-col-color",
                 render: function (data, type, row) {
-                    const t = data || row.NombreColor || nombreColorEtiqueta(row.IdColor);
-                    return t && t !== "—" ? t : "—";
+                    return renderCeldaColorDetalleStock(row);
                 }
             },
             {
@@ -654,7 +653,13 @@ function renderHtmlCeldaItem(tipoChar, rowUid) {
                                min="0.001" step="any" value="1"
                                title="Multiplica la cantidad de cada insumo según la ficha (ej.: insumo 4 en ficha × 3 aquí = 12)" />
                     </div>
-                    <p class="stock-bom-factor-hint small mb-0">Cada insumo = cantidad en ficha × este valor.</p>
+                    <div class="stock-bom-factor-field stock-bom-factor-color-field">
+                        <label class="stock-field-label stock-field-label--sub mb-1" for="stock_bom_col_${rowUid}">Color de insumos</label>
+                        <select id="stock_bom_col_${rowUid}"
+                                class="form-select form-select-sm stock-input stock-bom-factor-color"
+                                title="Aplica este color a todos los insumos de la lista"></select>
+                    </div>
+                    <p class="stock-bom-factor-hint small mb-0">Cantidad: cada insumo = cantidad en ficha × cantidad de producto. Color: el elegido arriba se aplica a todos los insumos.</p>
                 </div>
                 <div class="stock-bom-actions d-none">
                     <button type="button" class="btn btn-link btn-sm p-0 stock-bom-marcar-todos">Marcar todos</button>
@@ -675,9 +680,13 @@ function llenarSelectBasico($sel, lista, placeholder) {
     lista.forEach(x => $sel.append(new Option(x.Nombre, x.Id)));
 }
 
-function llenarSelectColores($sel, valorSeleccionado) {
+function llenarSelectColores($sel, valorSeleccionado, opciones) {
+    opciones = opciones || {};
+    const incluirSinColor = opciones.incluirSinColor === true;
+    const placeholder = opciones.placeholder || (incluirSinColor ? "Sin color" : "Seleccioná color…");
+
     $sel.empty();
-    $sel.append(new Option("Sin color", ""));
+    $sel.append(new Option(placeholder, ""));
     (CATALOGO_COLORES || []).forEach(c => {
         const id = Number(c.Id);
         $sel.append(new Option(c.Nombre || "", String(id)));
@@ -689,12 +698,27 @@ function llenarSelectColores($sel, valorSeleccionado) {
     $sel.val(v);
 }
 
+const STOCK_ETIQUETA_SIN_COLOR = "N/A";
+
 function nombreColorEtiqueta(idColor) {
     if (idColor == null || idColor === "" || Number(idColor) === 0) {
-        return "—";
+        return STOCK_ETIQUETA_SIN_COLOR;
     }
     const c = CATALOGO_COLORES.find(x => Number(x.Id) === Number(idColor));
-    return c ? (c.Nombre || "—") : "—";
+    const nom = c ? String(c.Nombre || "").trim() : "";
+    return nom || STOCK_ETIQUETA_SIN_COLOR;
+}
+
+function renderCeldaColorDetalleStock(row) {
+    const t = String(row.NombreColor ?? "").trim();
+    if (t && t !== "—" && t !== "-") {
+        return `<span class="stock-color-chip">${t}</span>`;
+    }
+    const etiqueta = nombreColorEtiqueta(row.IdColor);
+    if (etiqueta === STOCK_ETIQUETA_SIN_COLOR) {
+        return `<span class="stock-color-na">${STOCK_ETIQUETA_SIN_COLOR}</span>`;
+    }
+    return `<span class="stock-color-chip">${etiqueta}</span>`;
 }
 
 function normalizarIdColorStock(val) {
@@ -709,11 +733,14 @@ function leerIdColorFilaModal($row) {
     return normalizarIdColorStock($row.find(".stock-mx-color-select").val());
 }
 
-function stockColorSelect2BaseOptions() {
+function stockColorSelect2BaseOptions(opciones) {
+    opciones = opciones || {};
+    const incluirSinColor = opciones.incluirSinColor === true;
+    const placeholder = opciones.placeholder || (incluirSinColor ? "Sin color" : "Seleccioná color…");
     return {
         dropdownParent: stockModalSelect2Parent(),
-        placeholder: "Sin color",
-        allowClear: true,
+        placeholder,
+        allowClear: incluirSinColor,
         width: "100%",
         minimumResultsForSearch: 0,
         language: {
@@ -727,16 +754,8 @@ function stockColorSelect2BaseOptions() {
     };
 }
 
-/** Color de la fila (producto terminado / insumo suelto). En modo BOM queda deshabilitado. */
+/** Color de la fila (producto terminado / insumo suelto). En modo BOM queda deshabilitado (sin color en fila). */
 function enlazarSelect2ColorFilaPrincipal($row) {
-    const $colSel = $row.find(".stock-mx-color-select");
-    if (!$colSel.length) {
-        return;
-    }
-    if (!$colSel.data("select2")) {
-        $colSel.select2(stockColorSelect2BaseOptions());
-        $colSel.off("change.stockcolor").on("change.stockcolor", () => actualizarCostoSubFila($row));
-    }
     actualizarEstadoColorPrincipalEnFila($row);
 }
 
@@ -748,7 +767,10 @@ function enlazarSelect2ColorBomLinea($line, $row) {
     if ($s.data("select2")) {
         $s.select2("destroy");
     }
-    $s.select2(stockColorSelect2BaseOptions());
+    $s.select2(stockColorSelect2BaseOptions({
+        incluirSinColor: true,
+        placeholder: "Sin color"
+    }));
     $s.off("change.stockbomcolor").on("change.stockbomcolor", function () {
         const nuevoColor = $(this).val() || "";
         if ($row.data("stock-sync-color")) {
@@ -784,15 +806,23 @@ function actualizarEstadoColorPrincipalEnFila($row) {
         return;
     }
     const bloquear = esCantidadPorBomInsumos($row);
-    const prev = $colSel.data("stock-bom-block-prev");
-    $colSel.prop("disabled", bloquear);
+    const valorPrev = $colSel.val();
     const hadS2 = !!$colSel.data("select2");
-    if (hadS2 && prev !== undefined && prev !== bloquear) {
+    if (hadS2) {
         $colSel.select2("destroy");
-        $colSel.select2(stockColorSelect2BaseOptions());
+    }
+    llenarSelectColores($colSel, bloquear ? null : valorPrev, {
+        incluirSinColor: true,
+        placeholder: "Sin color"
+    });
+    $colSel.prop("disabled", bloquear);
+    if (hadS2 || !$colSel.data("select2")) {
+        $colSel.select2(stockColorSelect2BaseOptions({
+            incluirSinColor: true,
+            placeholder: "Sin color"
+        }));
         $colSel.off("change.stockcolor").on("change.stockcolor", () => actualizarCostoSubFila($row));
     }
-    $colSel.data("stock-bom-block-prev", bloquear);
 }
 
 function leerIdColorBomLinea($line) {
@@ -821,6 +851,54 @@ function aplicarFactorCantidadBom($row) {
     });
     syncEstadoCantidadesBom($row);
     actualizarCostoSubFila($row);
+}
+
+/** Color global BOM: aplica el select superior a todos los insumos de la ficha. */
+function aplicarColorGlobalBom($row) {
+    if (!esCantidadPorBomInsumos($row)) {
+        return;
+    }
+    const $global = $row.find(".stock-bom-factor-color");
+    if (!$global.length) {
+        return;
+    }
+    const nuevoColor = $global.val() || "";
+    $row.data("stock-sync-color", true);
+    $row.find(".stock-bom-line").each(function () {
+        const $sel = $(this).find(".stock-bom-color-select");
+        if (!$sel.length) {
+            return;
+        }
+        if (String($sel.val() || "") !== String(nuevoColor)) {
+            $sel.val(nuevoColor).trigger("change.select2");
+        }
+    });
+    $row.data("stock-sync-color", false);
+    actualizarCostoSubFila($row);
+}
+
+function enlazarSelect2ColorGlobalBom($row) {
+    const $s = $row.find(".stock-bom-factor-color");
+    if (!$s.length) {
+        return;
+    }
+    const valorPrev = $s.val();
+    if ($s.data("select2")) {
+        $s.select2("destroy");
+    }
+    llenarSelectColores($s, valorPrev, {
+        incluirSinColor: true,
+        placeholder: "Color para todos…"
+    });
+    $s.select2(
+        stockColorSelect2BaseOptions({
+            incluirSinColor: true,
+            placeholder: "Color para todos los insumos"
+        })
+    );
+    $s.off("change.stockbomcolorglobal").on("change.stockbomcolorglobal", function () {
+        aplicarColorGlobalBom($row);
+    });
 }
 
 /** Lista de checkboxes: uno o varios insumos de la ficha del producto. */
@@ -905,7 +983,10 @@ async function renderBomCheckList($row, idProducto) {
                 class: "form-select form-select-sm stock-input stock-bom-color-select",
                 title: "Color en depósito"
             });
-            llenarSelectColores($($colorSel), null);
+            llenarSelectColores($($colorSel), null, {
+                incluirSinColor: true,
+                placeholder: "Sin color"
+            });
 
             const $colorWrap = $("<div>").addClass("stock-bom-line-color-wrap");
             $colorWrap.append(
@@ -922,11 +1003,16 @@ async function renderBomCheckList($row, idProducto) {
             .off("input.stockbomfac change.stockbomfac")
             .on("input.stockbomfac change.stockbomfac", () => aplicarFactorCantidadBom($row));
 
+        enlazarSelect2ColorGlobalBom($row);
+
         $row.find(".stock-bom-chk").prop("checked", true);
         $row.find(".stock-bom-line").each(function () {
             enlazarSelect2ColorBomLinea($(this), $row);
         });
         aplicarFactorCantidadBom($row);
+        if ($row.find(".stock-bom-factor-color").val()) {
+            aplicarColorGlobalBom($row);
+        }
         actualizarEstadoColorPrincipalEnFila($row);
     } catch (e) {
         console.error(e);
@@ -1227,7 +1313,10 @@ function inicializarFilaModal($row) {
     $cant.off("input.modal").on("input.modal", () => actualizarCostoSubFila($row));
 
     const $colSel = $row.find(".stock-mx-color-select");
-    llenarSelectColores($colSel, null);
+    llenarSelectColores($colSel, null, {
+        incluirSinColor: true,
+        placeholder: "Sin color"
+    });
     montarCeldaItem($tipo.val());
     enlazarSelect2ColorFilaPrincipal($row);
 }
@@ -1253,7 +1342,7 @@ function confirmarItemsModal() {
         return;
     }
 
-    let agregados = 0;
+    const pendientes = [];
 
     filas.each(function () {
         const $row = $(this);
@@ -1261,6 +1350,24 @@ function confirmarItemsModal() {
         if (!lineas.length) {
             return;
         }
+        pendientes.push({ $row, lineas });
+    });
+
+    const primerError = pendientes.find(p => p.error);
+    if (primerError) {
+        advertenciaModal?.(primerError.error);
+        return;
+    }
+
+    if (!pendientes.length) {
+        advertenciaModal?.("Completa al menos un ítem válido.");
+        return;
+    }
+
+    let agregados = 0;
+
+    pendientes.forEach(function (item) {
+        const lineas = item.lineas;
 
         lineas.forEach(function (L) {
             const tipoItem = L.tipoItem;

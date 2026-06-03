@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Movimiento de Stock";
     var idMov = ViewBag.IdMovimiento ?? 0;
 }
@@ -19,8 +19,8 @@
     <link rel="stylesheet" href="~/css/redisenopantallas.css" />
 
     <!-- Estilos específicos de Stock -->
-    <link rel="stylesheet" href="~/css/Stock.css?v=2.4" />
-    <link rel="stylesheet" href="~/css/StockModalItems.css?v=1.7" />
+    <link rel="stylesheet" href="~/css/Stock.css?v=5.3" />
+    <link rel="stylesheet" href="~/css/StockModalItems.css?v=1.8" />
 }
 
 <div class="container page-99" style="margin-top:100px">
@@ -131,7 +131,7 @@
                 <h2 class="stock-mx-title" id="stockMxTitle">Añadir ítems</h2>
                 <p class="stock-mx-sub">
                     Sumá líneas al detalle: en <strong>Insumo</strong> buscá por nombre o <strong>proveedor</strong>.
-                    En <strong>Producto → Insumos del producto</strong> tildá los insumos de la ficha y cargá la <strong>cantidad de cada uno</strong> en su casillero. El costo y el subtotal de la fila se calculan solos.
+                    En <strong>Producto → Insumos del producto</strong> tildá los insumos de la ficha. Arriba podés definir <strong>cantidad de producto</strong> y <strong>color de insumos</strong> para aplicarlos a toda la lista; también podés ajustar cada línea. El costo y el subtotal se calculan solos.
                 </p>
                 <button type="button" class="btn-close stock-mx-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
@@ -249,5 +249,5 @@
     <script src="~/js/site.js"></script>
 
     <!-- Lógica de Stock -->
-    <script src="~/js/StockNuevoModif.js?v=3.19"></script>
+    <script src="~/js/StockNuevoModif.js?v=3.24"></script>
 }
