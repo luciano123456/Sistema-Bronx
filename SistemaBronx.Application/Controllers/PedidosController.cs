@@ -227,6 +227,7 @@ namespace SistemaBronx.Application.Controllers
                 if (pedido == null)
                     return NotFound(new { valor = false, msg = "El pedido no existe." });
 
+                pedido.Fecha = model.Fecha != DateTime.MinValue ? model.Fecha : pedido.Fecha;
                 pedido.IdCliente = model.IdCliente;
                 pedido.IdFormaPago = model.IdFormaPago;
                 pedido.ImporteTotal = model.ImporteTotal ?? 0;

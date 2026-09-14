@@ -54,7 +54,11 @@ namespace SistemaBronx.DAL.Repository
                 _db.PedidosDetalleProcesosStocks.RemoveRange(relProc);
         }
 
-        private async Task<StockSaldo?> BuscarSaldoParaDetalleAsync(StockMovimientosDetalle det)
+        /// <param name="permitirFallbackSinColor">
+        /// Solo al descontar: si no hay fila del color, se usa el saldo sin color.
+        /// En ingresos (o al revertir una salida) no: hay que crear/usar la variante con el color elegido.
+        /// </param>
+        private async Task<StockSaldo?> BuscarSaldoParaDetalleAsync(StockMovimientosDetalle det, bool permitirFallbackSinColor)
         {
             var tipo = (det.TipoItem ?? string.Empty).ToUpper();
             var colorDet = det.IdColor ?? 0;
@@ -68,7 +72,7 @@ namespace SistemaBronx.DAL.Repository
             if (exact != null)
                 return exact;
 
-            if (colorDet != 0)
+            if (permitirFallbackSinColor && colorDet != 0)
             {
                 return await _db.StockSaldos.FirstOrDefaultAsync(s =>
                     s.TipoItem == tipo &&
@@ -86,10 +90,12 @@ namespace SistemaBronx.DAL.Repository
             if (revertir) signo *= -1m;
 
             var delta = det.Cantidad * signo;
+            // Pedidos / salidas: stock sin color cubre un color. Ingreso con color no debe ir a la fila N/A.
+            var permitirFallbackSinColor = delta < 0;
 
-            var saldo = await BuscarSaldoParaDetalleAsync(det);
+            var saldo = await BuscarSaldoParaDetalleAsync(det, permitirFallbackSinColor);
 
-            if (saldo != null)
+            if (saldo != null && permitirFallbackSinColor)
                 det.IdColor = saldo.IdColor;
 
             if (saldo == null)

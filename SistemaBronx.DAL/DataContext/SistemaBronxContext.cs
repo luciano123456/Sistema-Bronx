@@ -125,6 +125,9 @@ public partial class SistemaBronxContext : DbContext
             entity.Property(e => e.Telefono)
                 .HasMaxLength(20)
                 .IsUnicode(false);
+            entity.Property(e => e.Email)
+                .HasMaxLength(255)
+                .IsUnicode(false);
 
             entity.HasOne(d => d.IdProvinciaNavigation).WithMany(p => p.Clientes)
                 .HasForeignKey(d => d.IdProvincia)

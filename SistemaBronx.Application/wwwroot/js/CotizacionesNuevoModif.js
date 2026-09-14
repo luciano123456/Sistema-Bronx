@@ -130,7 +130,7 @@ async function insertarDatosCotizacion(datosCotizacion) {
     document.getElementById("IdCotizacion").value = datosCotizacion.Cotizacion.Id;
     document.getElementById("Clientes").value = parseInt(datosCotizacion.Cotizacion.IdCliente);
     document.getElementById("Telefono").value = datosCotizacion.Cotizacion.Telefono;
-    document.getElementById("Fecha").value = moment(datosCotizacion.Cotizacion.Fecha, 'YYYY-MM-DD').format('YYYY-MM-DD');
+    document.getElementById("Fecha").value = formatearFechaInputDate(datosCotizacion.Cotizacion.Fecha);
     document.getElementById("Formasdepago").value = parseInt(datosCotizacion.Cotizacion.IdFormaPago);
     document.getElementById("ImporteTotal").value = datosCotizacion.Cotizacion.ImporteTotal;
     document.getElementById("PorcDesc").value = datosCotizacion.Cotizacion.PorcDescuento;
@@ -2488,7 +2488,7 @@ async function generarCotizacionPDF(datos) {
     doc.setFontSize(8);
     doc.text(`Nombre: ${datos.Cotizacion.Cliente}`, 150, 37);
     doc.text(`Teléfono: ${datos.Cotizacion.Telefono}`, 150, 41);
-    doc.text(`Fecha: ${moment(datos.Cotizacion.Fecha).format("DD/MM/YYYY")}`, 150, 45);
+    doc.text(`Fecha: ${formatearFechaDdMmYyyy(datos.Cotizacion.Fecha)}`, 150, 45);
 
 
     const columns = ["C", "Producto", "Color", "Precio", "Subtotal"];
@@ -2817,7 +2817,7 @@ function generarRemitoPDF(datos) {
     doc.setFontSize(8);
     doc.text(`${datos.Cotizacion.Cliente}`, 150, 37);
     doc.text(`${datos.Cotizacion.Telefono}`, 150, 41);
-    doc.text(`${moment(datos.Cotizacion.Fecha, "YYYY-MM-DD").format("DD/MM/YYYY")}`, 150, 45);
+    doc.text(`${formatearFechaDdMmYyyy(datos.Cotizacion.Fecha)}`, 150, 45);
 
     doc.setFontSize(13);
     doc.text(`${datos.Cotizacion.IdCotizacion}`, 165, 27);

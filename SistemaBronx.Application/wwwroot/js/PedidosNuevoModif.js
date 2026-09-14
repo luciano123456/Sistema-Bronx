@@ -838,6 +838,10 @@ $(document).ready(async function () {
 
     $('#exitoModal, #ErrorModal, #AdvertenciaModal').on('hidden.bs.modal', function () {
         $(this).css('z-index', 1050); // Restaurar el z-index cuando se cierre
+        if ($('#productoModal').hasClass('show')) {
+            $('body').addClass('modal-open');
+            $('#productoModal').css('z-index', 1055);
+        }
     });
 
 
@@ -932,11 +936,11 @@ async function insertarDatosPedido(datosPedido) {
     const pedido = datosPedido.pedido;
     if (!pedido) return;
 
-    document.getElementById("IdPedido").value = pedido.Id;
-    document.getElementById("Clientes").value = parseInt(pedido.IdCliente);
-    document.getElementById("Telefono").value = pedido.Telefono;
-    document.getElementById("Fecha").value = moment(pedido.Fecha, 'YYYY-MM-DD').format('YYYY-MM-DD');
-    document.getElementById("Formasdepago").value = parseInt(pedido.IdFormaPago);
+    document.getElementById("IdPedido").value = pedido.Id ?? pedido.id;
+    document.getElementById("Clientes").value = parseInt(pedido.IdCliente ?? pedido.idCliente);
+    document.getElementById("Telefono").value = pedido.Telefono ?? pedido.telefono ?? "";
+    document.getElementById("Fecha").value = formatearFechaInputDate(pedido.Fecha ?? pedido.fecha);
+    document.getElementById("Formasdepago").value = parseInt(pedido.IdFormaPago ?? pedido.idFormaPago);
     document.getElementById("ImporteTotal").value = pedido.ImporteTotal;
     document.getElementById("PorcDesc").value = pedido.PorcDescuento;
     document.getElementById("SubTotal").value = pedido.SubTotal;
@@ -2780,13 +2784,38 @@ async function guardarProducto() {
 
     await limpiarInformacionProducto();
     $('#Colores').val('-1').trigger('change');
-    $('#productoModal').modal('hide');
+
+    if (editando) {
+        $('#productoModal').modal('hide');
+    } else {
+        prepararModalParaSeguirAnadiendoProducto();
+        if (typeof exitoModal === 'function') {
+            exitoModal("Producto añadido con éxito");
+        }
+    }
+
     if (gridProductos) {
         gridProductos.draw(false);
     }
     calcularDatosPedido();
 
     return true;
+}
+
+/** Tras Añadir: deja el modal vacío (filtros, selección y color) para cargar otro producto. */
+function prepararModalParaSeguirAnadiendoProducto() {
+    $("#btnGuardarProducto").html(`<i class="fa fa-check me-1"></i> Añadir`);
+    $("#productoModal .modal-title").text("Añadir Producto");
+    resetFiltrosVistaModalProductos();
+    setTimeout(() => {
+        try {
+            forzarReflowTablaModalProductos();
+            const busq = document.getElementById("busqueda");
+            if (busq && $('#productoModal').hasClass('show')) {
+                busq.focus();
+            }
+        } catch (e) { /* no-op */ }
+    }, 80);
 }
 
 async function cargarDatosProductoModal() {
@@ -3915,7 +3944,7 @@ function nuevoCliente() {
 }
 
 function limpiarModalCliente() {
-    const campos = ["IdClienteModal", "NombreClienteModal", "TelefonoClienteModal", "DireccionClienteModal", "IdProvinciaClienteModal", "LocalidadClienteModal", "DniClienteModal"];
+    const campos = ["IdClienteModal", "NombreClienteModal", "TelefonoClienteModal", "EmailClienteModal", "DireccionClienteModal", "IdProvinciaClienteModal", "LocalidadClienteModal", "DniClienteModal"];
     campos.forEach(campo => {
         $(`#txt${campo}`).val("");
     });
@@ -3949,6 +3978,7 @@ async function guardarCambiosCliente() {
             "Id": idCliente !== "" ? idCliente : 0,
             "Nombre": $("#txtNombreClienteModal").val(),
             "Telefono": $("#txtTelefonoClienteModal").val(),
+            "Email": $("#txtEmailClienteModal").val(),
             "Direccion": $("#txtDireccionClienteModal").val(),
             "IdProvincia": $("#ProvinciasClienteModal").val(),
             "Localidad": $("#txtLocalidadClienteModal").val(),
@@ -4217,7 +4247,7 @@ async function generarPedidoPDF(datos) {
     doc.setFontSize(8);
     doc.text(`Nombre: ${datos.Pedido.Cliente}`, 150, 37);
     doc.text(`Teléfono: ${datos.Pedido.Telefono}`, 150, 41);
-    doc.text(`Fecha: ${moment(datos.Pedido.Fecha).format("DD/MM/YYYY")}`, 150, 45);
+    doc.text(`Fecha: ${formatearFechaDdMmYyyy(datos.Pedido.Fecha)}`, 150, 45);
 
 
     const columns = ["C", "Producto", "Color", "Precio", "Subtotal"];
@@ -4546,7 +4576,7 @@ function generarRemitoPDF(datos) {
     doc.setFontSize(8);
     doc.text(`${datos.Pedido.Cliente}`, 150, 37);
     doc.text(`${datos.Pedido.Telefono}`, 150, 41);
-    doc.text(`${moment(datos.Pedido.Fecha, "YYYY-MM-DD").format("DD/MM/YYYY")}`, 150, 45);
+    doc.text(`${formatearFechaDdMmYyyy(datos.Pedido.Fecha)}`, 150, 45);
 
     doc.setFontSize(13);
     doc.text(`${datos.Pedido.IdPedido}`, 165, 27);
@@ -4779,8 +4809,9 @@ function initNuevoModifUI() {
     initSelect2Dark('#Clientes');
     initSelect2Dark('#Formasdepago');
 
-    // Set defaults de fecha si vienen vacías
-    if (!$('#Fecha').val()) {
+    // Solo default a hoy en alta; en edición la fecha la setea insertarDatosPedido
+    const esEdicion = typeof pedidoData !== 'undefined' && parseInt(pedidoData, 10) > 0;
+    if (!esEdicion && !$('#Fecha').val()) {
         $('#Fecha').val(moment().format('YYYY-MM-DD'));
     }
 

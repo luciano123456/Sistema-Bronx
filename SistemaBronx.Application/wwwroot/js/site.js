@@ -85,6 +85,25 @@ function formatNumber(number) {
     return "$" + parts.join(",");
 }
 
+/** Fecha para <input type="date"> (YYYY-MM-DD). Acepta ISO u otros formatos de moment. Sin fallback a hoy (el alta setea hoy explícitamente). */
+function formatearFechaInputDate(fecha) {
+    if (!fecha) return "";
+    const s = String(fecha);
+    const iso = s.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (iso) return iso[1];
+    if (typeof moment !== "function") return "";
+    const m = moment(fecha);
+    return m.isValid() ? m.format("YYYY-MM-DD") : "";
+}
+
+/** Fecha legible DD/MM/YYYY para PDF/remitos. Evita "Invalid date". */
+function formatearFechaDdMmYyyy(fecha) {
+    if (typeof moment !== "function") return "";
+    if (!fecha) return moment().format("DD/MM/YYYY");
+    const m = moment(fecha);
+    return m.isValid() ? m.format("DD/MM/YYYY") : moment().format("DD/MM/YYYY");
+}
+
 /* =========================================================
    2) Modal (usa TU modal ya existente)
    Devuelve 'guardar' | 'salir' | 'quedarse'
