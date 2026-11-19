@@ -1,4 +1,5 @@
 ﻿using SistemaBronx.Models;
+using System.Collections.Generic;
 
 namespace SistemaBronx.DAL.Repository
 {
@@ -8,7 +9,7 @@ namespace SistemaBronx.DAL.Repository
 
         Task<bool> Actualizar(Pedido pedido, IQueryable<PedidosDetalle> pedidosDetalle, IQueryable<PedidosDetalleProceso> pedidosDetalleProceso);
 
-        Task<bool> ActualizarDetalleProceso(PedidosDetalleProceso pedidosDetalleProceso);
+        Task<bool> ActualizarDetalleProceso(PedidosDetalleProceso pedidosDetalleProceso, bool resincronizarStockPedido = true);
 
         Task<PedidosDetalle> ObtenerProducto(int IdPedido, int IdProducto);
 
@@ -20,7 +21,7 @@ namespace SistemaBronx.DAL.Repository
 
         Task<List<PedidosDetalleProceso>> ObtenerDetalleProcesosFiltrado(bool incluirFinalizados);
 
-        Task<Pedido> ObtenerPedido(int pedidoId);
+        Task<(Pedido Pedido, Dictionary<int, decimal> StockDepositoPorIdDetalle, Dictionary<int, decimal> StockDepositoPorIdProceso)> ObtenerPedido(int pedidoId);
 
         Task<bool> EliminarInsumo(int IdPedido, int IdInsumo);
 

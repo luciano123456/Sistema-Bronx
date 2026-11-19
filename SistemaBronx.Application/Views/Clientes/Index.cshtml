@@ -72,6 +72,7 @@
                                     <th></th>
                                     <th>Nombre</th>
                                     <th>Telefono</th>
+                                    <th>Email</th>
                                     <th>Direccion</th>
                                     <th>Provincia</th>
                                     <th>Localidad</th>
@@ -112,6 +113,11 @@
                     <div class="col-md-6">
                         <label for="txtTelefono" class="form-label">Teléfono</label>
                         <input type="text" class="form-control" id="txtTelefono">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="txtEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="txtEmail" maxlength="255" placeholder="correo@ejemplo.com">
                     </div>
 
                     <div class="col-md-6">
@@ -182,7 +188,7 @@
     <script src="~/js/utils/moment.js"></script>
 
     <!-- Lógica de la vista -->
-    <script src="~/js/clientes.js?v=1.9"></script>
+    <script src="~/js/clientes.js?v=2.0"></script>
 
     <script>
         // Si usás Select2 en Provincias dentro del modal:

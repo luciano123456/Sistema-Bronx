@@ -1,266 +1,80 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SistemaBronx.Application.Models.ViewModels;
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
-using TuProyecto.Services.Interfaces; // <-- mantené tu interfaz real
+using SistemaBronx.BLL.Service;
+using SistemaBronx.Models.Analisis;
 
 namespace SistemaBronx.Application.Controllers
 {
+    /// <summary>
+    /// Análisis de datos. Todo se calcula en código (BLL) a partir de consultas EF Core; ya no hay stored procedures.
+    /// Las reglas de IVA / costo financiero / neto replican el Excel "ANALISIS BRONX" (ver <see cref="ReglasAnalisis"/>).
+    /// </summary>
     [Authorize]
     public class AnalisisDatosController : Controller
     {
-        private readonly IAnalisisDatosService _analisisService;
+        private readonly IAnalisisDatosService _service;
+        private readonly ILogger<AnalisisDatosController> _logger;
 
-        public AnalisisDatosController(IAnalisisDatosService analisisService)
+        public AnalisisDatosController(IAnalisisDatosService service, ILogger<AnalisisDatosController> logger)
         {
-            _analisisService = analisisService;
+            _service = service;
+            _logger = logger;
         }
 
         public IActionResult Index() => View();
 
-        /// <summary>
-        /// Endpoint UNICO que trae todo el dashboard (un SP).
-        /// </summary>
+        /// <summary>Años, rango de fechas con datos y formas de pago (chips del filtro).</summary>
         [HttpGet]
-        public async Task<IActionResult> Datos(DateTime? desde, DateTime? hasta, int? idCliente, int topN = 10)
+        public Task<IActionResult> Meta(CancellationToken ct)
+            => Ejecutar(async () => Ok(await _service.ObtenerMetaAsync(ct)));
+
+        /// <summary>Tablero completo: KPIs, series, medios de pago, productos, categorías, clientes y gastos.</summary>
+        [HttpGet]
+        public Task<IActionResult> Datos(DateTime? desde, DateTime? hasta, int? idCliente, int? idFormaPago, CancellationToken ct)
+            => Ejecutar(async () => Ok(await _service.ObtenerDashboardAsync(ArmarFiltro(desde, hasta, idCliente, idFormaPago), ct)));
+
+        /// <summary>Detalle de ventas con las columnas del Excel (abonado, IVA, costo financiero, ganancia neta).</summary>
+        [HttpGet]
+        public Task<IActionResult> Ventas(DateTime? desde, DateTime? hasta, int? idCliente, int? idFormaPago, CancellationToken ct)
+            => Ejecutar(async () => Ok(await _service.ObtenerVentasDetalleAsync(ArmarFiltro(desde, hasta, idCliente, idFormaPago), ct)));
+
+        /// <summary>Líneas de producto de un pedido (fila expandible de la tabla de ventas).</summary>
+        [HttpGet]
+        public Task<IActionResult> VentaDetalle(int id, CancellationToken ct)
+            => Ejecutar(async () =>
+            {
+                var detalle = await _service.ObtenerDetallePedidoAsync(id, ct);
+                return detalle == null ? NotFound("No se encontró el pedido.") : Ok(detalle);
+            });
+
+        /// <summary>Detalle de gastos con las columnas del Excel (importe total, neto).</summary>
+        [HttpGet]
+        public Task<IActionResult> Gastos(DateTime? desde, DateTime? hasta, int? idFormaPago, CancellationToken ct)
+            => Ejecutar(async () => Ok(await _service.ObtenerGastosDetalleAsync(ArmarFiltro(desde, hasta, null, idFormaPago), ct)));
+
+        // ------------------------------------------------------------------ helpers
+        private static AnalisisFiltro ArmarFiltro(DateTime? desde, DateTime? hasta, int? idCliente, int? idFormaPago)
+        {
+            var fin = (hasta ?? DateTime.Today).Date;
+            var ini = (desde ?? fin.AddDays(-29)).Date;
+            return new AnalisisFiltro { Desde = ini, Hasta = fin, IdCliente = idCliente, IdFormaPago = idFormaPago };
+        }
+
+        private async Task<IActionResult> Ejecutar(Func<Task<IActionResult>> accion)
         {
             try
             {
-                DateTime? d = desde?.Date;
-                DateTime? h = hasta?.Date;
-
-                var ds = await _analisisService.ObtenerDashboardAsync(d, h, idCliente, topN);
-
-                var vm = new DashboardResponseVM
-                {
-                    // 0) KPIs
-                    Kpis = GetFirstRow(ds, 0) is DataRow r0 ? MapKpis(r0) : new KpisVM(),
-
-                    // 1) Serie mensual
-                    Mensual = MapBySchema(ds,
-                        defaultIndex: 1,
-                        requiredCols: new[] { "Anio", "Mes", "Ingresos", "CostoMercaderia" },
-                        map: r => new MensualVM
-                        {
-                            Anio = Get<int>(r, "Anio"),
-                            Mes = Get<int>(r, "Mes"),
-                            Ingresos = Get<decimal>(r, "Ingresos"),
-                            CostoMercaderia = Get<decimal>(r, "CostoMercaderia"),
-                            Gastos = Get<decimal>(r, "Gastos"),
-                            MargenBruto = Get<decimal>(r, "MargenBruto"),
-                            MargenOperativo = Get<decimal>(r, "MargenOperativo"),
-                        }),
-
-                    // 2) Crecimientos
-                    Crecimiento = MapBySchema(ds,
-                        defaultIndex: 2,
-                        requiredCols: new[] { "Anio", "Mes", "CantidadPedidos", "CantidadUnidades" },
-                        map: r => new CrecimientoVM
-                        {
-                            Anio = Get<int>(r, "Anio"),
-                            Mes = Get<int>(r, "Mes"),
-                            CantidadPedidos = Get<int>(r, "CantidadPedidos"),
-                            CantidadUnidades = Get<decimal>(r, "CantidadUnidades"),
-                            CrecPedidos = Get<decimal?>(r, "CrecPedidos"),
-                            CrecUnidades = Get<decimal?>(r, "CrecUnidades"),
-                        }),
-
-                    // 3) Interanual
-                    Interanual = MapBySchema(ds,
-                        defaultIndex: 3,
-                        requiredCols: new[] { "Periodo", "VentaActualMes" },
-                        map: r => new InteranualVM
-                        {
-                            Periodo = Get<DateTime>(r, "Periodo"),
-                            VentaActualMes = Get<decimal>(r, "VentaActualMes"),
-                            VentaMismoMesAnioAnterior = Get<decimal?>(r, "VentaMismoMesAnioAnterior"),
-                            VariacionInteranual = Get<decimal?>(r, "VariacionInteranual"),
-                        }),
-
-                    // 4) Medios de pago
-                    MediosPago = MapBySchema(ds,
-                        defaultIndex: 4,
-                        requiredCols: new[] { "CantidadPedidos", "MontoSubTotal" },
-                        map: r => new MediosPagoVM
-                        {
-                            IdFormaPago = Get<int?>(r, "IdFormaPago"),
-                            FormaPago = Get<string>(r, "FormaPago"),
-                            CantidadPedidos = Get<int>(r, "CantidadPedidos"),
-                            MontoSubTotal = Get<decimal>(r, "MontoSubTotal"),
-                            CostoFinancieroEstimado = Get<decimal>(r, "CostoFinancieroEstimado"),
-                        }),
-
-                    // 5..8) Tops
-                    TopMasVendidos = MapBySchema(ds, 5, new[] { "IdProducto", "Producto" }, MapProd),
-                    TopMenosVendidos = MapBySchema(ds, 6, new[] { "IdProducto", "Producto" }, MapProd),
-                    TopMasRentables = MapBySchema(ds, 7, new[] { "IdProducto", "Producto" }, MapProd),
-                    TopMenosRentables = MapBySchema(ds, 8, new[] { "IdProducto", "Producto" }, MapProd),
-
-                    // 9) Categoría
-                    PorCategoria = MapBySchema(ds,
-                        defaultIndex: 9,
-                        requiredCols: new[] { "GrupoCatId", "GrupoCatNombre", "Ingreso", "Costo" },
-                        map: r => new GrupoVM
-                        {
-                            GrupoId = Get<int>(r, "GrupoCatId"),
-                            GrupoNombre = Get<string>(r, "GrupoCatNombre"),
-                            Ingreso = Get<decimal>(r, "Ingreso"),
-                            Costo = Get<decimal>(r, "Costo"),
-                            MargenBruto = Get<decimal>(r, "MargenBruto"),
-                            MargenBrutoPct = Get<decimal?>(r, "MargenBrutoPct"),
-                        }),
-
-                    // 10) Proveedor
-                    PorProveedor = MapBySchema(ds,
-                        defaultIndex: 10,
-                        requiredCols: new[] { "GrupoProvId", "GrupoProvNombre", "Ingreso", "Costo" },
-                        map: r => new GrupoVM
-                        {
-                            GrupoId = Get<int>(r, "GrupoProvId"),
-                            GrupoNombre = Get<string>(r, "GrupoProvNombre"),
-                            Ingreso = Get<decimal>(r, "Ingreso"),
-                            Costo = Get<decimal>(r, "Costo"),
-                            MargenBruto = Get<decimal>(r, "MargenBruto"),
-                            MargenBrutoPct = Get<decimal?>(r, "MargenBrutoPct"),
-                        }),
-
-                    // 14) Real mensual (CF NETO)
-                    RealMensual = MapBySchema(ds,
-                        defaultIndex: 14,
-                        requiredCols: new[] { "Anio", "Mes", "IngresoEnMano", "GastoFabricacion", "GastoOperativo", "ResultadoMes" },
-                        map: r => new RealMensualVM
-                        {
-                            Anio = Get<int>(r, "Anio"),
-                            Mes = Get<int>(r, "Mes"),
-                            IngresoEnMano = Get<decimal>(r, "IngresoEnMano"),
-                            GastoFabricacion = Get<decimal>(r, "GastoFabricacion"),
-                            GastoOperativo = Get<decimal>(r, "GastoOperativo"),
-                            ResultadoMes = Get<decimal>(r, "ResultadoMes")
-                        }),
-
-                    // 15) CF por porcentaje
-                    CostoFinancieroPorcentaje = MapBySchema(ds,
-                        defaultIndex: 15,
-                        requiredCols: new[] { "RatePct", "MontoSubTotal" },
-                        map: r => new CfRateVM
-                        {
-                            RatePct = Get<decimal>(r, "RatePct"),
-                            CantidadPedidos = Get<int>(r, "CantidadPedidos"),
-                            MontoSubTotal = Get<decimal>(r, "MontoSubTotal"),
-                            CostoFinanciero = Get<decimal>(r, "CostoFinanciero"),
-                            PorcCF = Get<decimal?>(r, "PorcCF")
-                        }),
-
-                    // 16) CF por % mensual
-                    CostoFinancieroPorcentajeMensual = MapBySchema(ds,
-                        defaultIndex: 16,
-                        requiredCols: new[] { "Anio", "Mes", "RatePct", "MontoSubTotal" },
-                        map: r => new CfRateMensualVM
-                        {
-                            Anio = Get<int>(r, "Anio"),
-                            Mes = Get<int>(r, "Mes"),
-                            RatePct = Get<decimal>(r, "RatePct"),
-                            MontoSubTotal = Get<decimal>(r, "MontoSubTotal"),
-                            CostoFinanciero = Get<decimal>(r, "CostoFinanciero")
-                        })
-                };
-
-                return Ok(vm);
+                return await accion();
+            }
+            catch (OperationCanceledException)
+            {
+                return StatusCode(499); // el usuario cambió de filtro y el navegador canceló la consulta
             }
             catch (Exception ex)
             {
-                return BadRequest("Ha ocurrido un error al obtener el analisis de datos. " + ex.Message);
+                _logger.LogError(ex, "Error en AnalisisDatos/{Accion}", ControllerContext.ActionDescriptor.ActionName);
+                return BadRequest("Ha ocurrido un error al obtener el análisis de datos. " + ex.Message);
             }
         }
-
-        // ================== Helpers ==================
-
-        private static DataRow? GetFirstRow(DataSet ds, int index)
-            => (ds.Tables.Count > index && ds.Tables[index]?.Rows.Count > 0)
-                ? ds.Tables[index].Rows[0]
-                : null;
-
-        private static List<T> MapBySchema<T>(
-            DataSet ds,
-            int defaultIndex,
-            string[] requiredCols,
-            Func<DataRow, T> map)
-        {
-            var result = new List<T>();
-            if (ds == null || ds.Tables.Count == 0) return result;
-
-            bool HasCols(DataTable t) => requiredCols.All(c => t.Columns.Contains(c));
-
-            if (defaultIndex >= 0 && defaultIndex < ds.Tables.Count && HasCols(ds.Tables[defaultIndex]))
-                return ds.Tables[defaultIndex].AsEnumerable().Select(map).ToList();
-
-            for (int i = 0; i < ds.Tables.Count; i++)
-                if (HasCols(ds.Tables[i]))
-                    return ds.Tables[i].AsEnumerable().Select(map).ToList();
-
-            return result;
-        }
-
-        private static T Get<T>(DataRow r, string col)
-        {
-            if (r == null || r.Table == null || !r.Table.Columns.Contains(col)) return default!;
-            var v = r[col];
-            if (v == DBNull.Value || v is null) return default!;
-
-            var targetType = typeof(T);
-            var underlying = Nullable.GetUnderlyingType(targetType);
-            if (underlying != null)
-            {
-                var converted = Convert.ChangeType(v, underlying);
-                return (T)converted!;
-            }
-            return (T)Convert.ChangeType(v, targetType);
-        }
-
-        private static KpisVM MapKpis(DataRow r) => new()
-        {
-            IngresosSubTotal = Get<decimal>(r, "IngresosSubTotal"),
-            IngresosImporteTotal = Get<decimal>(r, "IngresosImporteTotal"),
-            EgresosImporteTotal = Get<decimal>(r, "EgresosImporteTotal"),
-            CantidadPedidos = Get<int>(r, "CantidadPedidos"),
-            CantidadUnidades = Get<decimal>(r, "CantidadUnidades"),
-            VentaPromedioPorPedido = Get<decimal>(r, "VentaPromedioPorPedido"),
-            VentaPromedioPorCliente = Get<decimal>(r, "VentaPromedioPorCliente"),
-            CostoMercaderia = Get<decimal>(r, "CostoMercaderia"),
-            MargenBruto = Get<decimal>(r, "MargenBruto"),
-            MargenOperativo = Get<decimal>(r, "MargenOperativo"),
-            MargenNeto = Get<decimal>(r, "MargenNeto"),
-            MargenBrutoPct = Get<decimal?>(r, "MargenBrutoPct"),
-            MargenOperativoPct = Get<decimal?>(r, "MargenOperativoPct"),
-            MargenNetoPct = Get<decimal?>(r, "MargenNetoPct"),
-
-            // Nuevos campos
-            IVA_Total = Get<decimal>(r, "IVA_Total"),
-            Neto_Total = Get<decimal>(r, "Neto_Total"),
-            CostoFinanciero_Total = Get<decimal>(r, "CostoFinanciero_Total"),
-            CostoFinanciero_Neto_Total = Get<decimal>(r, "CostoFinanciero_Neto_Total"),
-            CostoFinanciero_IVA_Total = Get<decimal>(r, "CostoFinanciero_IVA_Total"),
-            GastosNeto_Total = Get<decimal>(r, "GastosNeto_Total"),
-            GastosIVA_Total = Get<decimal>(r, "GastosIVA_Total"),
-            IngresoEnMano_Total = Get<decimal>(r, "IngresoEnMano_Total"),
-            MasMenos_FactVsGastosNeto = Get<decimal>(r, "MasMenos_FactVsGastosNeto"),
-            MasMenos_IVA = Get<decimal>(r, "MasMenos_IVA"),
-            IncidenciaOperativaPct = Get<decimal?>(r, "IncidenciaOperativaPct")
-        };
-
-        private static ProdVM MapProd(DataRow r) => new()
-        {
-            IdProducto = Get<int>(r, "IdProducto"),
-            Producto = Get<string>(r, "Producto"),
-            VecesVendido = Get<int>(r, "VecesVendido"),
-            CantidadVendida = Get<decimal>(r, "CantidadVendida"),
-            Ingreso = Get<decimal>(r, "Ingreso"),
-            Costo = Get<decimal>(r, "Costo"),
-            MargenBruto = Get<decimal>(r, "MargenBruto"),
-        };
     }
 }

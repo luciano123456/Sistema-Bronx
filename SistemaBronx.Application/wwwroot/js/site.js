@@ -70,6 +70,41 @@ function confirmarModal(mensaje) {
 
 
 
+/**
+ * Elimina un registro (DELETE url) con soporte de cascada.
+ * 1) Intenta sin cascada. 2) Si el backend responde enUso, muestra lo asociado y pide confirmar la cascada.
+ * Devuelve true si se eliminó, false si el usuario canceló; lanza Error si falló.
+ */
+async function eliminarConCascada(url, nombreEntidad) {
+    const llamar = async (cascada) => {
+        const sep = url.includes('?') ? '&' : '?';
+        const resp = await fetch(`${url}${sep}cascada=${cascada}`, { method: "DELETE" });
+        if (!resp.ok) throw new Error(`Error al eliminar ${nombreEntidad}.`);
+        return resp.json();
+    };
+
+    let res = await llamar(false);
+
+    if (res.enUso) {
+        const lista = (res.detalle || []).map(d => "• " + d).join("\n");
+        const confirmar = await confirmarModal(
+            `${nombreEntidad} está en uso en:\n${lista}\n\nSi continúa se eliminará también todo lo asociado (eliminación en cascada). Esta acción no se puede deshacer.\n¿Desea continuar?`
+        );
+        if (!confirmar) return false;
+        res = await llamar(true);
+    }
+
+    if (res.valor) return true;
+    throw new Error(res.error || `No se pudo eliminar ${nombreEntidad}.`);
+}
+
+/** Precio de venta: al ciento superior. El epsilon evita que un float (636400.0000002) suba otro ciento. */
+function redondearPrecioCien(valor) {
+    const n = Number(valor);
+    if (!Number.isFinite(n) || n <= 0) return 0;
+    return Math.ceil((n - 1e-6) / 100) * 100;
+}
+
 function formatNumber(number) {
     if (typeof number !== 'number' || isNaN(number)) {
         return "$0.00"; // Devuelve un valor predeterminado si 'number' no es válido
@@ -83,6 +118,25 @@ function formatNumber(number) {
 
     // Combina la parte entera y la parte decimal
     return "$" + parts.join(",");
+}
+
+/** Fecha para <input type="date"> (YYYY-MM-DD). Acepta ISO u otros formatos de moment. Sin fallback a hoy (el alta setea hoy explícitamente). */
+function formatearFechaInputDate(fecha) {
+    if (!fecha) return "";
+    const s = String(fecha);
+    const iso = s.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (iso) return iso[1];
+    if (typeof moment !== "function") return "";
+    const m = moment(fecha);
+    return m.isValid() ? m.format("YYYY-MM-DD") : "";
+}
+
+/** Fecha legible DD/MM/YYYY para PDF/remitos. Evita "Invalid date". */
+function formatearFechaDdMmYyyy(fecha) {
+    if (typeof moment !== "function") return "";
+    if (!fecha) return moment().format("DD/MM/YYYY");
+    const m = moment(fecha);
+    return m.isValid() ? m.format("DD/MM/YYYY") : moment().format("DD/MM/YYYY");
 }
 
 /* =========================================================

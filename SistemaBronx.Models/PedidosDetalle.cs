@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
-
 namespace SistemaBronx.Models;
 
 public partial class PedidosDetalle
@@ -29,10 +27,6 @@ public partial class PedidosDetalle
     public decimal? PrecioVenta { get; set; }
 
     public decimal? CantidadUsadaStock { get; set; }
-
-    /// <summary>Saldo en depósito para esta línea (producto + color). No mapeado a columna.</summary>
-    [NotMapped]
-    public decimal StockDisponibleDeposito { get; set; }
 
     public virtual ProductosCategoria? IdCategoriaNavigation { get; set; }
 

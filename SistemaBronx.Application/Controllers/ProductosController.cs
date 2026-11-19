@@ -57,8 +57,8 @@ namespace SistemaBronx.Application.Controllers
         }
 
         /// <summary>
-        /// Catálogo para el modal de pedidos: con stock = producto×color con stock PT &gt; 0;
-        /// fabricación = un producto por fila si no hay stock PT en ningún color (el color se elige al añadir).
+        /// Catálogo para el modal de pedidos: con stock = producto×color con stock PT &gt; 0 (incluye sin color, IdColor 0);
+        /// fabricación = todos los productos (una fila c/u; Stock = suma PT; color al añadir).
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> CatalogoPedidoModal()
@@ -193,10 +193,10 @@ namespace SistemaBronx.Application.Controllers
         // ELIMINAR
         // ======================================================
         [HttpDelete]
-        public async Task<IActionResult> Eliminar(int id)
+        public async Task<IActionResult> Eliminar(int id, bool cascada = false)
         {
-            bool respuesta = await _ProductosService.Eliminar(id);
-            return StatusCode(StatusCodes.Status200OK, new { valor = respuesta });
+            var r = await _ProductosService.Eliminar(id, cascada);
+            return Ok(new { valor = r.Eliminado, enUso = r.EnUso, detalle = r.Detalle, error = r.Error });
         }
 
 

@@ -5,15 +5,17 @@ const columnConfig = [
     { index: 1, filterType: 'text' },
     { index: 2, filterType: 'text' },
     { index: 3, filterType: 'text' },
-    { index: 4, filterType: 'select', fetchDataFunc: listaProvinciasFilter }, // Columna con un filtro de selección (de provincias)
-    { index: 5, filterType: 'text' },
+    { index: 4, filterType: 'text' },
+    { index: 5, filterType: 'select', fetchDataFunc: listaProvinciasFilter },
     { index: 6, filterType: 'text' },
+    { index: 7, filterType: 'text' },
 ];
 
 const Modelo_base = {
     Id: 0,
     Nombre: "",
     Telefono: "",
+    Email: "",
     Direccion: "",
     IdProvincia: 1,
     Localidad: "",
@@ -38,6 +40,7 @@ function guardarCambios() {
             "Id": idCliente !== "" ? idCliente : 0,
             "Nombre": $("#txtNombre").val(),
             "Telefono": $("#txtTelefono").val(),
+            "Email": $("#txtEmail").val(),
             "Direccion": $("#txtDireccion").val(),
             "IdProvincia": $("#Provincias").val(),
             "Localidad": $("#txtLocalidad").val(),
@@ -94,9 +97,9 @@ function nuevoCliente() {
 }
 
 async function mostrarModal(modelo) {
-    const campos = ["Id", "Nombre", "Telefono", "Direccion", "IdProvincia", "Localidad", "Dni"];
+    const campos = ["Id", "Nombre", "Telefono", "Email", "Direccion", "IdProvincia", "Localidad", "Dni"];
     campos.forEach(campo => {
-        $(`#txt${campo}`).val(modelo[campo]);
+        $(`#txt${campo}`).val(modelo[campo] ?? "");
     });
 
     await listaProvincias();
@@ -116,7 +119,7 @@ async function mostrarModal(modelo) {
 
 
 function limpiarModal() {
-    const campos = ["Id", "Nombre", "Telefono", "Direccion", "IdProvincia", "Localidad", "DNI"];
+    const campos = ["Id", "Nombre", "Telefono", "Email", "Direccion", "IdProvincia", "Localidad", "DNI"];
     campos.forEach(campo => {
         $(`#txt${campo}`).val("");
     });
@@ -253,6 +256,7 @@ async function configurarDataTable(data) {
                 },
                 { data: 'Nombre' },
                 { data: 'Telefono' },
+                { data: 'Email' },
                 {
                     data: function (row) {
                         return row.Direccion && row.Direccion.trim() !== "" ? '<div class="location-cell"><i title="Ir a Google Maps" class="fa fa-map-marker fa-2x text-warning"></i> ' + row.Direccion + '</div>' : row.Direccion;
@@ -361,8 +365,8 @@ async function configurarDataTable(data) {
                 return;
             }
 
-            // Si la columna es la de la provincia (por ejemplo, columna 3)
-            if (colIndex === 4) {
+            // Si la columna es la de la provincia
+            if (colIndex === 5) {
                 var select = $('<select class="form-control" style="background-color: transparent; border: none; border-bottom: 2px solid green; color: green; text-align: center;" />')
                     .appendTo($(this).empty())
                     .on('change', function () {
@@ -450,7 +454,7 @@ async function configurarDataTable(data) {
                 // Obtener el valor original de la celda
                 var originalText = gridClientes.cell(trElement, celda).data();
 
-                if (colIndex === 3) {
+                if (colIndex === 4) {
                     var tempDiv = document.createElement('div'); // Crear un div temporal
                     tempDiv.innerHTML = originalText; // Establecer el HTML de la celda
                     originalText = tempDiv.textContent.trim(); // Extraer solo el texto
@@ -464,12 +468,14 @@ async function configurarDataTable(data) {
                 }
 
                 // Actualizar el valor de la fila según la columna editada
-                if (colIndex === 3) { // Si es la columna de la dirección
+                if (colIndex === 4) { // Dirección
                     rowData.Direccion = newText;
-                } else if (colIndex ===4) { // Si es la columna de la provincia
+                } else if (colIndex === 5) { // Provincia
                     rowData.IdProvincia = newValue;
                     rowData.Provincia = newText;
-                } else if (colIndex === 6) { // Si es la columna del DNI
+                } else if (colIndex === 3) { // Email
+                    rowData.Email = newText;
+                } else if (colIndex === 7) { // DNI
                     rowData.Dni = newText;
                 } else {
                     rowData[gridClientes.column(colIndex).header().textContent] = newText; // Usamos el nombre de la columna para guardarlo

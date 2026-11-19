@@ -10,7 +10,7 @@ namespace SistemaBronx.DAL.Repository
 {
     public interface IInsumoRepository<TEntityModel> where TEntityModel : class
     {
-        Task<bool> Eliminar(int id);
+        Task<ResultadoEliminacion> Eliminar(int id, bool cascada = false);
         Task<bool> Actualizar(Insumo model);
         Task<bool> Insertar(Insumo model);
         Task<Insumo> Obtener(int id);

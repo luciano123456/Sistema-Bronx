@@ -10,6 +10,8 @@ namespace SistemaBronx.Application.Models.ViewModels
 
         public string? Telefono { get; set; }
 
+        public string? Email { get; set; }
+
         public string? Direccion { get; set; }
 
         public int? IdProvincia { get; set; }

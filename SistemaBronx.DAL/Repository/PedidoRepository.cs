@@ -1,6 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using SistemaBronx.DAL.DataContext;
 using SistemaBronx.Models;
+using System.Collections.Generic;
 
 namespace SistemaBronx.DAL.Repository
 {
@@ -129,6 +130,11 @@ namespace SistemaBronx.DAL.Repository
 
             var saldo = await BuscarSaldoParaDetalleAsync(det);
 
+            // Persistir el color del **saldo** tocado (p. ej. sin color aunque la línea traiga color),
+            // para que historial / consultas por IdColor coincidan con StockSaldos.
+            if (saldo != null)
+                det.IdColor = saldo.IdColor;
+
             if (saldo == null)
             {
                 saldo = new StockSaldo
@@ -223,7 +229,8 @@ namespace SistemaBronx.DAL.Repository
         private async Task<(bool ok, List<string> errores)> ValidarStockInternoAsync(
      List<PedidosDetalle> pedidosDetalle,
      List<PedidosDetalleProceso> pedidosDetalleProceso,
-     int? idPedidoActual = null)
+     int? idPedidoActual = null,
+     bool exigirSaldoSuficiente = false)
         {
             var errores = new List<string>();
 
@@ -315,7 +322,7 @@ namespace SistemaBronx.DAL.Repository
                         .FirstOrDefaultAsync() ?? $"Insumo #{item.IdInsumo.Value}";
                 }
 
-                if (disponible < item.Cantidad)
+                if (exigirSaldoSuficiente && disponible < item.Cantidad)
                 {
                     var faltante = item.Cantidad - disponible;
 
@@ -516,7 +523,8 @@ namespace SistemaBronx.DAL.Repository
             var validacion = await ValidarStockInternoAsync(
      detalles,
      procesos,
-     idPedido
+     idPedido,
+     exigirSaldoSuficiente: false
  );
 
             if (!validacion.ok)
@@ -537,8 +545,8 @@ namespace SistemaBronx.DAL.Repository
                 var detalles = pedidosDetalle?.ToList() ?? new List<PedidosDetalle>();
                 var procesos = pedidosDetalleProceso?.ToList() ?? new List<PedidosDetalleProceso>();
 
-                // 🔥 VALIDAR STOCK
-                var validacion = await ValidarStockInternoAsync(detalles, procesos);
+                // Stock: no se bloquea el alta por saldo insuficiente (saldo puede quedar negativo).
+                var validacion = await ValidarStockInternoAsync(detalles, procesos, null, exigirSaldoSuficiente: false);
                 if (!validacion.ok)
                     throw new Exception(string.Join(" | ", validacion.errores));
 
@@ -656,7 +664,7 @@ namespace SistemaBronx.DAL.Repository
                 /* ============================================================
                    2) VALIDAR STOCK (teniendo en cuenta lo ya consumido)
                 ============================================================ */
-                var validacion = await ValidarStockInternoAsync(detalles, procesos, pedido.Id);
+                var validacion = await ValidarStockInternoAsync(detalles, procesos, pedido.Id, exigirSaldoSuficiente: false);
 
                 if (!validacion.ok)
                     throw new Exception(string.Join(" | ", validacion.errores));
@@ -682,44 +690,106 @@ namespace SistemaBronx.DAL.Repository
                 _dbcontext.Entry(existente).CurrentValues.SetValues(pedido);
 
                 /* ============================================================
-                   5) ELIMINAR DETALLES / PROCESOS
+                   5) SINCRONIZAR DETALLES (actualizar / insertar / eliminar)
                 ============================================================ */
-                _dbcontext.PedidosDetalleProcesos.RemoveRange(existente.PedidosDetalleProcesos);
-                _dbcontext.PedidosDetalles.RemoveRange(existente.PedidosDetalles);
+                var detallesExistentes = existente.PedidosDetalles.ToList();
+                var idMappingDetalle = new Dictionary<int, int>();
+                var idsDetalleConservados = new HashSet<int>();
+
+                foreach (var d in detalles)
+                {
+                    d.IdPedido = pedido.Id;
+                    var detDb = d.Id > 0
+                        ? detallesExistentes.FirstOrDefault(x => x.Id == d.Id)
+                        : null;
+
+                    if (detDb != null)
+                    {
+                        AplicarValoresDetallePedido(detDb, d, pedido.Id);
+                        idsDetalleConservados.Add(detDb.Id);
+                        idMappingDetalle[detDb.Id] = detDb.Id;
+                    }
+                    else
+                    {
+                        int tempId = d.Id;
+                        var nuevo = new PedidosDetalle();
+                        AplicarValoresDetallePedido(nuevo, d, pedido.Id);
+                        _dbcontext.PedidosDetalles.Add(nuevo);
+                        await _dbcontext.SaveChangesAsync();
+                        idsDetalleConservados.Add(nuevo.Id);
+                        if (tempId != 0)
+                            idMappingDetalle[tempId] = nuevo.Id;
+                    }
+                }
+
+                var detallesEliminar = detallesExistentes
+                    .Where(x => !idsDetalleConservados.Contains(x.Id))
+                    .ToList();
+
+                if (detallesEliminar.Count > 0)
+                    await EliminarDetallesPedidoConProcesosAsync(detallesEliminar, pedido.Id);
 
                 await _dbcontext.SaveChangesAsync();
 
                 /* ============================================================
-                   6) REINSERTAR DETALLES
+                   6) SINCRONIZAR PROCESOS (actualizar / insertar / eliminar)
                 ============================================================ */
-                var idMapping = new Dictionary<int, int>();
+                var procesosExistentes = await _dbcontext.PedidosDetalleProcesos
+                    .Where(x => x.IdPedido == pedido.Id)
+                    .ToListAsync();
 
-                foreach (var d in detalles)
-                {
-                    int tempId = d.Id;
+                var idsProcesoConservados = new HashSet<int>();
 
-                    d.Id = 0;
-                    d.IdPedido = pedido.Id;
-
-                    _dbcontext.PedidosDetalles.Add(d);
-                    await _dbcontext.SaveChangesAsync();
-
-                    idMapping[tempId] = d.Id;
-                }
-
-                /* ============================================================
-                   7) REINSERTAR PROCESOS
-                ============================================================ */
                 foreach (var p in procesos)
                 {
                     p.IdPedido = pedido.Id;
 
-                    if (p.IdDetalle.HasValue && idMapping.TryGetValue(p.IdDetalle.Value, out int idReal))
-                        p.IdDetalle = idReal;
+                    if (p.IdDetalle.HasValue)
+                    {
+                        if (idMappingDetalle.TryGetValue(p.IdDetalle.Value, out int idDetMapeado))
+                            p.IdDetalle = idDetMapeado;
+                        else if (!idsDetalleConservados.Contains(p.IdDetalle.Value))
+                            p.IdDetalle = null;
+                    }
 
-                    p.Id = 0;
-                    _dbcontext.PedidosDetalleProcesos.Add(p);
+                    var procDb = p.Id > 0
+                        ? procesosExistentes.FirstOrDefault(x => x.Id == p.Id)
+                        : null;
+
+                    if (procDb != null)
+                    {
+                        var anterior = new PedidosDetalleProceso
+                        {
+                            Cantidad = procDb.Cantidad,
+                            IdEstado = procDb.IdEstado,
+                            IdColor = procDb.IdColor,
+                            CantidadUsadaStock = procDb.CantidadUsadaStock,
+                            Comentarios = procDb.Comentarios,
+                            Especificacion = procDb.Especificacion,
+                            Descripcion = procDb.Descripcion,
+                            PrecioUnitario = procDb.PrecioUnitario,
+                            SubTotal = procDb.SubTotal
+                        };
+                        AplicarValoresProcesoPedido(procDb, p, anterior);
+                        idsProcesoConservados.Add(procDb.Id);
+                    }
+                    else
+                    {
+                        var nuevo = new PedidosDetalleProceso();
+                        AplicarValoresProcesoPedido(nuevo, p, null);
+                        _dbcontext.PedidosDetalleProcesos.Add(nuevo);
+                    }
                 }
+
+                await _dbcontext.SaveChangesAsync();
+
+                var idsProcesoEliminar = procesosExistentes
+                    .Where(x => !idsProcesoConservados.Contains(x.Id))
+                    .Select(x => x.Id)
+                    .ToList();
+
+                if (idsProcesoEliminar.Count > 0)
+                    await EliminarProcesosPedidoPorIdsAsync(idsProcesoEliminar);
 
                 await _dbcontext.SaveChangesAsync();
 
@@ -762,8 +832,13 @@ namespace SistemaBronx.DAL.Repository
                 ============================================================ */
                 if (hayCambiosStock)
                 {
-                    // 🔥 SI EXISTE MOVIMIENTO → LO MODIFICO
-                    if (movAnterior != null && !movAnterior.EsAnulado)
+                    if (!detallesStock.Any())
+                    {
+                        // El pedido ya no consume stock del depósito: eliminar movimiento y relaciones
+                        // (evita cabecera en StockMovimientos sin líneas en StockMovimientosDetalle).
+                        await LimpiarMovimientoStockPedidoAsync(pedido.Id);
+                    }
+                    else if (movAnterior != null && !movAnterior.EsAnulado)
                     {
                         var esEntradaAnterior = EsEntradaLocal(movAnterior)
                             || await GetEsEntradaAsync(movAnterior.IdTipoMovimiento);
@@ -852,10 +927,127 @@ namespace SistemaBronx.DAL.Repository
                 return false;
             }
         }
+        private static void AplicarValoresDetallePedido(PedidosDetalle destino, PedidosDetalle origen, int idPedido)
+        {
+            destino.IdPedido = idPedido;
+            destino.IdProducto = origen.IdProducto;
+            destino.IdCategoria = origen.IdCategoria;
+            destino.IdColor = origen.IdColor;
+            destino.Producto = origen.Producto;
+            destino.Cantidad = origen.Cantidad;
+            destino.CostoUnitario = origen.CostoUnitario;
+            destino.PorcGanancia = origen.PorcGanancia;
+            destino.PorcIva = origen.PorcIva;
+            destino.PrecioVenta = origen.PrecioVenta;
+            destino.CantidadUsadaStock = origen.CantidadUsadaStock;
+        }
+
+        private static void AplicarValoresProcesoPedido(
+            PedidosDetalleProceso destino,
+            PedidosDetalleProceso origen,
+            PedidosDetalleProceso? anteriorParaFecha)
+        {
+            destino.IdPedido = origen.IdPedido;
+            destino.IdDetalle = origen.IdDetalle;
+            destino.IdProducto = origen.IdProducto;
+            destino.IdInsumo = origen.IdInsumo;
+            destino.Cantidad = origen.Cantidad;
+            destino.IdCategoria = origen.IdCategoria;
+            destino.Comentarios = origen.Comentarios;
+            destino.Descripcion = origen.Descripcion;
+            destino.Especificacion = origen.Especificacion;
+            destino.IdColor = origen.IdColor;
+            destino.SubTotal = origen.SubTotal;
+            destino.IdEstado = origen.IdEstado;
+            destino.IdTipo = origen.IdTipo;
+            destino.PrecioUnitario = origen.PrecioUnitario;
+            destino.IdUnidadMedida = origen.IdUnidadMedida;
+            destino.IdProveedor = origen.IdProveedor;
+            destino.CantidadUsadaStock = origen.CantidadUsadaStock;
+
+            if (anteriorParaFecha != null && ProcesoDetalleCambioSignificativo(anteriorParaFecha, origen))
+                destino.FechaActualizacion = DateTime.Now;
+            else if (origen.FechaActualizacion.HasValue && origen.FechaActualizacion > DateTime.MinValue)
+                destino.FechaActualizacion = origen.FechaActualizacion;
+            else if (!destino.FechaActualizacion.HasValue || destino.FechaActualizacion <= DateTime.MinValue)
+                destino.FechaActualizacion = DateTime.Now;
+        }
+
+        private async Task EliminarProcesosPedidoPorIdsAsync(List<int> idsProcesos)
+        {
+            if (idsProcesos == null || idsProcesos.Count == 0)
+                return;
+
+            var relaciones = await _dbcontext.PedidosDetalleProcesosStocks
+                .Where(x => idsProcesos.Contains(x.IdPedidoDetalleProceso))
+                .ToListAsync();
+
+            if (relaciones.Count > 0)
+                _dbcontext.PedidosDetalleProcesosStocks.RemoveRange(relaciones);
+
+            var procs = await _dbcontext.PedidosDetalleProcesos
+                .Where(x => idsProcesos.Contains(x.Id))
+                .ToListAsync();
+
+            if (procs.Count > 0)
+                _dbcontext.PedidosDetalleProcesos.RemoveRange(procs);
+        }
+
+        private async Task EliminarDetallesPedidoConProcesosAsync(List<PedidosDetalle> detallesAEliminar, int idPedido)
+        {
+            if (detallesAEliminar == null || detallesAEliminar.Count == 0)
+                return;
+
+            foreach (var model in detallesAEliminar)
+            {
+                int idDetalle = model.Id;
+
+                var procesosAsociados = await _dbcontext.PedidosDetalleProcesos
+                    .Where(x =>
+                        x.IdPedido == idPedido &&
+                        (
+                            (x.IdDetalle.HasValue && x.IdDetalle.Value == idDetalle) ||
+                            (!x.IdDetalle.HasValue && x.IdProducto == model.IdProducto)
+                        ))
+                    .ToListAsync();
+
+                var relacionesDetalle = await _dbcontext.PedidosDetalleStocks
+                    .Where(x => x.IdPedidoDetalle == model.Id)
+                    .ToListAsync();
+
+                if (relacionesDetalle.Count > 0)
+                    _dbcontext.PedidosDetalleStocks.RemoveRange(relacionesDetalle);
+
+                if (procesosAsociados.Count > 0)
+                {
+                    var idsProcesos = procesosAsociados.Select(x => x.Id).ToList();
+                    await EliminarProcesosPedidoPorIdsAsync(idsProcesos);
+                }
+
+                _dbcontext.PedidosDetalles.Remove(model);
+            }
+        }
+
+        private static bool ProcesoDetalleCambioSignificativo(PedidosDetalleProceso anterior, PedidosDetalleProceso nuevo)
+        {
+            static bool DecEq(decimal? a, decimal? b) => (a ?? 0m) == (b ?? 0m);
+            static bool IntEq(int? a, int? b) => (a ?? 0) == (b ?? 0);
+
+            return !DecEq(anterior.Cantidad, nuevo.Cantidad)
+                || !IntEq(anterior.IdEstado, nuevo.IdEstado)
+                || !IntEq(anterior.IdColor, nuevo.IdColor)
+                || !DecEq(anterior.CantidadUsadaStock, nuevo.CantidadUsadaStock)
+                || !string.Equals(anterior.Comentarios ?? "", nuevo.Comentarios ?? "", StringComparison.Ordinal)
+                || !string.Equals(anterior.Especificacion ?? "", nuevo.Especificacion ?? "", StringComparison.Ordinal)
+                || !string.Equals(anterior.Descripcion ?? "", nuevo.Descripcion ?? "", StringComparison.Ordinal)
+                || !DecEq(anterior.PrecioUnitario, nuevo.PrecioUnitario)
+                || !DecEq(anterior.SubTotal, nuevo.SubTotal);
+        }
+
         /* ============================================================
            ACTUALIZAR DETALLE PROCESO
         ============================================================ */
-        public async Task<bool> ActualizarDetalleProceso(PedidosDetalleProceso pedidosDetalleProceso)
+        public async Task<bool> ActualizarDetalleProceso(PedidosDetalleProceso pedidosDetalleProceso, bool resincronizarStockPedido = true)
         {
             using var transaction = await _dbcontext.Database.BeginTransactionAsync();
             try
@@ -866,21 +1058,27 @@ namespace SistemaBronx.DAL.Repository
                 if (pedidoDetalleExistente == null)
                     return false;
 
-                pedidoDetalleExistente.Cantidad = pedidosDetalleProceso.Cantidad;
+                var huboCambio = ProcesoDetalleCambioSignificativo(pedidoDetalleExistente, pedidosDetalleProceso);
+
+                pedidoDetalleExistente.Cantidad = pedidosDetalleProceso.Cantidad ?? pedidoDetalleExistente.Cantidad;
                 pedidoDetalleExistente.Comentarios = pedidosDetalleProceso.Comentarios;
                 pedidoDetalleExistente.Descripcion = pedidosDetalleProceso.Descripcion;
                 pedidoDetalleExistente.Especificacion = pedidosDetalleProceso.Especificacion;
                 pedidoDetalleExistente.IdColor = pedidosDetalleProceso.IdColor;
-                pedidoDetalleExistente.FechaActualizacion = DateTime.Now;
+                if (huboCambio)
+                    pedidoDetalleExistente.FechaActualizacion = DateTime.Now;
                 pedidoDetalleExistente.IdEstado = pedidosDetalleProceso.IdEstado;
                 pedidoDetalleExistente.CantidadUsadaStock = pedidosDetalleProceso.CantidadUsadaStock;
 
                 _dbcontext.Entry(pedidoDetalleExistente).CurrentValues.SetValues(pedidoDetalleExistente);
                 await _dbcontext.SaveChangesAsync();
 
-                await ResincronizarStockPedidoDesdeDbAsync(pedidoDetalleExistente.IdPedido ?? 0);
+                if (resincronizarStockPedido)
+                {
+                    await ResincronizarStockPedidoDesdeDbAsync(pedidoDetalleExistente.IdPedido ?? 0);
+                    await _dbcontext.SaveChangesAsync();
+                }
 
-                await _dbcontext.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return true;
             }
@@ -1033,8 +1231,11 @@ namespace SistemaBronx.DAL.Repository
             }
         }
 
-        public async Task<Pedido> ObtenerPedido(int pedidoId)
+        public async Task<(Pedido Pedido, Dictionary<int, decimal> StockDepositoPorIdDetalle, Dictionary<int, decimal> StockDepositoPorIdProceso)> ObtenerPedido(int pedidoId)
         {
+            var emptyStockDet = new Dictionary<int, decimal>();
+            var emptyStockProc = new Dictionary<int, decimal>();
+
             try
             {
                 var pedido = await _dbcontext.Pedidos
@@ -1069,10 +1270,14 @@ namespace SistemaBronx.DAL.Repository
                     .FirstOrDefaultAsync(p => p.Id == pedidoId);
 
                 if (pedido == null)
-                    return null;
+                    return (null, emptyStockDet, emptyStockProc);
+
+                var stockPorIdDetalle = new Dictionary<int, decimal>();
+                var stockPorIdProceso = new Dictionary<int, decimal>();
 
                 /* ============================================================
                    STOCK POR COLOR (saldos reales por línea de detalle / proceso)
+                   — no se persiste en la entidad; solo diccionarios para la capa de presentación.
                 ============================================================ */
                 var productosIds = pedido.PedidosDetalles
                     .Where(x => x.IdProducto.HasValue)
@@ -1105,7 +1310,7 @@ namespace SistemaBronx.DAL.Repository
                             ((s.IdColor ?? 0) == c || (c != 0 && (s.IdColor ?? 0) == 0)))
                         .Sum(s => s.CantidadActual);
 
-                    det.StockDisponibleDeposito = qty;
+                    stockPorIdDetalle[det.Id] = qty;
                 }
 
                 foreach (var proc in pedido.PedidosDetalleProcesos)
@@ -1121,14 +1326,14 @@ namespace SistemaBronx.DAL.Repository
                             ((s.IdColor ?? 0) == c || (c != 0 && (s.IdColor ?? 0) == 0)))
                         .Sum(s => s.CantidadActual);
 
-                    proc.StockDisponibleDeposito = qty;
+                    stockPorIdProceso[proc.Id] = qty;
                 }
 
-                return pedido;
+                return (pedido, stockPorIdDetalle, stockPorIdProceso);
             }
             catch
             {
-                return null;
+                return (null, emptyStockDet, emptyStockProc);
             }
         }
 
@@ -1315,7 +1520,7 @@ namespace SistemaBronx.DAL.Repository
             var detallesList = pedidosDetalle?.ToList() ?? new List<PedidosDetalle>();
             var procesosList = pedidosDetalleProceso?.ToList() ?? new List<PedidosDetalleProceso>();
 
-            return await ValidarStockInternoAsync(detallesList, procesosList);
+            return await ValidarStockInternoAsync(detallesList, procesosList, idPedidoActual: null, exigirSaldoSuficiente: true);
         }
 
         public async Task<(bool ok, decimal disponible, decimal faltante, string nombre)> ObtenerDisponibilidadStock(

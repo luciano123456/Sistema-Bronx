@@ -22,7 +22,23 @@ namespace SistemaBronx.DAL.Repository
         }
         public async Task<bool> Actualizar(Cliente model)
         {
-            _dbcontext.Clientes.Update(model);
+            var existente = await _dbcontext.Clientes.FirstOrDefaultAsync(c => c.Id == model.Id);
+            if (existente == null)
+                return false;
+
+            existente.Nombre = model.Nombre;
+            existente.Telefono = model.Telefono;
+            existente.Email = model.Email;
+            existente.Direccion = model.Direccion;
+            existente.IdProvincia = model.IdProvincia;
+            existente.Localidad = model.Localidad;
+            existente.Dni = model.Dni;
+
+            if (model.Saldo.HasValue)
+                existente.Saldo = model.Saldo;
+            if (model.SaldoAfavor.HasValue)
+                existente.SaldoAfavor = model.SaldoAfavor;
+
             await _dbcontext.SaveChangesAsync();
             return true;
         }

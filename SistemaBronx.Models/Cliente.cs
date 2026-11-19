@@ -11,6 +11,8 @@ public partial class Cliente
 
     public string? Telefono { get; set; }
 
+    public string? Email { get; set; }
+
     public string? Direccion { get; set; }
 
     public int? IdProvincia { get; set; }

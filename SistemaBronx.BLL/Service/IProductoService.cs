@@ -6,7 +6,7 @@ namespace SistemaBronx.BLL.Service
     {
         Task<bool> Insertar(Producto model, List<ProductosInsumo> insumos);
         Task<bool> Actualizar(Producto model, List<ProductosInsumo> insumos);
-        Task<bool> Eliminar(int id);
+        Task<ResultadoEliminacion> Eliminar(int id, bool cascada = false);
         Task<Producto> Obtener(int id);
         Task<List<Producto>> ObtenerTodos();
         Task<IQueryable<ProductosCategoria>> ObtenerCategorias();

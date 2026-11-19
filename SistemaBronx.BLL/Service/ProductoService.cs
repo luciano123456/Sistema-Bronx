@@ -17,9 +17,9 @@ namespace SistemaBronx.BLL.Service
             return await _contactRepo.Actualizar(model, insumos);
         }
 
-        public async Task<bool> Eliminar(int id)
+        public Task<ResultadoEliminacion> Eliminar(int id, bool cascada = false)
         {
-            return await _contactRepo.Eliminar(id);
+            return _contactRepo.Eliminar(id, cascada);
         }
 
         public async Task<bool> Insertar(Producto model, List<ProductosInsumo> insumos)
