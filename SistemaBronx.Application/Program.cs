@@ -6,11 +6,6 @@ using SistemaBronx.Models;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
-using TuProyecto.Repositories.Interfaces;
-using TuProyecto.Repositories;
-using TuProyecto.Services.Interfaces;
-using TuProyecto.Services;
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.

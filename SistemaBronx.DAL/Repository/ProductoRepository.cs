@@ -18,6 +18,39 @@ namespace SistemaBronx.DAL.Repository
 
         private readonly SistemaBronxContext _dbcontext;
 
+        /// <summary>
+        /// Precio = insumos + ganancia + IVA. Stock va en otro JOIN ya agrupado:
+        /// unir StockSaldos fila a fila duplica los insumos y multiplica el costo.
+        /// </summary>
+        private const string SqlSelectProductoConCosto = @"
+SELECT
+    p.Id,
+    p.Nombre,
+    p.PorcGanancia,
+    p.PorcIva,
+    p.IdCategoria,
+    cat.Id AS CategoriaId,
+    cat.Nombre AS CategoriaNombre,
+    ISNULL(costo.BaseInsumos, 0)
+        + (ISNULL(costo.BaseInsumos, 0) * p.PorcGanancia / 100)
+        + ((ISNULL(costo.BaseInsumos, 0) + (ISNULL(costo.BaseInsumos, 0) * p.PorcGanancia / 100)) * p.PorcIva / 100) AS CostoUnitario,
+    ISNULL(stock.Cantidad, 0) AS Stock
+FROM Productos p
+LEFT JOIN ProductosCategorias cat ON p.IdCategoria = cat.Id
+LEFT JOIN (
+    SELECT pi.IdProducto, SUM(pi.Cantidad * i.PrecioVenta) AS BaseInsumos
+    FROM ProductosInsumos pi
+    INNER JOIN Insumos i ON pi.IdInsumo = i.Id
+    GROUP BY pi.IdProducto
+) costo ON costo.IdProducto = p.Id
+LEFT JOIN (
+    SELECT ss.IdProducto, SUM(ss.CantidadActual) AS Cantidad
+    FROM StockSaldos ss
+    WHERE ss.TipoItem = 'P' AND ss.IdProducto IS NOT NULL
+    GROUP BY ss.IdProducto
+) stock ON stock.IdProducto = p.Id
+";
+
         public ProductoRepository(SistemaBronxContext context)
         {
             _dbcontext = context;
@@ -33,20 +66,8 @@ namespace SistemaBronx.DAL.Repository
             return await q.SumAsync(s => (decimal?)s.CantidadActual) ?? 0m;
         }
 
-        public async Task<bool> Eliminar(int id)
-        {
-            try
-            {
-                Models.Producto model = _dbcontext.Productos.First(c => c.Id == id);
-                _dbcontext.Productos.Remove(model);
-                await _dbcontext.SaveChangesAsync();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                return false;
-            }
-        }
+        public Task<ResultadoEliminacion> Eliminar(int id, bool cascada = false)
+            => EliminacionCascada.EliminarProductoAsync(_dbcontext, id, cascada);
 
         public async Task<bool> Insertar(Producto model, List<ProductosInsumo> insumos)
         {
@@ -186,11 +207,11 @@ namespace SistemaBronx.DAL.Repository
             {
                 Producto producto = null;
 
-                // Crear el comando para ejecutar el procedimiento almacenado
                 using (var command = _dbcontext.Database.GetDbConnection().CreateCommand())
                 {
-                    command.CommandText = "ObtenerProductoConCostoId";
-                    command.CommandType = CommandType.StoredProcedure;
+                    command.CommandText = SqlSelectProductoConCosto + @"
+WHERE p.Id = @Id";
+                    command.CommandType = CommandType.Text;
                     command.Parameters.Add(new SqlParameter("@Id", id));
 
                     _dbcontext.Database.OpenConnection();
@@ -244,11 +265,10 @@ namespace SistemaBronx.DAL.Repository
             {
                 var productos = new List<Producto>();
 
-                // Ejecutar el procedimiento almacenado y leer los resultados
                 using (var command = _dbcontext.Database.GetDbConnection().CreateCommand())
                 {
-                    command.CommandText = "ObtenerProductosConCosto";
-                    command.CommandType = CommandType.StoredProcedure;
+                    command.CommandText = SqlSelectProductoConCosto;
+                    command.CommandType = CommandType.Text;
 
                     _dbcontext.Database.OpenConnection();
 

@@ -6,7 +6,7 @@ namespace SistemaBronx.BLL.Service
     {
         Task<bool> Insertar(Insumo model);
         Task<bool> Actualizar(Insumo model);
-        Task<bool> Eliminar(int id);
+        Task<ResultadoEliminacion> Eliminar(int id, bool cascada = false);
         Task<Insumo> Obtener(int id);
         Task<IQueryable<Insumo>> ObtenerTodos();
     }

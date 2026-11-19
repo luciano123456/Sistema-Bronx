@@ -441,22 +441,15 @@ async function eliminarInsumo(id) {
 
     if (resultado) {
         try {
-            const response = await fetch("Insumos/Eliminar?id=" + id, {
-                method: "DELETE"
-            });
+            const eliminado = await eliminarConCascada("Insumos/Eliminar?id=" + id, "El insumo");
 
-            if (!response.ok) {
-                throw new Error("Error al eliminar el Insumo.");
-            }
-
-            const dataJson = await response.json();
-
-            if (dataJson.valor) {
+            if (eliminado) {
                 listaInsumos();
                 exitoModal("Insumo eliminado correctamente")
             }
         } catch (error) {
             console.error("Ha ocurrido un error:", error);
+            errorModal("Ocurrió un error al eliminar el insumo.");
         }
     }
 }

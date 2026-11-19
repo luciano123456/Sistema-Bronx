@@ -34,21 +34,8 @@ namespace SistemaBronx.DAL.Repository
             }
         }
 
-        public async Task<bool> Eliminar(int id)
-        {
-            try
-            {
-                Insumo model = _dbcontext.Insumos.First(c => c.Id == id);
-                _dbcontext.Insumos.Remove(model);
-                await _dbcontext.SaveChangesAsync();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error en Eliminar: {ex.Message}");
-                return false;
-            }
-        }
+        public Task<ResultadoEliminacion> Eliminar(int id, bool cascada = false)
+            => EliminacionCascada.EliminarInsumoAsync(_dbcontext, id, cascada);
 
         public async Task<bool> Insertar(Insumo model)
         {

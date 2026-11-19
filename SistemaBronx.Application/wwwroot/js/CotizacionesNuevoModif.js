@@ -267,7 +267,7 @@ async function configurarDataTableProductosModal(data) {
 
                 {
                     "render": function (data, type, row) {
-                        return formatNumber(data); // Formatear números
+                        return formatNumber(redondearPrecioCien(data));
                     },
                     "targets": [2] // Índices de las columnas de números
                 },
@@ -1276,8 +1276,10 @@ async function guardarProducto() {
     const Ganancia = parseFloat(convertirMonedaAFloat(document.getElementById('ProductoModalGanancia').value));
     const PorcIva = document.getElementById('ProductoModalPorcIva').value;
     const TotalIva = parseFloat(convertirMonedaAFloat(document.getElementById('ProductoModalIva').value));
-    const PrecioVenta = parseFloat(convertirMonedaAFloat(document.getElementById('ProductoModalPrecioVenta').value));
-    const Cantidad = document.getElementById('ProductoModalCantidad').value;
+    const precioVentaModal = parseFloat(convertirMonedaAFloat(document.getElementById('ProductoModalPrecioVenta').value));
+    const Cantidad = parseFloat(document.getElementById('ProductoModalCantidad').value) || 0;
+    const PrecioVentaUnitario = redondearPrecioCien(precioVentaModal / (Cantidad || 1));
+    const PrecioVenta = PrecioVentaUnitario * (Cantidad || 1);
     const IdColor = document.getElementById('Colores');
     const Color = IdColor != null ? IdColor.options[IdColor.selectedIndex].text : "";
 
@@ -1338,7 +1340,7 @@ async function guardarProducto() {
                     data.Categoria = Categoria,
                     data.CostoUnitario = CostoUnitario,
                     data.PorcGanancia = PorcGanancia,
-                    data.PrecioVentaUnitario = PrecioVenta / Cantidad,
+                    data.PrecioVentaUnitario = PrecioVentaUnitario,
                     data.Ganancia = Ganancia,
                     data.PorcIva = PorcIva,
                     data.IVA = TotalIva,
@@ -1380,7 +1382,7 @@ async function guardarProducto() {
         gridProductos.row.add({
             Id: detalleId,
             IdProducto: IdProducto,
-            PrecioVentaUnitario: PrecioVenta / Cantidad,
+            PrecioVentaUnitario: PrecioVentaUnitario,
             Nombre: NombreProducto,
             IdCategoria: IdCategoria,
             Categoria: Categoria,
@@ -1535,7 +1537,7 @@ async function cargarInformacionProducto(id) {
     document.getElementById("ProductoModalPorcGanancia").value = Producto.PorcGanancia;
     document.getElementById("ProductoModalIva").value = formatNumber(totalIva);
     document.getElementById("ProductoModalGanancia").value = formatNumber(totalGanancia);
-    document.getElementById("ProductoModalPrecioVenta").value = formatNumber(Math.ceil(Producto.CostoUnitario / 100) * 100);
+    document.getElementById("ProductoModalPrecioVenta").value = formatNumber(redondearPrecioCien(Producto.CostoUnitario));
 
 
 }
@@ -1565,13 +1567,14 @@ function calcularIVAyGanancia() {
     // Calcular el total de IVA para la cantidad
     const totalIVA = totalIVAUnitario * cantidad;
 
-    // Calcular costo total para la cantidad (incluyendo insumos, ganancia e IVA)
-    const costoTotal = (totalInsumos + gananciaUnitario + totalIVAUnitario) * cantidad;
+    // Unitario al ciento, igual que en pedidos. El total de línea es ese unitario × cantidad.
+    const precioUnitario = redondearPrecioCien(totalInsumos + gananciaUnitario + totalIVAUnitario);
+    const costoTotal = precioUnitario * cantidad;
 
     // Mostrar resultados formateados
     document.getElementById("ProductoModalIva").value = formatoMoneda.format(totalIVA);
     document.getElementById("ProductoModalGanancia").value = formatoMoneda.format(totalGanancia);
-    document.getElementById("ProductoModalPrecioVenta").value = formatoMoneda.format(Math.ceil(costoTotal / 100) * 100);
+    document.getElementById("ProductoModalPrecioVenta").value = formatoMoneda.format(costoTotal);
 
 }
 
@@ -2809,29 +2812,60 @@ function generarRemitoPDF(datos) {
     }
 
     const esMayorista = tipoCliente === "mayorista" && ivaPorcentaje > 0;
-
     /* =====================================================
-       HEADER
+       REMITO PREIMPRESO "REMITO BRONX IMPRIMIR" (A4, mm)
+       Solo se escriben los datos variables; el resto ya
+       viene impreso en la hoja (logo, N°, encabezado de tabla,
+       linea y firma).
     ===================================================== */
 
-    doc.setFontSize(8);
-    doc.text(`${datos.Cotizacion.Cliente}`, 150, 37);
-    doc.text(`${datos.Cotizacion.Telefono}`, 150, 41);
-    doc.text(`${formatearFechaDdMmYyyy(datos.Cotizacion.Fecha)}`, 150, 45);
+    const info = datos.Cotizacion;
+    const FUENTE = "helvetica";
 
-    doc.setFontSize(13);
-    doc.text(`${datos.Cotizacion.IdCotizacion}`, 165, 27);
+    // Calibrado con la impresion real sobre la hoja: en vertical la impresion sale
+    // al ~96 % y corrida ~4.45 mm hacia abajo. yHoja() recibe la posicion medida
+    // en la hoja (mm) y devuelve donde dibujarla en el PDF para que caiga ahi.
+    // Si cambia la impresora o la escala de impresion, recalibrar estos valores.
+    const ESCALA_Y = 0.96;
+    const DESPLAZ_Y = 4.45;
+    const AJUSTE_X = 0;
+    const yHoja = mm => (mm - DESPLAZ_Y) / ESCALA_Y;
+
+    // Encabezado: a la derecha de las etiquetas preimpresas "Nombre / Telefono / Fecha"
+    const xDatos = 100 + AJUSTE_X;
+    const anchoMaxDatos = 47;
+
+    const escribirDato = (texto, y) => {
+        texto = (texto || "").toString().trim();
+        if (!texto) return;
+        let size = 9;
+        doc.setFont(FUENTE, "normal");
+        doc.setFontSize(size);
+        while (size > 6 && doc.getTextWidth(texto) > anchoMaxDatos) {
+            size -= 0.5;
+            doc.setFontSize(size);
+        }
+        doc.text(texto, xDatos, y);
+    };
+
+    escribirDato(info.Cliente, yHoja(39.5));
+    escribirDato(info.Telefono, yHoja(44.7));
+    escribirDato(formatearFechaDdMmYyyy(info.Fecha), yHoja(49.8));
 
     /* =====================================================
-       TABLA PRODUCTOS
+       TABLA PRODUCTOS (columnas alineadas al encabezado impreso)
+       C: x=10 | Producto: x=46 | Color: x=107 | Precio: x=148 | Subtotal: x=172 (hasta 200)
     ===================================================== */
 
-    const columns = ["C", "Producto", "Color", "Precio", "Subtotal"];
+    const MAX_FILAS = 18;
+    const FILA_ALTO = 7.8;
+    const TABLA_Y = yHoja(73.5);
 
-    let rows = datos.Productos.map(item => {
+    const rows = datos.Productos.slice(0, MAX_FILAS).map(item => {
 
-        let precioUnitario = item.PrecioVenta / item.Cantidad;
-        let subtotal = item.PrecioVenta;
+        const cantidad = Number(item.Cantidad) || 0;
+        let subtotal = Number(item.PrecioVenta) || 0;
+        let precioUnitario = cantidad > 0 ? subtotal / cantidad : subtotal;
 
         if (esMayorista) {
             precioUnitario /= (1 + ivaPorcentaje / 100);
@@ -2839,121 +2873,72 @@ function generarRemitoPDF(datos) {
         }
 
         return [
-            item.Cantidad,
-            item.Nombre,
-            item.Color,
+            item.Cantidad ?? "",
+            item.Nombre ?? "",
+            item.Color ?? "",
             formatNumber(precioUnitario),
             formatNumber(subtotal)
         ];
     });
 
-    while (rows.length < 18) {
-        rows.push(["", "", "", "", ""]);
-    }
-
     doc.autoTable({
-        startY: 55,
+        startY: TABLA_Y,
         body: rows,
-        styles: { fontSize: 10, lineWidth: 0 },
-        headStyles: {
-            fillColor: [0, 0, 0],
-            textColor: 255,
-            halign: 'center'
+        theme: "plain",
+        margin: { left: 10 + AJUSTE_X, right: 10 - AJUSTE_X },
+        tableWidth: 190,
+        pageBreak: "avoid",
+        styles: {
+            font: FUENTE,
+            fontSize: 8,
+            textColor: 0,
+            lineWidth: 0,
+            fillColor: false,
+            valign: "middle",
+            overflow: "linebreak",
+            cellPadding: { top: 1, bottom: 1, left: 1, right: 1 },
+            minCellHeight: FILA_ALTO / ESCALA_Y
         },
-        bodyStyles: { fillColor: [255, 255, 255], lineWidth: 0 },
-        alternateRowStyles: { fillColor: false },
         columnStyles: {
-            0: { halign: 'center', cellWidth: 10 },
-            1: { cellWidth: 55 },
-            2: { cellWidth: 55 },
-            3: { halign: 'right', cellWidth: 30 },
-            4: { halign: 'right', cellWidth: 30 }
+            0: { halign: "left", cellWidth: 36 },
+            1: { halign: "left", cellWidth: 61 },
+            2: { halign: "left", cellWidth: 41 },
+            3: { halign: "right", cellWidth: 24 },
+            4: { halign: "right", cellWidth: 28 }
         }
     });
 
     /* =====================================================
-       CALCULOS (MISMO PDF)
+       PIE: solo precio de lista e importe abonado
+       (encima de la linea impresa de la hoja, y=236)
     ===================================================== */
 
-    let subtotalSinIVA = 0;
-
-    datos.Productos.forEach(p => {
-        let valor = Number(p.PrecioVenta) || 0;
-        if (esMayorista)
-            valor /= (1 + ivaPorcentaje / 100);
-
-        subtotalSinIVA += valor;
-    });
-
-    const ivaTotal = subtotalSinIVA * (ivaPorcentaje / 100);
-    const totalConIVA = subtotalSinIVA + ivaTotal;
-
-    const abonado = Number(datos.Cotizacion.ImporteAbonado) || 0;
-    const saldoMayorista = totalConIVA - abonado;
-
-    /* =====================================================
-       POSICION
-    ===================================================== */
-
-    let y = doc.lastAutoTable.finalY + 10;
-
-    if (y + 60 > doc.internal.pageSize.height) {
-        doc.addPage();
-        y = 20;
-    }
-
-    const boxX = 14;
-
-    /* =====================================================
-       BLOQUE FINAL (COLUMNAS CORRECTAS)
-    ===================================================== */
-
-    let labels;
-    let valores;
-
+    let precioLista;
     if (esMayorista) {
-
-        labels = [
-            "Importe total (sin IVA):",
-            "IVA:",
-            "TOTAL (con IVA):",
-            "Importe abonado:",
-            "Saldo:"
-        ];
-
-        valores = [
-            formatNumber(subtotalSinIVA),
-            formatNumber(ivaTotal),
-            formatNumber(totalConIVA),
-            formatNumber(abonado),
-            formatNumber(saldoMayorista)
-        ];
-
+        let sinIVA = 0;
+        datos.Productos.forEach(p => {
+            sinIVA += (Number(p.PrecioVenta) || 0) / (1 + ivaPorcentaje / 100);
+        });
+        precioLista = formatNumber(sinIVA);
     } else {
-
-        labels = [
-            "Importe total (incluye IVA):",
-            "Descuento %:",
-            "Importe total:",
-            "Importe abonado:",
-            "Saldo:"
-        ];
-
-        valores = [
-            datos.Cotizacion.ImporteTotal,
-            `${datos.Cotizacion.PorcDesc}%`,
-            datos.Cotizacion.SubTotal,
-            datos.Cotizacion.ImporteAbonado,
-            datos.Cotizacion.Saldo
-        ];
+        precioLista = fmtMoneda(info.ImporteTotal);
     }
 
-    doc.setFontSize(10);
+    const importeAbonado = fmtMoneda(info.ImporteAbonado);
 
-    labels.forEach((label, i) => {
-        const yPos = y + i * 7;
-        doc.text(valores[i], boxX + 145, yPos, { align: "right" });
-    });
+    doc.setPage(1);
+    doc.setFont(FUENTE, "normal");
+    doc.setFontSize(9);
+    // jsPDF 1.3.2 no soporta { align: "right" }: se calcula el ancho a mano.
+    const textoDerecha = (texto, xDerecha, y) => {
+        texto = (texto ?? "").toString();
+        const ancho = doc.getStringUnitWidth(texto) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+        doc.text(texto, xDerecha - ancho, y);
+    };
+    textoDerecha("Precio de lista:", 160 + AJUSTE_X, yHoja(221));
+    textoDerecha(precioLista, 199 + AJUSTE_X, yHoja(221));
+    textoDerecha("Importe abonado:", 160 + AJUSTE_X, yHoja(227.5));
+    textoDerecha(importeAbonado, 199 + AJUSTE_X, yHoja(227.5));
 
     return doc;
 }

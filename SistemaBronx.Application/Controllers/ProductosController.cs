@@ -193,10 +193,10 @@ namespace SistemaBronx.Application.Controllers
         // ELIMINAR
         // ======================================================
         [HttpDelete]
-        public async Task<IActionResult> Eliminar(int id)
+        public async Task<IActionResult> Eliminar(int id, bool cascada = false)
         {
-            bool respuesta = await _ProductosService.Eliminar(id);
-            return StatusCode(StatusCodes.Status200OK, new { valor = respuesta });
+            var r = await _ProductosService.Eliminar(id, cascada);
+            return Ok(new { valor = r.Eliminado, enUso = r.EnUso, detalle = r.Detalle, error = r.Error });
         }
 
 

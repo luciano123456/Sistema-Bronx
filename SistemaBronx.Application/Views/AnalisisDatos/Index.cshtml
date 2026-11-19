@@ -2,281 +2,247 @@
     ViewBag.Title = "Análisis de Datos";
     Layout = "_Layout";
 }
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
 
-<link rel="stylesheet" href="~/css/AnalisisDatos.css?v=5.0" />
+@section Estilos {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@tabler/icons-webfont@@2.47.0/tabler-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+    <link rel="stylesheet" href="~/css/AnalisisDatos.css?v=6.2" />
+}
 
-<style>
-    /* Paginador incrustado, sin pisar el gráfico */
-    .ad-card {
-        position: relative;
-    }
+<div id="ad-root" class="ad-wrap py-4">
 
-    .ad-pager {
-        position: absolute;
-        right: 14px;
-        bottom: 12px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 10px;
-        border-radius: 14px;
-        background: rgba(14,18,36,.72);
-        backdrop-filter: blur(4px);
-        border: 1px solid rgba(255,255,255,.08);
-        color: #cfd6ff;
-        font-size: .86rem;
-        z-index: 5;
-    }
+    <!-- ================= FILTROS ================= -->
+    <div class="ad-card ad-filters p-3 mb-3">
 
-        .ad-pager .btn {
-            width: 28px;
-            height: 28px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,.08);
-            background: linear-gradient(180deg,rgba(32,41,84,.95),rgba(18,24,54,.92));
-            display: grid;
-            place-items: center;
-            cursor: pointer;
-            user-select: none;
-        }
+        <!-- Período plegable: resumen compacto; al tocarlo se despliegan los chips de Rápido / Año / Mes -->
+        <div id="ad-pp" class="ad-pp">
+        <div class="ad-filters__row ad-pp__bar">
+            <div class="ad-filters__label"><i class="ti ti-calendar-event"></i> Período</div>
+            <button type="button" id="ad-pp-toggle" class="ad-pp__toggle" aria-expanded="false" aria-controls="ad-pp-body">
+                <span class="chip active ad-pp__actual" id="ad-pp-actual">—</span>
+                <span class="ad-pp__cambiar"><i class="ti ti-adjustments-horizontal"></i> <span class="ad-pp__txt">Cambiar período</span> <i class="ti ti-chevron-down ad-pp__chev"></i></span>
+            </button>
+        </div>
+        <div id="ad-pp-body" class="ad-pp__body" role="region" aria-label="Elegir período">
+        <div class="ad-pp__inner">
 
-            .ad-pager .btn:disabled {
-                opacity: .4;
-                cursor: not-allowed
-            }
-
-        .ad-pager .ico {
-            font-size: 13px;
-            line-height: 1;
-        }
-    /* Evita que el canvas tape tooltips flotantes dentro de la card */
-    .ad-chart {
-        position: relative;
-        min-height: 280px;
-    }
-
-        .ad-chart canvas {
-            display: block;
-        }
-</style>
-
-<div id="ad-root" class="ad-wrap container-xxl py-4">
-    <!-- Toolbar -->
-    <div class="ad-card ad-toolbar p-3 mb-4">
-        <div class="toolbar-left">
-            <!-- Fechas -->
-            <div class="ad-filter">
-                <div class="ad-filter__label">Rango de fechas</div>
-                <div class="ad-date">
-                    <button id="ad-date-pill" class="ad-date__pill">
-                        <i class="ti ti-calendar"></i>
-                        <span id="ad-date-text">Últimos 30 días</span>
-                        <i class="ti ti-chevron-down ms-2"></i>
-                    </button>
-                    <div id="ad-date-panel" class="ad-date__panel" hidden>
-                        <div id="ad-chips" class="ad-date__chips">
-                            <button class="chip" data-range="1">Hoy</button>
-                            <button class="chip" data-range="7">7 días</button>
-                            <button class="chip active" data-range="30">30 días</button>
-                            <button class="chip" data-range="90">90 días</button>
-                            <button class="chip" data-range="ytd">YTD</button>
-                            <button class="chip" data-range="year">Este año</button>
-                            <button class="chip" data-range="custom">Personalizado…</button>
-                        </div>
-                        <div class="ad-date__picker">
-                            <input id="ad-flatpickr" class="ad-input" placeholder="Elegí un rango…" />
-                        </div>
-                        <div class="ad-date__actions">
-                            <button id="ad-apply" class="ad-btn-primary">Aplicar</button>
-                            <button id="ad-cancel" class="ad-btn-ghost">Cancelar</button>
-                        </div>
-                    </div>
-                </div>
+        <div class="ad-filters__row">
+            <div class="ad-filters__label"><i class="ti ti-bolt"></i> Rápido</div>
+            <div id="ad-chips-quick" class="ad-chips">
+                <button class="chip" data-preset="hoy">Hoy</button>
+                <button class="chip" data-preset="7">7 días</button>
+                <button class="chip" data-preset="30">30 días</button>
+                <button class="chip" data-preset="90">90 días</button>
+                <button class="chip" data-preset="mes">Este mes</button>
+                <button class="chip" data-preset="mesAnt">Mes anterior</button>
+                <button class="chip" data-preset="ytd">Año a la fecha</button>
+                <button class="chip" data-preset="365">Últimos 12 meses</button>
+                <button class="chip" data-preset="todo">Todo</button>
             </div>
+        </div>
 
-            <!-- Cliente -->
+        <div class="ad-filters__row">
+            <div class="ad-filters__label"><i class="ti ti-calendar-stats"></i> Año</div>
+            <div id="ad-chips-year" class="ad-chips"></div>
+        </div>
+
+        <div class="ad-filters__row">
+            <div class="ad-filters__label"><i class="ti ti-calendar-month"></i> Mes</div>
+            <div id="ad-chips-month" class="ad-chips"></div>
+            <span class="ad-hint">Shift + clic para elegir varios meses</span>
+        </div>
+
+        </div>
+        </div>
+        </div>
+
+        <div class="ad-filters__row ad-filters__row--inputs">
+            <div class="ad-filter">
+                <div class="ad-filter__label">Rango personalizado</div>
+                <input id="ad-flatpickr" class="ad-input" placeholder="Elegí un rango…" readonly />
+            </div>
             <div class="ad-filter">
                 <div class="ad-filter__label">Cliente</div>
                 <select id="filtroCliente" class="ad-input"></select>
             </div>
-
-            <!-- Top N -->
+            <div class="ad-filter">
+                <div class="ad-filter__label">Forma de pago</div>
+                <select id="filtroFormaPago" class="ad-input" style="min-width:190px"></select>
+            </div>
             <div class="ad-filter">
                 <div class="ad-filter__label">Top productos</div>
-                <input id="filtroTopN" type="number" value="10" min="1" max="1000" class="ad-input" style="width:110px">
+                <input id="filtroTopN" type="number" value="15" min="3" max="100" class="ad-input" style="width:100px">
+            </div>
+            <div class="ad-filters__actions">
+                <button id="btnConsultar" class="ad-btn-primary"><i class="ti ti-refresh me-1"></i> Actualizar</button>
+                <button id="btnExportar" class="ad-btn-ghost"><i class="ti ti-file-type-pdf me-1"></i> PDF</button>
             </div>
         </div>
 
-        <div class="toolbar-right">
-            <button id="btnConsultar" class="ad-btn-primary"><i class="ti ti-search me-1"></i> Consultar</button>
-            <button id="btnExportar" class="ad-btn-ghost"><i class="ti ti-file-type-pdf me-1"></i> Exportar PDF</button>
-        </div>
+        <div id="ad-periodo" class="ad-periodo"></div>
     </div>
 
-    <!-- KPIs -->
-    <div class="row g-3 mb-3">
-        <div class="col-md-4">
-            <div class="ad-kpi">
-                <div class="ad-kpi__icon bg-grad-blue"><i class="ti ti-cash"></i></div>
-                <div class="flex-grow-1">
-                    <span class="ad-kpi__label">Ventas (ingresos)</span>
-                    <div id="kpi_ingresos" class="ad-kpi__value">—</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="ad-kpi">
-                <div class="ad-kpi__icon bg-grad-red"><i class="ti ti-credit-card-off"></i></div>
-                <div class="flex-grow-1">
-                    <span class="ad-kpi__label">Gastos (egresos)</span>
-                    <div id="kpi_egresos" class="ad-kpi__value">—</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="ad-kpi">
-                <div class="ad-kpi__icon bg-grad-purple"><i class="ti ti-shopping-cart"></i></div>
-                <div class="flex-grow-1">
-                    <span class="ad-kpi__label">Pedidos / Unidades</span>
-                    <div id="kpi_pedidos_unidades" class="ad-kpi__value">—</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3" hidden>
-            <div class="ad-kpi">
-                <div class="ad-kpi__icon bg-grad-green"><i class="ti ti-chart-infographic"></i></div>
-                <div class="flex-grow-1">
-                    <span class="ad-kpi__label">Margen neto</span>
-                    <div id="kpi_margen" class="ad-kpi__value">—</div>
-                </div>
-            </div>
-        </div>
+    <!-- ================= TABS ================= -->
+    <div class="ad-tabs" id="ad-tabs">
+        <button class="ad-tab active" data-tab="resumen"><i class="ti ti-layout-dashboard"></i> Resumen</button>
+        <button class="ad-tab" data-tab="ventas"><i class="ti ti-receipt-2"></i> Ventas</button>
+        <button class="ad-tab" data-tab="productos"><i class="ti ti-armchair"></i> Productos</button>
+        <button class="ad-tab" data-tab="gastos"><i class="ti ti-wallet"></i> Gastos</button>
     </div>
 
-    <!-- Evolución + Medios de pago -->
-    <div class="row g-3">
-        <div class="col-xl-8">
-            <div class="ad-card p-3 h-100">
-                <div class="ad-card__header">Evolución Ventas / Costos / Márgenes</div>
-                <div class="ad-chart"><canvas id="ch_linea"></canvas></div>
-            </div>
-        </div>
-        <div class="col-xl-4">
-            <div class="ad-card p-3 h-100">
-                <div class="ad-card__header">Medios de pago (distribución de ventas)</div>
-                <div class="ad-chart"><canvas id="ch_medios"></canvas></div>
-            </div>
-        </div>
-    </div>
+    <div id="ad-error" class="ad-alert" hidden></div>
 
-    <!-- Crecimiento + Interanual -->
-    <div class="row g-3 mt-1">
-        <div class="col-xl-6">
-            <div class="ad-card p-3 h-100">
-                <div class="ad-card__header">Crecimiento (Pedidos / Unidades)</div>
-                <div class="ad-chart"><canvas id="ch_crecimiento"></canvas></div>
-            </div>
-        </div>
-        <div class="col-xl-6">
-            <div class="ad-card p-3 h-100">
-                <div class="ad-card__header">Comparativa interanual</div>
-                <div class="ad-chart"><canvas id="ch_interanual"></canvas></div>
-            </div>
-        </div>
-    </div>
+    <!-- ================= RESUMEN ================= -->
+    <section class="ad-pane" id="pane-resumen">
 
-    <!-- Márgenes + Costos por medio -->
-    <div class="row g-3 mt-1">
-        <div class="col-xl-8">
-            <div class="ad-card p-3 h-100">
-                <div class="ad-card__header">Evolución mensual de márgenes</div>
-                <div class="ad-chart"><canvas id="ch_margenes"></canvas></div>
-            </div>
-        </div>
-        <div class="col-xl-4">
-            <div class="ad-card p-3 h-100">
-                <div class="ad-card__header">Costos por medio de cobro</div>
-                <div class="ad-chart"><canvas id="ch_medios_costos"></canvas></div>
-            </div>
-        </div>
-    </div>
+        <div id="ad-kpis" class="ad-kpi-grid"></div>
 
-    <!-- Tops -->
-    <div class="row g-3 mt-1">
-        <div class="col-xxl-6">
-            <div class="ad-card p-3">
-                <div class="ad-card__header">Top productos más vendidos</div>
-                <div class="ad-chart"><canvas id="ch_topMas"></canvas></div>
-                <div class="ad-pager" data-for="ch_topMas">
-                    <span class="lbl">—</span>
-                    <button class="btn prev"><span class="ico">◀</span></button>
-                    <button class="btn next"><span class="ico">▶</span></button>
+        <div class="row g-3 mt-1">
+            <div class="col-xl-5">
+                <div class="ad-card p-3 h-100">
+                    <div class="ad-card__header">¿A dónde va lo que cobro? <span class="ad-sub">de ventas cobradas a resultado</span></div>
+                    <div class="ad-chart ad-chart--md"><canvas id="ch_cascada"></canvas></div>
+                </div>
+            </div>
+            <div class="col-xl-7">
+                <div class="ad-card p-3 h-100">
+                    <div class="ad-card__header">Evolución <span class="ad-sub" id="ad-evo-sub"></span></div>
+                    <div class="ad-chart ad-chart--md"><canvas id="ch_evolucion"></canvas></div>
                 </div>
             </div>
         </div>
-        <div class="col-xxl-6">
-            <div class="ad-card p-3">
-                <div class="ad-card__header">Productos más rentables</div>
-                <div class="ad-chart"><canvas id="ch_topRentables"></canvas></div>
-                <div class="ad-pager" data-for="ch_topRentables">
-                    <span class="lbl">—</span>
-                    <button class="btn prev"><span class="ico">◀</span></button>
-                    <button class="btn next"><span class="ico">▶</span></button>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="row g-3 mt-1">
-        <div class="col-xxl-6">
-            <div class="ad-card p-3">
-                <div class="ad-card__header">Productos menos vendidos</div>
-                <div class="ad-chart"><canvas id="ch_topMenos"></canvas></div>
-                <div class="ad-pager" data-for="ch_topMenos">
-                    <span class="lbl">—</span>
-                    <button class="btn prev"><span class="ico">◀</span></button>
-                    <button class="btn next"><span class="ico">▶</span></button>
+        <div class="row g-3 mt-1">
+            <div class="col-12">
+                <div class="ad-card p-3">
+                    <div class="ad-card__header">Resumen mensual <span class="ad-sub">como la planilla · clic en un mes para verlo</span></div>
+                    <div id="tbl_mensual"></div>
                 </div>
             </div>
         </div>
-        <div class="col-xxl-6">
-            <div class="ad-card p-3">
-                <div class="ad-card__header">Productos menos rentables</div>
-                <div class="ad-chart"><canvas id="ch_topMenosRentables"></canvas></div>
-                <div class="ad-pager" data-for="ch_topMenosRentables">
-                    <span class="lbl">—</span>
-                    <button class="btn prev"><span class="ico">◀</span></button>
-                    <button class="btn next"><span class="ico">▶</span></button>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Rentabilidad por categoría / proveedor -->
-    <div class="row g-3 mt-1">
-        <div class="col-xxl-6">
-            <div class="ad-card p-3">
-                <div class="ad-card__header">Rentabilidad por categoría</div>
-                <div class="ad-chart"><canvas id="ch_categoria"></canvas></div>
+        <div class="row g-3 mt-1">
+            <div class="col-xl-6">
+                <div class="ad-card p-3 h-100">
+                    <div class="ad-card__header">Medios de pago</div>
+                    <div class="ad-chart ad-chart--sm"><canvas id="ch_medios"></canvas></div>
+                    <div id="tbl_medios" class="mt-2"></div>
+                </div>
+            </div>
+            <div class="col-xl-6">
+                <div class="ad-card p-3 h-100">
+                    <div class="ad-card__header">Composición de lo cobrado <span class="ad-sub">ganancia neta + IVA + costo financiero</span></div>
+                    <div class="ad-chart ad-chart--md"><canvas id="ch_composicion"></canvas></div>
+                </div>
             </div>
         </div>
-        <div class="col-xxl-6">
-            <div class="ad-card p-3">
-                <div class="ad-card__header">Rentabilidad por proveedor</div>
-                <div class="ad-chart"><canvas id="ch_proveedor"></canvas></div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-xl-8">
+                <div class="ad-card p-3 h-100">
+                    <div class="ad-card__header">Comparativa interanual <span class="ad-sub">ventas vs mismo mes del año anterior</span></div>
+                    <div class="ad-chart ad-chart--md"><canvas id="ch_interanual"></canvas></div>
+                </div>
+            </div>
+            <div class="col-xl-4">
+                <div class="ad-card p-3 h-100">
+                    <div class="ad-card__header">Ventas por día de la semana</div>
+                    <div class="ad-chart ad-chart--md"><canvas id="ch_diasemana"></canvas></div>
+                </div>
             </div>
         </div>
-    </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-12">
+                <div class="ad-card p-3">
+                    <div class="ad-card__header">Mejores clientes <span class="ad-sub">clic en un cliente para filtrar</span></div>
+                    <div id="tbl_clientes"></div>
+                </div>
+            </div>
+        </div>    </section>
+
+    <!-- ================= VENTAS ================= -->
+    <section class="ad-pane" id="pane-ventas" hidden>
+        <div class="ad-card p-3">
+            <div class="ad-card__header">
+                Detalle de ventas
+                <span class="ad-sub">mismas fórmulas que el Excel · clic en una fila para ver los productos</span>
+            </div>
+            <div id="ventas-chips" class="ad-chips mb-2"></div>
+            <div id="tbl_ventas"></div>
+        </div>
+    </section>
+
+    <!-- ================= PRODUCTOS ================= -->
+    <section class="ad-pane" id="pane-productos" hidden>
+        <div class="ad-card p-3">
+            <div class="ad-card__header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <span>Ranking de productos <span class="ad-sub" id="ad-prod-sub"></span></span>
+                <span class="ad-seg" id="prod-orden">
+                    <button class="ad-seg__btn active" data-orden="mas">Más</button>
+                    <button class="ad-seg__btn" data-orden="menos">Menos</button>
+                </span>
+            </div>
+            <div class="ad-chips mb-2" id="prod-metricas">
+                <button class="chip active" data-metric="Unidades">Unidades vendidas</button>
+                <button class="chip" data-metric="Ingreso">Ingresos</button>
+                <button class="chip" data-metric="Margen">Margen $</button>
+                <button class="chip" data-metric="MargenPct">Margen %</button>
+                <button class="chip" data-metric="Pedidos">Veces vendido</button>
+            </div>
+            <div class="ad-chart ad-chart--tall"><canvas id="ch_productos"></canvas></div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-xl-5">
+                <div class="ad-card p-3 h-100">
+                    <div class="ad-card__header">Rentabilidad por categoría</div>
+                    <div class="ad-chart ad-chart--md"><canvas id="ch_categoria"></canvas></div>
+                </div>
+            </div>
+            <div class="col-xl-7">
+                <div class="ad-card p-3 h-100">
+                    <div class="ad-card__header">Mapa de productos <span class="ad-sub">unidades vs margen % (tamaño = ingreso)</span></div>
+                    <div class="ad-chart ad-chart--md"><canvas id="ch_burbujas"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ad-card p-3 mt-3">
+            <div class="ad-card__header">Todos los productos vendidos</div>
+            <div id="tbl_productos"></div>
+        </div>
+    </section>
+
+    <!-- ================= GASTOS ================= -->
+    <section class="ad-pane" id="pane-gastos" hidden>
+        <div class="row g-3">
+            <div class="col-xl-5">
+                <div class="ad-card p-3 h-100">
+                    <div class="ad-card__header">Gastos por categoría <span class="ad-sub">neto</span></div>
+                    <div class="ad-chart ad-chart--tall"><canvas id="ch_gastoscat"></canvas></div>
+                </div>
+            </div>
+            <div class="col-xl-7">
+                <div class="ad-card p-3 h-100">
+                    <div class="ad-card__header">Insumos vs operativos por mes <span class="ad-sub">neto</span></div>
+                    <div class="ad-chart ad-chart--tall"><canvas id="ch_gastosmes"></canvas></div>
+                </div>
+            </div>
+        </div>
+        <div class="ad-card p-3 mt-3">
+            <div class="ad-card__header">
+                Detalle de gastos <span class="ad-sub">mismas fórmulas que el Excel (transferencia: importe ÷ 1,21)</span>
+            </div>
+            <div id="gastos-chips" class="ad-chips mb-2"></div>
+            <div id="tbl_gastos"></div>
+        </div>
+    </section>
 </div>
 
 @section Scripts {
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/moment.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/locale/es.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -285,5 +251,5 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
-    <script src="~/js/AnalisisDatos.js?v=5.0"></script>
+    <script src="~/js/AnalisisDatos.js?v=6.1"></script>
 }
